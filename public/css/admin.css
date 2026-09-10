@@ -1,0 +1,134 @@
+/* CASHEVENT SCHOOL — console d'administration */
+.page-admin{background:#0f0f11}
+
+.admin-tete{padding:36px var(--page-x) 0}
+.admin-tete h1{font-size:32px;font-weight:800;letter-spacing:-.02em}
+.admin-tete p{color:var(--text-3);font-size:15px;margin-top:6px}
+
+.onglets{display:flex;gap:4px;padding:22px var(--page-x) 0;border-bottom:1px solid var(--line-2);
+  margin-bottom:24px;overflow-x:auto;scrollbar-width:none}
+.onglets::-webkit-scrollbar{display:none}
+.onglets button{height:42px;padding:0 16px;font-size:14.5px;color:var(--text-3);position:relative;
+  white-space:nowrap;transition:color .15s}
+.onglets button:hover{color:var(--text)}
+.onglets button.active{color:#fff;font-weight:600}
+.onglets button.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--brand)}
+
+#vue{padding:0 var(--page-x) 70px}
+#vue .tuiles{padding:0 0 22px}
+#vue .panneau{background:var(--card);border:1px solid var(--line-2);border-radius:12px;padding:20px 22px}
+.colonnes-admin{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+
+.barre-outils{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:0 0 18px}
+.barre-outils .champ{max-width:260px}
+.barre-outils .pilule{margin-left:auto}
+.pills.serres{padding:0;gap:6px}
+.pills.serres button{height:34px;padding:0 13px;font-size:13px}
+
+/* --------------------------------- tableau -------------------------------- */
+.tableau{border:1px solid var(--line-2);border-radius:12px;overflow:auto;background:var(--card)}
+.tableau table{width:100%;border-collapse:collapse;min-width:900px}
+.tableau th{text-align:left;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);
+  font-weight:700;padding:13px 16px;border-bottom:1px solid var(--line-2);white-space:nowrap;
+  position:sticky;top:0;background:var(--card-2);z-index:1}
+.tableau td{padding:12px 16px;font-size:13.5px;border-bottom:1px solid #1f1f23;vertical-align:middle}
+.tableau tbody tr:last-child td{border-bottom:0}
+.tableau tbody tr:hover{background:#1f1f23}
+.tableau td b{display:block;font-size:14px}
+.tableau td small{display:block;color:var(--text-3);font-size:12px;margin-top:2px}
+.tableau td .pt{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px}
+.tableau .vide{padding:26px 16px}
+.actions-ligne{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+
+.pastille{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11.5px;font-weight:700}
+.pastille.ok{background:rgba(63,208,138,.16);color:#6fe0ac}
+.pastille.off{background:rgba(140,140,140,.16);color:#a9a9b2}
+
+.liens{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.lien-puce{display:inline-flex;align-items:center;gap:8px;padding:5px 6px 5px 12px;border-radius:999px;
+  background:var(--card-2);border:1px solid var(--line-2);font-size:12.5px;color:var(--text-2)}
+.lien-puce button{width:20px;height:20px;border-radius:50%;background:#3a3a42;font-size:13px;line-height:1;
+  display:grid;place-items:center;transition:.15s}
+.lien-puce button:hover{background:var(--brand);color:#fff}
+
+/* -------------------------------- catalogue ------------------------------- */
+.grille-matieres{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.carte-matiere{position:relative;border-radius:12px;padding:18px;overflow:hidden;
+  background:linear-gradient(135deg,var(--c1),var(--c2));box-shadow:0 10px 24px rgba(0,0,0,.4)}
+.carte-matiere::before{content:"";position:absolute;inset:0;background:rgba(10,12,18,.62)}
+.carte-matiere > *{position:relative}
+.carte-matiere .g{position:absolute;right:-4px;top:-16px;font-size:76px;opacity:.22;line-height:1}
+.carte-matiere b{display:block;font-size:16px;margin-bottom:4px}
+.carte-matiere small{display:block;color:rgba(255,255,255,.75);font-size:12.5px;margin-bottom:14px}
+.carte-matiere .actions-ligne{justify-content:flex-start}
+.carte-matiere .mini{border-color:rgba(255,255,255,.3);color:#fff}
+.carte-matiere .mini:hover{background:rgba(255,255,255,.16)}
+
+/* ------------------------------ suivi élèves ------------------------------ */
+.grille-eleves{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.carte-eleve{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto auto;gap:6px 14px;
+  text-align:left;padding:16px;border-radius:12px;border:1px solid var(--line-2);background:var(--card);
+  transition:.15s}
+.carte-eleve:hover{background:var(--card-2);border-color:#4a4a52}
+.carte-eleve.active{border-color:#fff;background:var(--card-2)}
+.carte-eleve .av{grid-row:span 1;width:40px;height:40px;border-radius:10px;display:grid;place-items:center;
+  font-weight:800;background:linear-gradient(135deg,#4c8dff,#7b3bf5)}
+.carte-eleve .txt b{display:block;font-size:14.5px}
+.carte-eleve .txt small{color:var(--text-3);font-size:12.5px;word-break:break-all}
+.carte-eleve .barre{grid-column:1/-1;background:#2c2c31}
+.carte-eleve .chiffres{grid-column:1/-1;font-size:12.5px;color:var(--text-3)}
+
+/* -------------------------------- dialogue -------------------------------- */
+.dlg-fond{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:80;display:grid;place-items:start center;
+  padding:40px 20px;overflow-y:auto}
+.dlg{width:100%;max-width:520px;background:var(--card);border:1px solid var(--line-2);border-radius:14px;
+  box-shadow:0 40px 90px rgba(0,0,0,.7);display:flex;flex-direction:column;max-height:calc(100vh - 80px)}
+.dlg.large{max-width:820px}
+.dlg header{display:flex;align-items:center;gap:16px;padding:18px 22px;border-bottom:1px solid var(--line-2)}
+.dlg header h2{font-size:17px;font-weight:700;flex:1}
+.dlg header .close{position:static;width:32px;height:32px;border-radius:50%;background:#2a2a2e;
+  display:grid;place-items:center}
+.dlg header .close:hover{background:#3a3a42}
+.dlg header .close .i{width:18px;height:18px}
+.dlg-corps{padding:20px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+.dlg-corps label{font-size:13px;font-weight:600;color:var(--text-2);display:block}
+.dlg-corps label .champ{margin-top:7px;font-weight:400}
+.dlg-corps .deux{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.dlg-corps label.case{display:flex;align-items:center;gap:10px;font-weight:500}
+.dlg-corps label.case input{width:18px;height:18px;accent-color:#4c8dff}
+.dlg footer{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--line-2)}
+
+.question-edit{border:1px solid var(--line-2);border-radius:12px;padding:16px;background:var(--card-2);
+  display:flex;flex-direction:column;gap:14px}
+.question-edit legend{display:flex;align-items:center;gap:12px;font-size:12px;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);padding:0 6px}
+.options-edit{display:flex;flex-direction:column;gap:8px}
+.option-edit{display:flex;align-items:center;gap:10px}
+.option-edit input[type=radio]{width:18px;height:18px;flex:none;accent-color:#3fd08a}
+.option-edit .champ{flex:1;height:38px}
+.option-edit .mini{width:32px;padding:0;justify-content:center;display:flex;align-items:center}
+
+@media (max-width:900px){
+  .colonnes-admin{grid-template-columns:1fr}
+  .dlg-corps .deux{grid-template-columns:1fr}
+  .admin-tete{padding-top:26px}
+  .admin-tete h1{font-size:25px}
+  .barre-outils .pilule{margin-left:0}
+}
+
+/* ---------------------------------- journal -------------------------------- */
+.case-outil{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-2);cursor:pointer}
+.case-outil input{width:16px;height:16px;accent-color:#4c8dff}
+.tableau tr.echec{background:rgba(225,29,61,.07)}
+.tableau tr.echec:hover{background:rgba(225,29,61,.12)}
+.quand-cell{white-space:nowrap;color:var(--text-3);font-size:12.5px}
+.tableau td.detail{color:var(--text-3);font-size:12.5px;max-width:280px}
+.tableau td.ip{color:#6a6a72;font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.anonyme{color:var(--text-3)}
+.etiquette{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700;
+  margin-right:8px;letter-spacing:.02em}
+.cat-auth{background:rgba(76,141,255,.18);color:#9db6ff}
+.cat-compte{background:rgba(63,208,138,.18);color:#6fe0ac}
+.cat-catalogue{background:rgba(245,165,36,.18);color:#f5c078}
+.cat-apprentissage{background:rgba(123,59,245,.2);color:#c0a8ff}
+.plus{display:flex;justify-content:center;padding:20px 0 0}

@@ -1,0 +1,237 @@
+/* CASHEVENT SCHOOL — page d'accueil publique, connexion et inscription
+   Codes visuels de la plateforme : noir profond, accent rouge, séparateurs épais. */
+
+:root{
+  --nf-rouge:#e11d3d;
+  --nf-rouge-vif:#f6193d;
+  --nf-gris:#232323;
+  --nf-champ:#161616;
+  --nf-bordure:#5b5b5b;
+}
+body.page-nf{background:#000;color:#fff}
+
+/* --------------------------- collage de fond ---------------------------- */
+/* Les vignettes de matières remplacent l'affiche : construites en CSS,
+   aucune image externe à charger. */
+.collage{position:absolute;inset:0;overflow:hidden;z-index:0}
+.collage .grille{position:absolute;inset:-14%;display:grid;grid-template-columns:repeat(12,1fr);
+  gap:8px;transform:rotate(-6deg) scale(1.2)}
+.collage .tuile{aspect-ratio:2/3;border-radius:6px;background:linear-gradient(150deg,var(--c1),var(--c2));
+  position:relative;overflow:hidden;display:grid;place-items:center}
+.collage .tuile::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(0,0,0,.3))}
+.collage .tuile span{font-size:30px;opacity:.65;position:relative}
+/* Le collage reste lisible sur les bords, le centre s'assombrit pour le texte. */
+.voile{position:absolute;inset:0;z-index:1;background:
+  radial-gradient(62% 58% at 50% 46%,rgba(0,0,0,.9) 0%,rgba(0,0,0,.78) 45%,rgba(0,0,0,.42) 78%,rgba(0,0,0,.5) 100%),
+  linear-gradient(0deg,#000 0%,rgba(0,0,0,.25) 26%,rgba(0,0,0,.3) 72%,rgba(0,0,0,.62) 100%)}
+
+/* ------------------------------- en-tête -------------------------------- */
+.nf-tete{position:relative;z-index:3;display:flex;align-items:center;justify-content:space-between;
+  padding:22px clamp(20px,5vw,58px)}
+.nf-tete .brand{font-size:24px}
+.nf-tete .brand b{font-size:30px}
+.nf-actions{display:flex;gap:10px;align-items:center}
+.nf-bouton{height:36px;padding:0 17px;border-radius:5px;background:var(--nf-rouge);color:#fff;
+  font-size:14.5px;font-weight:600;display:inline-flex;align-items:center;gap:8px;transition:background .15s}
+.nf-bouton:hover{background:var(--nf-rouge-vif)}
+.nf-bouton.fantome{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.45)}
+.nf-bouton.fantome:hover{background:rgba(255,255,255,.12)}
+.nf-bouton.grand{height:56px;padding:0 26px;font-size:20px;border-radius:6px}
+.nf-bouton svg{width:18px;height:18px}
+
+/* --------------------------------- hero --------------------------------- */
+.nf-hero{position:relative;min-height:min(760px,88vh);display:flex;flex-direction:column;
+  border-bottom:8px solid var(--nf-gris);overflow:hidden}
+.nf-hero .dedans{position:relative;z-index:3;flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;padding:70px 20px 96px;max-width:1000px;margin:0 auto}
+.nf-hero h1{font-size:clamp(34px,5.4vw,62px);font-weight:800;line-height:1.06;letter-spacing:-.02em;
+  max-width:16ch;text-wrap:balance;margin-bottom:18px;text-shadow:0 4px 30px rgba(0,0,0,.6)}
+.nf-hero .accroche{font-size:clamp(17px,2vw,23px);font-weight:500;margin-bottom:12px;color:#fff}
+.nf-hero .relance{font-size:16px;color:#e5e5e5;margin-bottom:20px}
+.nf-capture{display:flex;gap:10px;width:100%;max-width:680px;flex-wrap:wrap;justify-content:center}
+.nf-capture .enveloppe{position:relative;flex:1;min-width:260px}
+.nf-capture input{width:100%;height:56px;padding:20px 14px 6px;border-radius:5px;
+  background:rgba(22,22,22,.72);border:1px solid var(--nf-bordure);color:#fff;font:inherit;font-size:16px}
+.nf-capture input:focus{outline:none;border-color:#fff}
+.nf-capture label{position:absolute;left:15px;top:17px;color:#b7b7b7;font-size:16px;pointer-events:none;
+  transition:.12s ease}
+.nf-capture input:focus + label,
+.nf-capture input:not(:placeholder-shown) + label{top:7px;font-size:11.5px}
+
+/* ------------------------------- sections ------------------------------- */
+.nf-section{border-bottom:8px solid var(--nf-gris);padding:64px clamp(20px,5vw,58px)}
+.nf-duo{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center;
+  max-width:1100px;margin:0 auto}
+.nf-duo.inverse .texte{order:2}
+.nf-duo h2{font-size:clamp(26px,3.4vw,46px);font-weight:800;line-height:1.12;letter-spacing:-.02em;
+  margin-bottom:16px;text-wrap:balance}
+.nf-duo p{font-size:clamp(16px,1.5vw,20px);color:#d2d2d2;line-height:1.5}
+.nf-duo .visuel{position:relative;min-height:260px;display:grid;place-items:center}
+
+/* Maquettes de démonstration à l'intérieur des sections */
+.demo-carte{width:100%;max-width:340px;aspect-ratio:16/10;border-radius:12px;position:relative;
+  overflow:hidden;background:linear-gradient(135deg,#3b6ef5,#7b3bf5);box-shadow:0 24px 50px rgba(0,0,0,.6)}
+.demo-carte::before{content:"";position:absolute;inset:0;
+  background:linear-gradient(0deg,rgba(6,8,14,.9) 10%,rgba(6,8,14,.15) 60%)}
+.demo-carte .g{position:absolute;right:-8px;top:-20px;font-size:130px;opacity:.22;line-height:1}
+.demo-carte .n{position:absolute;left:16px;top:14px;font-size:11px;font-weight:800;letter-spacing:.16em;
+  text-transform:uppercase;opacity:.9;z-index:1}
+.demo-carte .t{position:absolute;left:16px;right:16px;bottom:42px;font-size:20px;font-weight:700;z-index:1}
+.demo-carte .b{position:absolute;left:16px;right:16px;bottom:20px;height:5px;border-radius:99px;
+  background:rgba(255,255,255,.25);z-index:1}
+.demo-carte .b i{display:block;height:100%;width:62%;border-radius:99px;background:#fff}
+
+.demo-qcm{width:100%;max-width:380px;background:#1b1b1d;border:1px solid #34343a;border-radius:12px;
+  padding:18px;box-shadow:0 24px 50px rgba(0,0,0,.6)}
+.demo-qcm .q{font-size:15px;font-weight:600;margin-bottom:14px;line-height:1.4}
+.demo-qcm .r{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:9px;
+  border:1px solid #34343a;font-size:13.5px;margin-bottom:8px;color:#d2d2d2}
+.demo-qcm .r .l{width:22px;height:22px;border-radius:6px;background:#3a3a42;display:grid;place-items:center;
+  font-size:11px;font-weight:700;flex:none}
+.demo-qcm .r.juste{border-color:#3fd08a;background:rgba(63,208,138,.12);color:#fff}
+.demo-qcm .r.juste .l{background:#3fd08a;color:#06240f}
+.demo-qcm .ia{margin-top:12px;border-radius:9px;padding:12px 13px;font-size:12.5px;line-height:1.5;
+  color:#d2d2d2;background:linear-gradient(135deg,rgba(76,141,255,.14),rgba(123,59,245,.14));
+  border:1px solid rgba(120,140,255,.3)}
+.demo-qcm .ia b{display:flex;align-items:center;gap:7px;color:#9db6ff;font-size:11px;letter-spacing:.12em;
+  text-transform:uppercase;margin-bottom:6px}
+.demo-qcm .ia b span{width:18px;height:18px;border-radius:5px;display:grid;place-items:center;font-size:10px;
+  background:linear-gradient(135deg,#4c8dff,#7b3bf5)}
+
+.demo-doc{width:100%;max-width:330px;background:#fff;color:#111;border-radius:10px;padding:22px;
+  box-shadow:0 24px 50px rgba(0,0,0,.6);transform:rotate(-2deg)}
+.demo-doc h4{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#666;margin-bottom:10px}
+.demo-doc b{display:block;font-size:15px;margin-bottom:12px}
+.demo-doc .ligne{height:7px;border-radius:99px;background:#e3e3e3;margin-bottom:8px}
+.demo-doc .ligne.courte{width:62%}
+.demo-doc .corrige{margin-top:14px;padding-top:12px;border-top:1px solid #e3e3e3}
+.demo-doc .corrige span{display:inline-block;font-size:11px;font-weight:700;color:#0a7c46;
+  background:#dcf5e8;border-radius:99px;padding:3px 10px}
+
+.demo-parent{width:100%;max-width:360px;background:#141416;border:1px solid #34343a;border-radius:12px;
+  padding:18px;box-shadow:0 24px 50px rgba(0,0,0,.6)}
+.demo-parent .haut{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.demo-parent .anneau{width:70px;height:70px;border-radius:50%;display:grid;place-items:center;flex:none;
+  background:conic-gradient(#3fd08a 133deg,#2c2c31 0)}
+.demo-parent .anneau i{width:52px;height:52px;border-radius:50%;background:#141416;display:grid;
+  place-items:center;font-style:normal;font-weight:800;font-size:15px}
+.demo-parent .haut b{display:block;font-size:22px;font-weight:800}
+.demo-parent .haut small{color:#8c8c8c;font-size:12.5px}
+.demo-parent .alerte-mini{display:flex;gap:10px;border-radius:9px;background:#1f1f23;border:1px solid #34343a;
+  padding:11px 12px;font-size:12.5px;line-height:1.45;color:#d2d2d2;margin-bottom:8px}
+.demo-parent .alerte-mini b{display:block;color:#fff;font-size:13px;margin-bottom:2px}
+
+/* --------------------------------- matières ------------------------------ */
+.nf-matieres{max-width:1100px;margin:0 auto;text-align:center}
+.nf-matieres h2{font-size:clamp(24px,3vw,38px);font-weight:800;margin-bottom:10px;letter-spacing:-.02em}
+.nf-matieres > p{color:#d2d2d2;font-size:17px;margin-bottom:32px}
+.nf-grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.nf-mat{position:relative;border-radius:10px;padding:18px 14px 16px;overflow:hidden;text-align:left;
+  background:linear-gradient(140deg,var(--c1),var(--c2));min-height:112px;display:flex;flex-direction:column;
+  justify-content:flex-end;transition:transform .18s}
+.nf-mat:hover{transform:translateY(-4px)}
+.nf-mat::before{content:"";position:absolute;inset:0;background:rgba(6,8,14,.5)}
+.nf-mat span.g{position:absolute;right:-2px;top:-10px;font-size:56px;opacity:.28;line-height:1}
+.nf-mat b{position:relative;font-size:14.5px;line-height:1.25}
+.nf-mat small{position:relative;color:rgba(255,255,255,.78);font-size:12px;margin-top:3px}
+
+/* ----------------------------------- FAQ --------------------------------- */
+.nf-faq{max-width:820px;margin:0 auto}
+.nf-faq h2{font-size:clamp(24px,3vw,38px);font-weight:800;text-align:center;margin-bottom:28px;
+  letter-spacing:-.02em}
+.nf-faq details{background:var(--nf-gris);margin-bottom:8px;border-radius:2px}
+.nf-faq summary{list-style:none;cursor:pointer;padding:22px 24px;font-size:clamp(17px,2vw,21px);
+  display:flex;align-items:center;justify-content:space-between;gap:16px;transition:background .15s}
+.nf-faq summary::-webkit-details-marker{display:none}
+.nf-faq summary:hover{background:#2f2f2f}
+.nf-faq summary::after{content:"+";font-size:30px;font-weight:300;line-height:1;flex:none;transition:transform .2s}
+.nf-faq details[open] summary::after{transform:rotate(45deg)}
+.nf-faq .reponse{padding:0 24px 24px;font-size:clamp(15px,1.7vw,18px);line-height:1.6;color:#d2d2d2;
+  border-top:1px solid #000}
+.nf-faq .reponse p{padding-top:22px}
+.nf-relance{text-align:center;margin-top:34px}
+.nf-relance p{font-size:17px;color:#d2d2d2;margin-bottom:16px}
+.nf-relance .nf-capture{margin:0 auto}
+
+/* -------------------------------- pied de page --------------------------- */
+.nf-pied{padding:52px clamp(20px,5vw,58px) 60px;max-width:1100px;margin:0 auto;color:#8c8c8c;font-size:14px}
+.nf-pied > p{margin-bottom:26px}
+.nf-pied .cols{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 20px;margin-bottom:26px}
+.nf-pied a{display:block;font-size:13px;padding:4px 0}
+.nf-pied a:hover{text-decoration:underline;color:#d2d2d2}
+
+/* =========================== connexion / inscription ====================== */
+.nf-auth{position:relative;min-height:100vh;display:flex;flex-direction:column}
+.nf-auth .carte{position:relative;z-index:3;width:100%;max-width:450px;margin:auto;
+  background:rgba(0,0,0,.84);border-radius:4px;padding:52px 62px 44px;backdrop-filter:blur(2px)}
+.nf-auth .carte h1{font-size:32px;font-weight:700;margin-bottom:28px}
+.nf-auth form{display:flex;flex-direction:column;gap:16px}
+.nf-champ{position:relative}
+.nf-champ input,.nf-champ select{width:100%;height:52px;padding:20px 14px 6px;border-radius:4px;
+  background:var(--nf-champ);border:1px solid #454545;color:#fff;font:inherit;font-size:16px}
+.nf-champ select{padding-top:16px}
+.nf-champ input:focus,.nf-champ select:focus{outline:none;border-color:#fff;background:#1f1f1f}
+.nf-champ label{position:absolute;left:15px;top:15px;color:#8c8c8c;font-size:16px;pointer-events:none;
+  transition:.12s ease}
+.nf-champ input:focus + label,
+.nf-champ input:not(:placeholder-shown) + label{top:6px;font-size:11.5px}
+.nf-champ .indice{display:block;margin-top:6px;font-size:12.5px;color:#8c8c8c}
+.nf-soumettre{height:48px;border-radius:4px;background:var(--nf-rouge);font-size:16px;font-weight:700;
+  margin-top:8px;transition:background .15s}
+.nf-soumettre:hover{background:var(--nf-rouge-vif)}
+.nf-soumettre:disabled{opacity:.6;cursor:not-allowed}
+.nf-erreur{background:#e87c03;border-radius:4px;padding:11px 16px;font-size:14px;line-height:1.4;color:#000}
+.nf-bas{margin-top:26px;color:#8c8c8c;font-size:15px}
+.nf-bas a{color:#fff}
+.nf-bas a:hover{text-decoration:underline}
+.nf-mention{margin-top:12px;font-size:12.5px;color:#8c8c8c;line-height:1.5}
+
+/* Choix du rôle, à l'inscription */
+.nf-roles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.nf-roles label{position:relative;border:1px solid #454545;border-radius:4px;padding:13px;cursor:pointer;
+  background:var(--nf-champ);transition:.15s}
+.nf-roles label:hover{border-color:#777}
+.nf-roles label.actif{border-color:#fff;background:#1f1f1f}
+.nf-roles input{position:absolute;opacity:0;pointer-events:none}
+.nf-roles b{display:block;font-size:14.5px;margin-bottom:2px}
+.nf-roles small{color:#8c8c8c;font-size:12px}
+
+.nf-demo{margin-top:28px;padding-top:22px;border-top:1px solid #333}
+.nf-demo p{font-size:12.5px;color:#8c8c8c;margin-bottom:10px}
+.nf-demo .lignes{display:flex;gap:8px;flex-wrap:wrap}
+.nf-demo button{height:34px;padding:0 14px;border-radius:4px;border:1px solid #454545;font-size:13px;
+  color:#d2d2d2;transition:.15s}
+.nf-demo button:hover{border-color:#fff;color:#fff;background:#1f1f1f}
+
+@media (max-width:900px){
+  .nf-duo{grid-template-columns:1fr;gap:28px;text-align:center}
+  .nf-duo.inverse .texte{order:0}
+  .nf-pied .cols{grid-template-columns:repeat(2,1fr)}
+  .collage .grille{grid-template-columns:repeat(5,1fr)}
+}
+@media (max-width:640px){
+  .nf-auth .carte{padding:40px 24px 32px;background:rgba(0,0,0,.8)}
+  .nf-hero{min-height:520px}
+  .nf-section{padding:44px 20px}
+  .nf-roles{grid-template-columns:1fr}
+}
+
+/* --------------- Mur de vignettes : les affiches réelles ------------------- */
+.collage .tuile.photo{aspect-ratio:16/9}
+.collage .tuile.photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  filter:saturate(.9) brightness(.78)}
+.collage .grille:has(.photo){grid-template-columns:repeat(6,1fr);gap:10px}
+
+/* Vignette de matière avec l'affiche de son premier chapitre */
+.nf-mat.photo{min-height:132px}
+.nf-mat.photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  filter:saturate(.85) brightness(.5);transition:filter .2s,transform .3s}
+.nf-mat.photo:hover img{filter:saturate(1) brightness(.62);transform:scale(1.05)}
+.nf-mat.photo::before{background:linear-gradient(0deg,rgba(3,5,10,.95) 4%,rgba(3,5,10,.5) 55%,
+  rgba(3,5,10,.3) 100%)}
+.nf-mat.photo b{text-shadow:0 2px 10px rgba(0,0,0,.9)}
+.nf-mat.photo .g{opacity:.16}
+
+/* L'affiche réelle dans la maquette de démonstration */
+.demo-carte img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  filter:saturate(.95) brightness(.7)}

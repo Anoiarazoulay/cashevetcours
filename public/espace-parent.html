@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Espace parent — Cashevent School</title>
+<meta name="description" content="En dix secondes : où en est votre enfant, ce qu'il maîtrise et ce qu'il doit revoir.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Anton&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css?v=3">
+<link rel="stylesheet" href="/css/ecole.css?v=3">
+<link rel="stylesheet" href="/css/app.css?v=3">
+<link rel="stylesheet" href="/css/mobile.css?v=3">
+</head>
+<body data-page="parent">
+
+<div class="parent-tete">
+  <div>
+    <h1>Espace parent</h1>
+    <p>En dix secondes : où en est votre enfant, ce qu’il maîtrise, ce qu’il doit revoir.</p>
+  </div>
+  <div class="eleve">
+    <span class="av" id="eleveInit">?</span>
+    <span><b id="eleveNom">—</b><small id="eleveNiveau">Cashevent School</small></span>
+  </div>
+</div>
+
+<div class="enfants" id="enfants"></div>
+
+<div id="tableau">
+  <div class="tuiles" id="tuiles"></div>
+
+  <div class="colonnes-parent">
+    <div>
+      <div class="panneau">
+        <h2>Ce qu’il faut savoir aujourd’hui</h2>
+        <p class="sous">Des alertes utiles, pas de surveillance : l’objectif est d’encourager, pas de contrôler.</p>
+        <div id="alertes"></div>
+      </div>
+
+      <div class="panneau espace-haut">
+        <h2>Rythme de travail</h2>
+        <p class="sous" id="rythmeTexte"></p>
+        <div class="rythme" id="rythme"></div>
+        <div class="rythme-lab" id="rythmeLab"></div>
+        <div id="projection" class="espace-haut"></div>
+      </div>
+
+      <div class="panneau espace-haut">
+        <h2>Chapitres à revoir</h2>
+        <p class="sous">Dernier score au QCM inférieur à 60 %.</p>
+        <div id="revoirDetail"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panneau">
+        <h2>Progression par matière</h2>
+        <p class="sous">Part du programme déjà travaillée dans chaque matière.</p>
+        <div id="parMatiere"></div>
+      </div>
+
+      <div class="panneau espace-haut">
+        <h2>Comment lire ces chiffres</h2>
+        <p class="sous derniere">
+          La progression d’un chapitre combine les séances vidéo visionnées (50 %), le résumé lu (10 %),
+          le QCM passé (25 %) et le TP téléchargé (15 %). Un chapitre passe « à revoir » lorsque le dernier
+          score au QCM descend sous 60 %.
+        </p>
+      </div>
+
+      <div class="panneau espace-haut">
+        <h2>Rattacher un enfant</h2>
+        <p class="sous">Saisissez l’adresse e-mail de son compte élève.</p>
+        <form class="ligne-form" id="formEnfant">
+          <input class="champ" id="emailEnfant" type="email" placeholder="eleve@exemple.ma" required>
+          <button class="pilule blanc" type="submit">Rattacher</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js?v=3"></script>
+<script src="/js/entete.js?v=3"></script>
+<script src="/js/parent.js?v=3"></script>
+</body>
+</html>

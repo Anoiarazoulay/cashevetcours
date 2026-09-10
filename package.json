@@ -1,0 +1,24 @@
+{
+  "name": "cashevent-school",
+  "version": "1.0.0",
+  "description": "Plateforme de révision (élève, parent, admin) — API Node.js + MySQL et interface statique.",
+  "private": true,
+  "type": "commonjs",
+  "main": "server/src/index.js",
+  "scripts": {
+    "start": "node server/src/index.js",
+    "dev": "node --watch server/src/index.js",
+    "db:init": "node server/db/init.js",
+    "db:reset": "node server/db/init.js --reset",
+    "contenu": "node server/db/contenu.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-async-errors": "^3.1.1",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.11.5"
+  }
+}

@@ -1,0 +1,16 @@
+# Dépendances
+node_modules/
+
+# Configuration locale : identifiants MySQL et clé de signature des sessions
+.env
+
+# Affiches des chapitres : ce sont les miniatures des vidéos YouTube rattachées
+# aux séances. Elles appartiennent à leurs chaînes et n'ont pas à être
+# redistribuées ici — « npm run contenu » les régénère en une minute.
+public/img/chapitres/
+
+# Journaux et fichiers temporaires
+npm-debug.log*
+*.log
+.DS_Store
+Thumbs.db
