@@ -189,12 +189,14 @@ async function insererProgressionDemo(cx, eleveId) {
 }
 
 /* -------------------------------------------------------------------------- */
-module.exports = async ({ reset = false } = {}) => {
+/* « fermer » vaut false quand le peuplement est lancé par le serveur
+   lui-même au démarrage : le pool doit alors rester ouvert. */
+module.exports = async ({ reset = false, fermer = true } = {}) => {
   const dejaLa = await un('SELECT COUNT(*) AS n FROM matieres');
   if (dejaLa.n > 0 && !reset) {
     console.log('· catalogue déjà présent (' + dejaLa.n + ' matières) — peuplement ignoré');
     console.log('  Utilisez `npm run db:reset` pour repartir de zéro.');
-    await pool.end();
+    if (fermer) await pool.end();
     return;
   }
 
@@ -215,6 +217,6 @@ module.exports = async ({ reset = false } = {}) => {
   console.log('  admin   admin@cashevent.education    / admin1234');
   console.log('  élève   yasmine@cashevent.education  / eleve1234');
   console.log('  parent  parent@cashevent.education   / parent1234');
-  console.log('\nLancez le serveur avec : npm start\n');
-  await pool.end();
+  console.log('\nChangez ces mots de passe dès la première connexion.\n');
+  if (fermer) await pool.end();
 };

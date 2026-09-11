@@ -38,7 +38,11 @@ const reset = process.argv.includes('--reset');
   /* Les colonnes ajoutées après la première version passent par les migrations. */
   await require('./migrations').appliquer();
 
-  await require('./seed')({ reset });
+  await require('./seed')({ reset, fermer: false });
+  /* Cours en vidéo et affiches : le fichier versionné évite d'avoir à
+     relancer une recherche YouTube à chaque installation. */
+  await require('./videos').appliquer();
+  await require('../src/db').pool.end();
   process.exit(0);
 })().catch(e => {
   console.error('\n✗ ' + e.message + '\n');

@@ -2,19 +2,35 @@
 const config = require('./config');
 const app = require('./app');
 const { un, pool } = require('./db');
+const amorcer = require('../db/bootstrap');
+
+/* Diagnostic : chaque panne de base a son correctif, autant le dire. */
+const conseil = e => {
+  switch (e.code) {
+    case 'ECONNREFUSED':
+      return 'Aucun serveur MySQL sur ' + config.db.host + ':' + config.db.port + '.\n' +
+             '  En local, démarrez MySQL (WampServer) ; en ligne, vérifiez DB_HOST et DB_PORT.';
+    case 'ENOTFOUND':
+      return 'Hôte « ' + config.db.host + ' » introuvable — corrigez DB_HOST.';
+    case 'ER_ACCESS_DENIED_ERROR':
+      return 'Identifiants refusés — vérifiez DB_USER et DB_PASSWORD.';
+    case 'ER_BAD_DB_ERROR':
+      return 'La base « ' + config.db.database + ' » n\'existe pas : créez-la chez votre ' +
+             'hébergeur (ou avec `npm run db:init` en local), le reste se fait tout seul.';
+    default:
+      return 'Vérifiez les variables DB_* puis relancez.';
+  }
+};
 
 (async () => {
   try {
+    await amorcer();
     const c = await un('SELECT COUNT(*) AS n FROM matieres');
-    if (!c.n) {
-      console.warn('⚠ La base est vide. Lancez `npm run db:init` pour importer le catalogue.\n');
-    } else {
-      const ch = await un('SELECT COUNT(*) AS n FROM chapitres');
-      console.log(`· base connectée : ${c.n} matières, ${ch.n} chapitres`);
-    }
+    const ch = await un('SELECT COUNT(*) AS n FROM chapitres');
+    console.log(`· base connectée : ${c.n} matières, ${ch.n} chapitres`);
   } catch (e) {
     console.error('\n✗ Base de données inaccessible : ' + e.message);
-    console.error('  Démarrez MySQL (WampServer) puis exécutez `npm run db:init`.\n');
+    console.error('  ' + conseil(e) + '\n');
     process.exit(1);
   }
 

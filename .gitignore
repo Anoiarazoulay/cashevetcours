@@ -1,8 +1,12 @@
 # Dépendances
 node_modules/
 
-# Configuration locale : identifiants MySQL et clé de signature des sessions
+# Configuration locale : identifiants MySQL et clé de signature des sessions.
+# Toutes les variantes sont exclues, sauf les modèles sans secret.
 .env
+.env.*
+!.env.example
+!.env.production.example
 
 # Affiches des chapitres : ce sont les miniatures des vidéos YouTube rattachées
 # aux séances. Elles appartiennent à leurs chaînes et n'ont pas à être

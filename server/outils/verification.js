@@ -119,7 +119,11 @@ const DEMO = [
     const poids = fs.readdirSync(affiches)
       .reduce((s, f) => s + fs.statSync(path.join(affiches, f)).size, 0);
     ok(`${n} fichiers d'affiche sur le disque (${Math.round(poids / 1024 / 1024 * 10) / 10} Mo)`);
-  } else alerte('Dossier des affiches absent — « npm run contenu » le recrée');
+  } else {
+    /* En ligne, les affiches ne sont pas copiées : les chapitres pointent
+       sur les miniatures d'origine, ce qui est un état normal. */
+    ok('Affiches servies depuis YouTube (aucune copie locale)');
+  }
 
   /* -------------------------------- comptes -------------------------------- */
   titre('Comptes');

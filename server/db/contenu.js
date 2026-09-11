@@ -167,5 +167,9 @@ async function telechargerAffiche(videoId, fichier) {
     console.log('\nSans résultat (à reprendre à la main) :');
     vides.forEach(v => console.log('  · ' + v));
   }
+
+  /* Le résultat de la recherche est enregistré dans le dépôt : une
+     installation neuve retrouvera ces cours sans repasser par YouTube. */
+  await require('./videos').exporter();
   await pool.end();
 })().catch(e => { console.error('\n✗ ' + e.stack); process.exit(1); });
