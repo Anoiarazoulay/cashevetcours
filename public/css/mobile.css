@@ -81,9 +81,18 @@
   .seance .txt b{font-size:13.5px}
   .seance .txt small{font-size:12px; max-width:none}
   .seance .duree{font-size:12px}
-  .seance-en-cours{flex-wrap:wrap; padding:11px 16px; gap:9px}
-  .seance-en-cours .t{width:100%; order:3}
-  .seance-en-cours .t small{white-space:normal}
+  /* Le bandeau de lecture passe sur deux lignes : repère et lien d'abord,
+     titres ensuite. « width:100% » ne suffisait pas, « flex:1 » de la feuille
+     principale reprenait la main — il faut redéclarer la base de flexion. */
+  .seance-en-cours{flex-wrap:wrap; padding:11px 16px; gap:8px 10px; align-items:center}
+  .seance-en-cours .pastille{order:1}
+  .seance-en-cours .mini{order:2; margin-left:auto}
+  .seance-en-cours .t{flex:1 1 100%; width:auto; order:3; min-width:0}
+  .seance-en-cours .t b{font-size:13.5px}
+  .seance-en-cours .t small{
+    white-space:normal; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2;
+    -webkit-box-orient:vertical; overflow:hidden; font-size:12px; line-height:1.35;
+  }
 
   /* --------------------------------- QCM ---------------------------------- */
   .qcm-vue{padding:6px 16px 30px}
@@ -115,9 +124,11 @@
 
 /* ============================ téléphone (≤ 560 px) ======================== */
 @media (max-width: 560px) {
-  /* Une carte par rangée visible, assez large pour que le titre respire. */
-  :root{--chap-w:min(78vw, 300px); --chap-h:auto}
-  .chap{height:auto; aspect-ratio:16/10}
+  /* Une carte par rangée visible, assez large pour que le titre respire.
+     --chap-h garde une vraie longueur : le grand chiffre du Top 10 s'en sert
+     pour sa taille de police, et « auto » rendait le calcul invalide. */
+  :root{--chap-w:min(78vw, 300px); --chap-h:calc(min(78vw, 300px) * .625)}
+  .chap{height:var(--chap-h)}
   .chap .t{font-size:15px; bottom:36px}
   .chap .n,.chap .mat{font-size:10px}
   .chap .etat{top:30px; font-size:10px}
@@ -131,6 +142,13 @@
 
   .carte-enfant{width:100%; padding:11px 14px 11px 11px}
   .carte-enfant .mini-stat{margin-left:auto}
+
+  /* Top 10 : le chiffre tient dans la hauteur de la vignette, sans la déformer. */
+  .chap.rang{height:var(--chap-h)}
+  .chap.rang .numero{font-size:calc(var(--chap-h) * .88); -webkit-text-stroke-width:2.5px;
+    margin-right:-9px}
+  .chap.rang .t{font-size:14px; bottom:20px}
+  .chap.rang .foot{bottom:11px}
 
   .seance{padding:9px 4px}
   .seance .vign{width:78px}
@@ -253,4 +271,48 @@
   /* Les actions du bandeau : deux boutons pleine largeur, alignés. */
   .reprise .actions{flex-direction:column; gap:8px}
   .reprise .actions .pilule{width:100%; min-width:0}
+}
+
+
+/* ===================== Corrections repérées à l'écran ===================== */
+@media (max-width: 900px) {
+  /* La navigation défile : un fondu à droite annonce qu'il reste des onglets. */
+  .header .nav{
+    -webkit-mask-image:linear-gradient(90deg,#000 86%,transparent 100%);
+    mask-image:linear-gradient(90deg,#000 86%,transparent 100%);
+  }
+  .onglets{
+    -webkit-mask-image:linear-gradient(90deg,#000 88%,transparent 100%);
+    mask-image:linear-gradient(90deg,#000 88%,transparent 100%);
+  }
+
+  /* Sur la vitrine, le bandeau respirait mal sous la barre du haut. */
+  .nf-hero .dedans{padding-top:38px; padding-bottom:52px}
+  .nf-hero h1{max-width:none}
+  .nf-capture{flex-direction:column; gap:12px}
+  .nf-capture .enveloppe{min-width:0; width:100%}
+  .nf-bouton.grand{width:100%; justify-content:center; height:52px; font-size:18px}
+  .nf-section{padding-top:46px; padding-bottom:46px}
+  .nf-tete{padding:16px 18px}
+}
+
+@media (max-width: 560px) {
+  /* Deux tuiles par rangée : la page du parent était deux fois trop longue. */
+  .tuiles{grid-template-columns:repeat(2, 1fr)}
+  .tuile.principale{grid-column:1 / -1}
+  .tuile .val{font-size:23px}
+  .tuile .val small{font-size:13px}
+
+  /* Le bouton d'action passait à la ligne, décalé à gauche. */
+  .ligne-chap{align-items:center}
+  .ligne-chap .nom{flex:1 1 100%; order:1}
+  .ligne-chap .pt{order:0}
+  .ligne-chap .score{order:2; margin-left:22px}
+  .ligne-chap .mini{order:3; margin-left:auto}
+
+  /* Cibles tactiles : rien en dessous de 40 px de haut. */
+  .mini{height:38px; padding:0 15px}
+  .pilule.rond{width:44px; height:44px}
+  .rep-btn{min-height:52px}
+  .seance{min-height:62px}
 }
