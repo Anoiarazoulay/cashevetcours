@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nous contacter — Cashevent School</title>
+<meta name="description" content="Une question sur la plateforme, une erreur repérée dans un corrigé, une demande d'établissement ? Écrivez à l'équipe Cashevent School, réponse sous un jour ouvré.">
+<link rel="canonical" href="https://cashevent.ma/contact.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Cashevent School">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:title" content="Nous contacter — Cashevent School">
+<meta property="og:description" content="Une question, une erreur dans un corrigé, une demande d'établissement ? Écrivez-nous.">
+<meta property="og:url" content="https://cashevent.ma/contact.html">
+<meta property="og:image" content="https://cashevent.ma/img/partage.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Anton&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css?v=3">
+<link rel="stylesheet" href="/css/ecole.css?v=3">
+<link rel="stylesheet" href="/css/app.css?v=3">
+<link rel="stylesheet" href="/css/accueil.css?v=3">
+<link rel="stylesheet" href="/css/pages.css?v=3">
+<link rel="stylesheet" href="/css/mobile.css?v=3">
+</head>
+<body class="page-nf" data-page="contact">
+
+<div id="tetePublique"></div>
+
+<main class="doc">
+  <div class="doc-entete">
+    <div class="fil">Contact</div>
+    <h1>Écrivez-nous.</h1>
+    <p class="chapeau">Une question sur la plateforme, une erreur repérée dans un corrigé, une
+    demande pour un établissement : votre message arrive directement sur le bureau de l’équipe.</p>
+  </div>
+
+  <div class="contact-grille">
+    <div>
+      <form class="contact-form" id="formContact" novalidate>
+        <div class="deux">
+          <label>Votre nom
+            <input class="champ" name="nom" autocomplete="name" required maxlength="120">
+          </label>
+          <label>Votre adresse e-mail
+            <input class="champ" name="email" type="email" autocomplete="email" required maxlength="190">
+          </label>
+        </div>
+
+        <label>Vous êtes
+          <select class="champ" name="profil">
+            <option value="eleve">Élève</option>
+            <option value="parent">Parent</option>
+            <option value="enseignant">Enseignant</option>
+            <option value="etablissement">Établissement</option>
+            <option value="autre">Autre</option>
+          </select>
+        </label>
+
+        <label>Sujet
+          <select class="champ" name="sujet">
+            <option value="question">Une question sur la plateforme</option>
+            <option value="erreur">Signaler une erreur dans un contenu</option>
+            <option value="compte">Un problème de compte ou de connexion</option>
+            <option value="etablissement">Une demande pour un établissement</option>
+            <option value="suggestion">Une suggestion</option>
+            <option value="autre">Autre</option>
+          </select>
+        </label>
+
+        <label>Votre message
+          <textarea class="champ" name="message" rows="7" required minlength="20" maxlength="4000"
+            placeholder="Décrivez votre demande. Si vous signalez une erreur, indiquez la matière et le chapitre concernés."></textarea>
+          <small class="aide-champ"><span id="compteur">0</span> / 4000 caractères</small>
+        </label>
+
+        <p class="nf-erreur" id="erreur" hidden></p>
+        <button class="pilule blanc large" type="submit">Envoyer le message</button>
+        <p class="aide-champ">En envoyant ce formulaire, vous acceptez que votre nom et votre
+        adresse e-mail soient utilisés pour vous répondre. Ils ne servent à rien d’autre —
+        voir la <a href="/confidentialite.html">politique de confidentialité</a>.</p>
+      </form>
+
+      <div class="contact-succes" id="succes" hidden>
+        <b>Message reçu.</b>
+        <p id="texteSucces">Nous vous répondons à l’adresse indiquée, en général sous un jour ouvré.</p>
+      </div>
+    </div>
+
+    <aside class="coord">
+      <h3>Autres moyens</h3>
+      <dl>
+        <dt>Courriel</dt>
+        <dd><a href="mailto:contact@cashevent.ma">contact@cashevent.ma</a></dd>
+
+        <dt>Délai de réponse</dt>
+        <dd>Un jour ouvré en moyenne, deux au maximum hors vacances scolaires.</dd>
+
+        <dt>Erreur dans un contenu</dt>
+        <dd>Indiquez la matière, le numéro du chapitre et la question concernée : la correction
+        est appliquée pour tout le monde en même temps.</dd>
+
+        <dt>Établissements</dt>
+        <dd>Pour un accès groupé ou un suivi de classe, précisez le nombre d’élèves et le niveau
+        dans votre message.</dd>
+
+        <dt>Compte et mot de passe</dt>
+        <dd>Un souci de connexion se règle plus vite depuis
+        <a href="/aide.html">le centre d’aide</a>.</dd>
+      </dl>
+    </aside>
+  </div>
+</main>
+
+<div id="piedPublic"></div>
+
+<script src="/js/public.js?v=3"></script>
+<script src="/js/contact.js?v=3"></script>
+</body>
+</html>

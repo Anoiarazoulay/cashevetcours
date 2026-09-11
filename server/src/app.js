@@ -83,6 +83,7 @@ api.use('/', require('./routes/catalogue'));
 api.use('/progression', require('./routes/progression'));
 api.use('/parent', require('./routes/parent'));
 api.use('/admin', require('./routes/admin'));
+api.use('/contact', require('./routes/contact'));
 api.get('/sante', (_req, res) => res.json({
   ok: true, version: require('../../package.json').version,
   environnement: config.env, heure: new Date().toISOString()
@@ -119,6 +120,38 @@ app.get('/', (req, res) => {
 app.get(['/accueil.html', '/connexion.html', '/inscription.html'], (req, res, suite) => {
   if (req.utilisateur && !req.query.suite) return res.redirect('/');
   suite();
+});
+
+/* ---------------------------- plan du site -------------------------------- */
+/* Généré à la demande : l'adresse du site vient de la requête, ce qui évite de
+   figer un domaine dans un fichier statique. */
+const PAGES_PUBLIQUES = [
+  ['/accueil.html', '1.0', 'weekly'],
+  ['/a-propos.html', '0.8', 'monthly'],
+  ['/aide.html', '0.8', 'monthly'],
+  ['/contact.html', '0.6', 'yearly'],
+  ['/conditions.html', '0.3', 'yearly'],
+  ['/confidentialite.html', '0.3', 'yearly'],
+  ['/mentions-legales.html', '0.3', 'yearly']
+];
+
+app.get('/sitemap.xml', (req, res) => {
+  const base = (req.headers['x-forwarded-proto'] || req.protocol) + '://' + req.get('host');
+  const jour = new Date().toISOString().slice(0, 10);
+  const urls = PAGES_PUBLIQUES.map(([chemin, priorite, frequence]) =>
+    `  <url>
+    <loc>${base}${chemin}</loc>
+    <lastmod>${jour}</lastmod>
+    <changefreq>${frequence}</changefreq>
+    <priority>${priorite}</priority>
+  </url>`).join('\n');
+
+  res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls}
+</urlset>`);
 });
 
 /* ------------------------- versionnement des fichiers ---------------------- */

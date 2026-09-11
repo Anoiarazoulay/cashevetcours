@@ -77,6 +77,14 @@ window.UI = (() => {
 
   const pied = () => document.body.insertAdjacentHTML('beforeend', `
 <footer class="footer">
+  <div class="cols">
+    <a href="/a-propos.html">À propos</a>
+    <a href="/aide.html">Centre d’aide</a>
+    <a href="/contact.html">Nous contacter</a>
+    <a href="/conditions.html">Conditions d’utilisation</a>
+    <a href="/confidentialite.html">Confidentialité</a>
+    <a href="/mentions-legales.html">Mentions légales</a>
+  </div>
   <p>© ${new Date().getFullYear()} Cashevent School — cours de répétition, QCM assistés par IA,
   travaux pratiques corrigés et suivi parental.</p>
 </footer>`);

@@ -1,0 +1,32 @@
+# Cashevent School
+# Les pages publiques sont indexables ; tout ce qui suppose une session ne l'est pas.
+
+User-agent: *
+Allow: /$
+Allow: /accueil.html
+Allow: /a-propos.html
+Allow: /aide.html
+Allow: /contact.html
+Allow: /conditions.html
+Allow: /confidentialite.html
+Allow: /mentions-legales.html
+
+# Espaces privés : rien à y indexer, et l'accès y est refusé sans session.
+Disallow: /ecole.html
+Disallow: /matieres.html
+Disallow: /revisions.html
+Disallow: /progression.html
+Disallow: /espace-parent.html
+Disallow: /admin.html
+Disallow: /api/
+
+# Anciennes maquettes de démonstration, sans rapport avec la plateforme.
+Disallow: /index.html
+Disallow: /series.html
+Disallow: /films.html
+Disallow: /jeux.html
+Disallow: /nouveautes.html
+Disallow: /ma-liste.html
+Disallow: /langues.html
+
+Sitemap: https://cashevent.ma/sitemap.xml

@@ -220,4 +220,22 @@ CREATE TABLE IF NOT EXISTS journal (
     REFERENCES utilisateurs(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+/* ================================ MESSAGES ================================ */
+
+-- Messages reçus par le formulaire de contact public.
+CREATE TABLE IF NOT EXISTS messages (
+  id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  nom        VARCHAR(120)  NOT NULL,
+  email      VARCHAR(190)  NOT NULL,
+  profil     ENUM('eleve','parent','enseignant','etablissement','autre') NOT NULL DEFAULT 'autre',
+  sujet      ENUM('question','erreur','compte','etablissement','suggestion','autre')
+             NOT NULL DEFAULT 'question',
+  message    TEXT          NOT NULL,
+  traite     TINYINT(1)    NOT NULL DEFAULT 0,
+  ip         VARCHAR(45)   NULL,
+  cree_le    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_messages_date (cree_le),
+  KEY idx_messages_traite (traite, cree_le)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;

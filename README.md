@@ -45,6 +45,42 @@ une difficulté marquée sur les probabilités. Le parent suit les deux élèves
 
 ---
 
+## Pages publiques et référencement
+
+Sept pages sont accessibles sans compte et indexables :
+
+| Page | Rôle |
+|---|---|
+| `accueil.html` | la vitrine : bandeau, sections, matières, questions fréquentes |
+| `a-propos.html` | la méthode, le contenu d'un chapitre, le parti pris sur le suivi parental |
+| `aide.html` | centre d'aide : usage de la plateforme, comptes, problèmes techniques |
+| `contact.html` | formulaire de contact, relié à la base et lisible depuis l'administration |
+| `conditions.html` | conditions d'utilisation |
+| `confidentialite.html` | politique de confidentialité |
+| `mentions-legales.html` | éditeur, hébergement, propriété intellectuelle, signalement |
+
+L'en-tête et le pied de page de ces pages sont générés par `public/js/public.js` : ajouter une
+page se fait en un seul endroit.
+
+### Référencement
+
+Chaque page publique porte un titre distinct, une description, une adresse canonique et des
+balises Open Graph. Les espaces connectés portent `noindex,nofollow`.
+
+`robots.txt` autorise les pages publiques et écarte les espaces privés, l'API et les anciennes
+maquettes. `/sitemap.xml` est généré à la demande : l'adresse du site est lue dans la requête,
+donc le plan reste juste quel que soit le domaine servi.
+
+Deux jeux de données structurées : `EducationalOrganization` et `WebSite` sur la vitrine,
+`FAQPage` sur le centre d'aide.
+
+### Textes légaux
+
+Les trois pages légales sont des **modèles de départ**. Les informations que seul l'éditeur peut
+fournir — raison sociale, ICE, RC, adresse, hébergeur, numéro CNDP — apparaissent surlignées à
+l'écran. `npm run verif` les compte : simple avertissement en développement, point bloquant en
+production. Faites relire ces textes par un conseil juridique avant l'ouverture.
+
 ## La vitrine
 
 `/` conduit un visiteur vers `accueil.html` : bandeau plein écran sur un mur de vignettes de
@@ -105,6 +141,8 @@ Quatre onglets :
 - **Catalogue** — matières et chapitres : création, édition complète du contenu (notions, séances,
   résumé, TP) et édition du questionnaire, avec contrôle d'une bonne réponse unique ;
 - **Suivi des élèves** — la progression réelle de chaque élève, avec ses alertes ;
+- **Messages** — les demandes reçues par le formulaire de contact, filtrables sur celles qui
+  restent à traiter, avec réponse en un clic par courriel ;
 - **Journal** — la trace des actions : connexions (réussies et refusées), comptes, catalogue,
   apprentissage. Filtres par catégorie, recherche, affichage des échecs seuls, pagination.
 
@@ -235,6 +273,9 @@ l'administration : `npm run verif` bloque si l'un d'eux est encore public en pro
 | GET/POST/PATCH/DELETE | `/api/admin/matieres` · `/chapitres` | admin | catalogue |
 | PUT | `/api/admin/chapitres/:id/questions` | admin | questionnaire |
 | GET | `/api/admin/eleves/:id/tableau-bord` | admin | suivi d'un élève |
+| GET | `/api/catalogue/populaires` | connecté | classement des chapitres les plus travaillés |
+| POST | `/api/contact` | — | déposer un message depuis le formulaire public |
+| GET/PATCH/DELETE | `/api/contact/messages` | admin | lire et traiter les messages reçus |
 
 ---
 

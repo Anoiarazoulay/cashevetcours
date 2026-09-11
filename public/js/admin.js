@@ -18,7 +18,8 @@
   /* --------------------------------- onglets ------------------------------ */
   const ONGLETS = [
     ['bord', 'Tableau de bord'], ['utilisateurs', 'Utilisateurs'],
-    ['catalogue', 'Catalogue'], ['suivi', 'Suivi des élèves'], ['journal', 'Journal']
+    ['catalogue', 'Catalogue'], ['suivi', 'Suivi des élèves'],
+    ['messages', 'Messages'], ['journal', 'Journal']
   ];
   let onglet = location.hash.slice(1) || 'bord';
   if (!ONGLETS.some(([id]) => id === onglet)) onglet = 'bord';
@@ -512,6 +513,73 @@
     };
   }
 
+  /* -------------------------------- messages -------------------------------- */
+  const SUJETS = {
+    question: 'Question', erreur: 'Erreur signalée', compte: 'Compte',
+    etablissement: 'Établissement', suggestion: 'Suggestion', autre: 'Autre'
+  };
+  const PROFILS = {
+    eleve: 'Élève', parent: 'Parent', enseignant: 'Enseignant',
+    etablissement: 'Établissement', autre: 'Autre'
+  };
+  let messagesEnAttente = false;
+
+  async function rendreMessages() {
+    attente();
+    const d = await API.get('/contact/messages' + (messagesEnAttente ? '?traite=0' : ''));
+
+    vue.innerHTML = `
+      <div class="barre-outils">
+        <div class="pills serres" id="filtreMessages">
+          <button data-attente="0" class="${messagesEnAttente ? '' : 'active'}">Tous</button>
+          <button data-attente="1" class="${messagesEnAttente ? 'active' : ''}">
+            À traiter${d.compte.attente ? ' (' + d.compte.attente + ')' : ''}</button>
+        </div>
+      </div>
+
+      ${d.messages.length ? d.messages.map(m => `
+        <div class="message${m.traite ? ' traite' : ''}" data-message="${m.id}">
+          <div class="message-tete">
+            <span class="etiquette cat-compte">${SUJETS[m.sujet] || m.sujet}</span>
+            <b>${echapper(m.nom)}</b>
+            <span class="role-pastille role-eleve">${PROFILS[m.profil] || m.profil}</span>
+            <a class="courriel" href="mailto:${echapper(m.email)}?subject=${
+              encodeURIComponent('Re : votre message à Cashevent School')}">${echapper(m.email)}</a>
+            <span class="quand">${dateFR(m.cree_le)}</span>
+          </div>
+          <p class="message-corps">${echapper(m.message)}</p>
+          <div class="actions-ligne">
+            <button class="mini" data-basculer-message="${m.id}">${
+              m.traite ? 'Remettre à traiter' : 'Marquer traité'}</button>
+            <button class="mini danger" data-suppr-message="${m.id}">Supprimer</button>
+          </div>
+        </div>`).join('')
+        : `<div class="vide-etat"><b>Aucun message.</b>Les demandes envoyées depuis le
+           formulaire de contact arrivent ici.</div>`}`;
+
+    $('#filtreMessages').addEventListener('click', e => {
+      const b = e.target.closest('[data-attente]'); if (!b) return;
+      messagesEnAttente = b.dataset.attente === '1'; rendreMessages();
+    });
+
+    gestionnaire = async e => {
+      const bascule = e.target.closest('[data-basculer-message]');
+      if (bascule) {
+        const id = Number(bascule.dataset.basculerMessage);
+        const m = d.messages.find(x => x.id === id);
+        try { await API.patch('/contact/messages/' + id, { traite: !m.traite }); rendreMessages(); }
+        catch (err) { message(err.message); }
+        return;
+      }
+      const sup = e.target.closest('[data-suppr-message]');
+      if (sup) {
+        if (!confirm('Supprimer définitivement ce message ?')) return;
+        try { await API.supprimer('/contact/messages/' + Number(sup.dataset.supprMessage)); rendreMessages(); }
+        catch (err) { message(err.message); }
+      }
+    };
+  }
+
   /* --------------------------------- journal -------------------------------- */
   const CATEGORIES = {
     auth: 'Connexions', compte: 'Comptes',
@@ -660,6 +728,7 @@
       if (onglet === 'bord') await rendreBord();
       else if (onglet === 'utilisateurs') await rendreUtilisateurs();
       else if (onglet === 'catalogue') await rendreCatalogue();
+      else if (onglet === 'messages') await rendreMessages();
       else if (onglet === 'journal') await rendreJournal();
       else await rendreSuivi();
     } catch (e) { vue.innerHTML = `<div class="vide-etat"><b>Erreur</b>${e.message}</div>`; }

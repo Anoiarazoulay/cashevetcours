@@ -146,14 +146,34 @@ const DEMO = [
   /* ------------------------------- ressources ------------------------------ */
   titre('Ressources du serveur');
   const pages = ['accueil.html', 'connexion.html', 'inscription.html', 'ecole.html',
-    'matieres.html', 'revisions.html', 'espace-parent.html', 'admin.html', '404.html'];
+    'matieres.html', 'revisions.html', 'progression.html', 'espace-parent.html', 'admin.html',
+    'a-propos.html', 'aide.html', 'contact.html', 'conditions.html', 'confidentialite.html',
+    'mentions-legales.html', '404.html'];
   const absentes = pages.filter(p => !fs.existsSync(path.join(config.racinePublique, p)));
   absentes.length ? bloque('Pages absentes : ' + absentes.join(', ')) : ok(`${pages.length} pages présentes`);
 
-  const feuilles = ['style.css', 'ecole.css', 'app.css', 'admin.css', 'accueil.css', 'mobile.css'];
+  const feuilles = ['style.css', 'ecole.css', 'app.css', 'admin.css', 'accueil.css',
+    'pages.css', 'mobile.css'];
   const cssAbsents = feuilles.filter(f => !fs.existsSync(path.join(config.racinePublique, 'css', f)));
   cssAbsents.length ? bloque('Feuilles absentes : ' + cssAbsents.join(', '))
     : ok(`${feuilles.length} feuilles de style présentes`);
+
+  /* Les textes légaux doivent être complétés avant l'ouverture. */
+  const legales = ['mentions-legales.html', 'conditions.html', 'confidentialite.html'];
+  let aCompleter = 0;
+  for (const f of legales) {
+    const chemin = path.join(config.racinePublique, f);
+    if (!fs.existsSync(chemin)) continue;
+    aCompleter += (fs.readFileSync(chemin, 'utf8').match(/class="a-completer"/g) || []).length;
+  }
+  if (aCompleter && config.env === 'production')
+    bloque(`${aCompleter} champ(s) à compléter dans les textes légaux (raison sociale, ICE, adresse…)`);
+  else if (aCompleter)
+    alerte(`${aCompleter} champ(s) à compléter dans les textes légaux — et faites-les relire`);
+  else ok('Textes légaux complétés');
+
+  if (fs.existsSync(path.join(config.racinePublique, 'robots.txt'))) ok('robots.txt présent');
+  else alerte('robots.txt absent : les moteurs exploreront tout, espaces privés compris');
 
   terminer();
 })().catch(e => { console.error('\n✗ ' + e.stack); process.exit(1); });
