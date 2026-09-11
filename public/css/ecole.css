@@ -92,6 +92,8 @@
 .pilule.blanc{background:#fff;color:#111}.pilule.blanc:hover{background:#e6e6e6}
 .pilule.blanc svg{width:18px;height:18px}
 .pilule .i{width:18px;height:18px}
+/* Libellé long par défaut ; le petit écran bascule sur la version courte. */
+.pilule .court{display:none}
 .pilule.rond{width:40px;padding:0;justify-content:center;border-radius:50%;border:2px solid #7a7a7a;background:none}
 .pilule.rond:hover{border-color:#fff;background:rgba(255,255,255,.08)}
 .pilule.on{background:var(--ok);color:#06240f;border-color:var(--ok)}

@@ -423,8 +423,8 @@
           <p>${c.accroche || ''}</p>
           <div class="actions">
             <button class="pilule blanc" data-ouvrir="${c.id}">${ICO.play} ${p > 0 ? 'Reprendre' : 'Commencer'}</button>
-            <a class="pilule" href="/matieres">Parcourir les matières</a>
-            <a class="pilule" href="/revisions">Mes révisions</a>
+            <a class="pilule" href="/matieres"><span class="long">Parcourir les matières</span><span class="court">Matières</span></a>
+            <a class="pilule" href="/revisions"><span class="long">Mes révisions</span><span class="court">Révisions</span></a>
           </div>
         </div>
       </section>`;

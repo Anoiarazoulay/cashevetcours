@@ -268,9 +268,15 @@
   .nf-demo button{width:100%; height:38px}
   .nf-demo button:last-child{grid-column:1 / -1}
 
-  /* Les actions du bandeau : deux boutons pleine largeur, alignés. */
-  .reprise .actions{flex-direction:column; gap:8px}
-  .reprise .actions .pilule{width:100%; min-width:0}
+  /* Les actions du bandeau. Empilées, les trois boutons se ressemblaient trop
+     et le bandeau tournait au menu : l'action principale garde la pleine
+     largeur, les deux autres se partagent la ligne du dessous. Leurs libellés
+     raccourcissent, la hauteur du bouton ne permettant pas deux lignes. */
+  .reprise .actions{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .reprise .actions .pilule{width:100%; min-width:0; justify-content:center}
+  .reprise .actions .pilule.blanc{grid-column:1 / -1}
+  .reprise .actions .pilule .long{display:none}
+  .reprise .actions .pilule .court{display:inline}
 }
 
 
