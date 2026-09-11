@@ -200,3 +200,42 @@ input[type=color].champ{padding:4px;cursor:pointer}
   linear-gradient(0deg,rgba(6,8,14,.75) 0%,rgba(6,8,14,0) 45%)}
 .reprise.avec-image .glyphe{opacity:.08}
 .reprise.avec-image h1{text-shadow:0 4px 22px rgba(0,0,0,.8)}
+
+/* ======================= Top 10 : le rang avant l'affiche ================== */
+.chap.rang{
+  width:auto; height:var(--chap-h); display:grid; grid-template-columns:auto var(--chap-w);
+  align-items:stretch; background:none; box-shadow:none; overflow:visible; border-radius:0;
+}
+.chap.rang::before{display:none}
+.chap.rang:hover{transform:none}
+.chap.rang .numero{
+  align-self:end; font-family:var(--display); font-size:calc(var(--chap-h) * .92); line-height:.74;
+  letter-spacing:-.06em; color:var(--bg); -webkit-text-stroke:3px #46464e;
+  margin-right:-14px; padding-bottom:4px; user-select:none; transition:-webkit-text-stroke-color .2s;
+}
+.chap.rang:hover .numero{-webkit-text-stroke-color:#7a7a86}
+.chap.rang .vignette{
+  position:relative; border-radius:9px; overflow:hidden; display:block;
+  background:linear-gradient(135deg,var(--c1),var(--c2)); box-shadow:0 10px 24px rgba(0,0,0,.5);
+  transition:transform .18s;
+}
+.chap.rang:hover .vignette{transform:scale(1.05); z-index:3}
+.chap.rang .vignette::before{
+  content:""; position:absolute; inset:0; z-index:1;
+  background:linear-gradient(0deg,rgba(3,5,10,.97) 0%,rgba(3,5,10,.86) 28%,rgba(3,5,10,.5) 58%,
+    rgba(3,5,10,.32) 100%);
+}
+.chap.rang .affiche{filter:saturate(.85) brightness(.62)}
+.chap.rang .g{position:absolute; right:-6px; top:-14px; font-size:84px; opacity:.1; line-height:1; z-index:1}
+.chap.rang .t{
+  position:absolute; left:13px; right:13px; bottom:22px; z-index:2;
+  font-size:16px; font-weight:700; line-height:1.2; text-align:left;
+  text-shadow:0 2px 10px rgba(0,0,0,.9);
+}
+.chap.rang .foot{position:absolute; left:13px; right:13px; bottom:12px; z-index:2}
+.chap.rang .foot .barre{height:4px}
+
+@media (max-width:560px){
+  .chap.rang .numero{font-size:96px; -webkit-text-stroke-width:2.5px; margin-right:-10px}
+  .chap.rang .t{font-size:14px}
+}

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ma progression — Cashevent School</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Anton&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css?v=3">
+<link rel="stylesheet" href="/css/ecole.css?v=3">
+<link rel="stylesheet" href="/css/app.css?v=3">
+<link rel="stylesheet" href="/css/mobile.css?v=3">
+</head>
+<body data-page="progression">
+
+<div class="parent-tete">
+  <div>
+    <h1>Ma progression</h1>
+    <p id="sousTitre">Où vous en êtes sur le programme, et ce qui vous attend.</p>
+  </div>
+  <div class="eleve">
+    <span class="av" id="eleveInit">?</span>
+    <span><b id="eleveNom">—</b><small id="eleveNiveau">Cashevent School</small></span>
+  </div>
+</div>
+
+<div class="tuiles" id="tuiles"></div>
+
+<div class="colonnes-parent">
+  <div>
+    <div class="panneau">
+      <h2>Votre rythme</h2>
+      <p class="sous" id="rythmeTexte"></p>
+      <div class="rythme" id="rythme"></div>
+      <div class="rythme-lab" id="rythmeLab"></div>
+      <div id="projection" class="espace-haut"></div>
+    </div>
+
+    <div class="panneau espace-haut">
+      <h2>Ce que Cashevent School vous conseille</h2>
+      <p class="sous">Établi à partir de vos scores aux QCM et de vos chapitres en cours.</p>
+      <div id="alertes"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panneau">
+      <h2>Progression par matière</h2>
+      <p class="sous">Part du programme déjà travaillée dans chaque matière.</p>
+      <div id="parMatiere"></div>
+    </div>
+
+    <div class="panneau espace-haut">
+      <h2>À reprendre</h2>
+      <p class="sous">Chapitres dont le dernier score est inférieur à 60 %.</p>
+      <div id="revoirDetail"></div>
+      <p class="espace-haut"><a class="pilule" href="/revisions.html">Ouvrir mes révisions</a></p>
+    </div>
+
+    <div class="panneau espace-haut">
+      <h2>Comment ce pourcentage est calculé</h2>
+      <p class="sous derniere" id="formule">
+        Chaque chapitre combine les séances vidéo visionnées, le résumé lu, le QCM passé
+        et le TP téléchargé.
+      </p>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js?v=3"></script>
+<script src="/js/entete.js?v=3"></script>
+<script src="/js/progression.js?v=3"></script>
+</body>
+</html>

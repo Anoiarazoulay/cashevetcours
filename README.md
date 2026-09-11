@@ -17,6 +17,7 @@ npm run db:init           # crée la base, applique le schéma, importe le catal
 npm start                 # http://localhost:3000
 ```
 
+`npm run verif` contrôle que tout est en ordre avant d'ouvrir au public.
 `npm run db:reset` supprime la base et repart d'un jeu de données propre.
 `npm run contenu` rattache à chaque séance un vrai cours en vidéo et télécharge les affiches
 (ajouter `-- --force` pour tout refaire). `npm run dev` relance le serveur à chaque modification.
@@ -56,7 +57,7 @@ Un compte déjà connecté qui demande ces trois pages est renvoyé vers son esp
 
 ## Les trois espaces
 
-### Élève — `/ecole.html`, `/matieres.html`, `/revisions.html`
+### Élève — `/ecole.html`, `/matieres.html`, `/revisions.html`, `/progression.html`
 
 L'accueil reprend le principe des interfaces de streaming : un bandeau « reprendre le cours »,
 puis une rangée par matière dont chaque carte est un chapitre. Le clic ouvre la fiche du chapitre,
@@ -70,8 +71,15 @@ qui réunit les cinq briques du produit :
 | 4 | Résumé écrit — points clés, formules, pièges fréquents |
 | 5 | Séances du chapitre — le découpage vidéo, coché au fur et à mesure |
 
+L'accueil affiche aussi un **Top 10 des chapitres les plus travaillés**, classé d'après
+l'activité réelle de tous les élèves — séances visionnées et QCM passés.
+
 « Mes révisions » regroupe les chapitres à revoir (dernier score sous 60 %), ceux à terminer,
 la liste mise de côté et les prochaines étapes suggérées.
+
+« Ma progression » donne à l'élève la même lecture que celle du parent, mais adressée à lui :
+programme parcouru, moyenne, série de jours travaillés, date prévisionnelle d'arrivée,
+progression matière par matière et chapitres à reprendre.
 
 ### Parent — `/espace-parent.html`
 
@@ -150,8 +158,52 @@ exactement les mêmes chiffres.
 - Les pages sont redirigées vers la connexion si le rôle ne correspond pas, mais c'est bien
   l'API qui fait autorité.
 
-En production, définissez `JWT_SECRET`, passez `NODE_ENV=production` (le cookie devient `secure`)
-et utilisez un compte MySQL dédié plutôt que `root`.
+---
+
+## Mise en production
+
+```bash
+cp .env.production.example .env     # puis renseigner chaque valeur
+npm ci --omit=dev
+npm run db:init
+npm run verif                       # contrôle complet, sort en erreur si un point bloque
+npm run prod
+```
+
+`npm run verif` vérifie la configuration (secret de session, compte MySQL dédié, `.env` exclu
+du dépôt), la base (17 tables, colonnes vidéo), le contenu (affiches, vidéos, questions à
+réponse unique), les comptes (au moins un administrateur, aucun mot de passe de démonstration
+en circulation, hachage bcrypt) et les fichiers servis. Les points bloquants font sortir le
+script en code 1, ce qui permet de l'enchaîner dans un script de déploiement.
+
+### Ce que `NODE_ENV=production` change
+
+- **Sessions** : le cookie passe en `secure` — servez le site en HTTPS, sinon plus personne
+  ne pourra se connecter.
+- **En-têtes** : HSTS sur six mois et `upgrade-insecure-requests` s'ajoutent à la politique
+  de sécurité du contenu.
+- **Limites de débit** : 20 tentatives de connexion et 1 000 requêtes d'API par quart d'heure
+  et par adresse. Désactivées en développement pour ne pas gêner les tests.
+- **Cache** : les fichiers versionnés (`?v=…`) et les images sont gardés un an côté navigateur ;
+  le HTML n'est jamais mis en cache.
+- **Erreurs** : la pile n'est plus renvoyée au client, seule la ligne de journal la conserve.
+
+### Derrière un reverse proxy
+
+`app.set('trust proxy', 1)` est activé en production : l'adresse réelle du visiteur est lue
+dans `X-Forwarded-For`, ce dont dépendent les limites de débit et le journal. Terminez le TLS
+sur Nginx ou Caddy et transmettez `X-Forwarded-For` et `X-Forwarded-Proto`.
+
+### Sécurité du contenu
+
+La politique CSP n'autorise aucun script en ligne anonyme : les rares scripts intégrés aux
+pages reçoivent un *nonce* recalculé à chaque requête. Les sources externes admises se
+limitent aux polices Google, aux miniatures `ytimg.com` et aux lecteurs YouTube.
+
+### Avant l'ouverture
+
+Changez les mots de passe des quatre comptes de démonstration, ou supprimez-les depuis
+l'administration : `npm run verif` bloque si l'un d'eux est encore public en production.
 
 ---
 

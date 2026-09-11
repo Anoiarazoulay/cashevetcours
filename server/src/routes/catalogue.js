@@ -34,6 +34,27 @@ routeur.get('/catalogue/public', async (_req, res) => {
 /* GET /api/catalogue */
 routeur.get('/catalogue', requiert(), async (_req, res) => res.json({ matieres: await cat.catalogue() }));
 
+/* GET /api/catalogue/populaires — les chapitres les plus travaillés sur la plateforme.
+   Le classement vient de l'activité réelle : séances vues et QCM passés, toutes
+   promotions confondues. */
+routeur.get('/catalogue/populaires', requiert(), async (_req, res) => {
+  const lignes = await tous(`
+    SELECT c.id,
+           COUNT(DISTINCT v.eleve_id) AS spectateurs,
+           COUNT(DISTINCT t.eleve_id) AS candidats,
+           ROUND(AVG(t.score))        AS moyenne
+      FROM chapitres c
+      LEFT JOIN seances s      ON s.chapitre_id = c.id
+      LEFT JOIN seances_vues v ON v.seance_id = s.id
+      LEFT JOIN tentatives_qcm t ON t.chapitre_id = c.id AND t.terminee = 1
+     WHERE c.publie = 1
+     GROUP BY c.id
+    HAVING spectateurs > 0 OR candidats > 0
+     ORDER BY (COUNT(DISTINCT v.eleve_id) * 2 + COUNT(DISTINCT t.eleve_id)) DESC, c.id
+     LIMIT 10`);
+  res.json({ populaires: lignes });
+});
+
 /* GET /api/chapitres/:id */
 routeur.get('/chapitres/:id', requiert(), async (req, res) => {
   if (!idValide(req.params.id)) return res.status(400).json({ erreur: 'Identifiant de chapitre invalide.' });

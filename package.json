@@ -10,15 +10,23 @@
     "dev": "node --watch server/src/index.js",
     "db:init": "node server/db/init.js",
     "db:reset": "node server/db/init.js --reset",
-    "contenu": "node server/db/contenu.js"
+    "contenu": "node server/db/contenu.js",
+    "prod": "node -e \"process.env.NODE_ENV='production';require('./server/src/index.js')\"",
+    "verif": "node server/outils/verification.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "compression": "^1.8.2",
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-async-errors": "^3.1.1",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.11.5"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

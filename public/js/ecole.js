@@ -32,6 +32,12 @@
     `<div class="bandeau-info">Vue élève en lecture seule — la progression n’est enregistrée que
      pour les comptes élèves.</div>`);
 
+  /* Classement de la plateforme : chargé après coup, il ne retarde pas la page. */
+  let POPULAIRES = [];
+  API.get('/catalogue/populaires')
+    .then(r => { POPULAIRES = r.populaires || []; if (page === 'accueil') rendre(); })
+    .catch(() => { });
+
   /* ------------------------------ état local ------------------------------ */
   const etat = id => S.ch[id] || { seances: [], resume: false, tp: false, fini: false, avancement: 0, qcm: null };
   const pc = id => etat(id).avancement || 0;
@@ -70,6 +76,18 @@
       <span class="foot"><span class="barre"><i style="width:${p}%"></i></span><span>${p} %</span></span>
     </button>`;
   };
+
+  /* Carte du classement : le rang se lit avant le titre, comme sur une affiche. */
+  const carteRang = (c, rang) => `<button class="chap rang${c.image ? ' avec-image' : ''}"
+      style="${styleMat(c.matiere)}" data-chap="${c.id}">
+      <span class="numero" aria-hidden="true">${rang}</span>
+      <span class="vignette">
+        ${c.image ? `<img class="affiche" src="${c.image}" alt="" loading="lazy">` : ''}
+        <span class="g" aria-hidden="true">${c.matiere.glyphe}</span>
+        <span class="t">${c.titre}</span>
+        <span class="foot"><span class="barre"><i style="width:${pc(c.id)}%"></i></span></span>
+      </span>
+    </button>`;
 
   const rangee = (id, titre, items, sous = '') => `
     <section class="rowsec">
@@ -413,6 +431,12 @@
 
     const rows = [];
     if (s.encours.length) rows.push(rangee('encours', 'Continuer mes chapitres', s.encours.slice(0, 12).map(x => carte(x))));
+
+    /* Top 10 : l'ordre vient de l'activité réelle de tous les élèves. */
+    const classement = POPULAIRES.map(p => parId(p.id)).filter(Boolean);
+    if (classement.length >= 3)
+      rows.push(rangee('top10', 'Top 10 des chapitres les plus travaillés',
+        classement.map((x, i) => carteRang(x, i + 1)), '· sur toute la plateforme'));
     if (s.revoir.length) rows.push(rangee('revoir', 'À revoir en priorité', s.revoir.map(x => carte(x)), '· score inférieur à 60 %'));
     M.forEach(m => rows.push(rangee('r-' + m.id, m.nom, m.chapitres.map(x => carte(x, false)),
       `· ${m.chapitres.length} chapitres · coef. ${m.coef}`)));

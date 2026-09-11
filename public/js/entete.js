@@ -17,7 +17,8 @@ window.UI = (() => {
 
   const NAV = {
     eleve: [['accueil', '/ecole.html', 'Accueil'], ['matieres', '/matieres.html', 'Matières'],
-            ['revisions', '/revisions.html', 'Mes révisions']],
+            ['revisions', '/revisions.html', 'Mes révisions'],
+            ['progression', '/progression.html', 'Ma progression']],
     parent: [['parent', '/espace-parent.html', 'Suivi de mon enfant']],
     admin: [['admin', '/admin.html', 'Administration'], ['accueil', '/ecole.html', 'Vue élève'],
             ['parent', '/espace-parent.html', 'Vue parent']]

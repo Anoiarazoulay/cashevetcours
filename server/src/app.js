@@ -1,25 +1,92 @@
-/* Application Express : API + service des pages statiques */
+/* Application Express : API, pages statiques, et durcissement pour la production. */
 require('express-async-errors'); /* les rejets des gestionnaires async partent au middleware d'erreur */
+const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const express = require('express');
 const cookieParser = require('cookie-parser');
+const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 const config = require('./config');
-const { attacher, requiert } = require('./middleware/auth');
+const { attacher } = require('./middleware/auth');
 
 const app = express();
+const prod = config.env === 'production';
+
 app.disable('x-powered-by');
-app.use(express.json({ limit: '1mb' }));
+/* Derrière un reverse proxy (Nginx, Traefik, Heroku…), l'adresse réelle du
+   visiteur arrive dans X-Forwarded-For : sans cela les limites de débit et le
+   journal enregistreraient toutes la même IP. */
+app.set('trust proxy', prod ? 1 : false);
+
+app.use(compression());
+
+/* Un nonce par requête : les rares scripts en ligne sont autorisés nommément,
+   ce qui évite d'ouvrir la porte à « unsafe-inline » pour tout le monde. */
+app.use((req, res, suite) => { res.locals.nonce = crypto.randomBytes(16).toString('base64'); suite(); });
+
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: false,
+    directives: {
+      'default-src': ["'self'"],
+      'script-src': ["'self'", (req, res) => `'nonce-${res.locals.nonce}'`],
+      /* Les couleurs des matières viennent de la base et sont posées en
+         attribut « style » : la politique doit donc tolérer les styles en ligne. */
+      'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      'font-src': ["'self'", 'https://fonts.gstatic.com'],
+      'img-src': ["'self'", 'data:', 'https://i.ytimg.com', 'https://*.ytimg.com'],
+      'frame-src': ['https://www.youtube-nocookie.com', 'https://www.youtube.com'],
+      'connect-src': ["'self'"],
+      'object-src': ["'none'"],
+      'base-uri': ["'self'"],
+      'form-action': ["'self'"],
+      'frame-ancestors': ["'none'"],
+      ...(prod ? { 'upgrade-insecure-requests': [] } : {})
+    }
+  },
+  /* Les miniatures YouTube sont servies par un autre domaine. */
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  hsts: prod ? { maxAge: 15552000, includeSubDomains: true } : false
+}));
+
+app.use(express.json({ limit: '256kb' }));
 app.use(cookieParser());
 app.use(attacher);
 
+/* ------------------------------ limites de débit --------------------------- */
+const limite = (minutes, max, message) => rateLimit({
+  windowMs: minutes * 60 * 1000,
+  limit: max,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  /* En développement, on ne veut pas être bloqué par ses propres tests. */
+  skip: () => !prod,
+  handler: (_req, res) => res.status(429).json({ erreur: message })
+});
+
+const limiteConnexion = limite(15, 20,
+  'Trop de tentatives de connexion. Réessayez dans quelques minutes.');
+const limiteApi = limite(15, 1000,
+  'Trop de requêtes. Patientez un instant avant de recommencer.');
+
 /* --------------------------------- API ---------------------------------- */
 const api = express.Router();
+api.use(limiteApi);
+api.post('/auth/connexion', limiteConnexion);
+api.post('/auth/inscription', limiteConnexion);
 api.use('/auth', require('./routes/auth'));
 api.use('/', require('./routes/catalogue'));
 api.use('/progression', require('./routes/progression'));
 api.use('/parent', require('./routes/parent'));
 api.use('/admin', require('./routes/admin'));
-api.get('/sante', (_req, res) => res.json({ ok: true, heure: new Date().toISOString() }));
+api.get('/sante', (_req, res) => res.json({
+  ok: true, version: require('../../package.json').version,
+  environnement: config.env, heure: new Date().toISOString()
+}));
 api.use((_req, res) => res.status(404).json({ erreur: 'Route inconnue.' }));
 app.use('/api', api);
 
@@ -30,6 +97,7 @@ const PAGES = {
   '/ecole.html': ['eleve', 'admin'],
   '/matieres.html': ['eleve', 'admin'],
   '/revisions.html': ['eleve', 'admin'],
+  '/progression.html': ['eleve', 'admin'],
   '/espace-parent.html': ['parent', 'admin'],
   '/admin.html': ['admin']
 };
@@ -58,7 +126,6 @@ app.get(['/accueil.html', '/connexion.html', '/inscription.html'], (req, res, su
    recalculé à partir de la date du fichier le plus récent : dès qu'un script
    change, son adresse change, et aucun navigateur ne peut servir une version
    périmée. Le HTML, lui, n'est jamais mis en cache. */
-const fs = require('fs');
 let jeton = null, jetonExpire = 0;
 
 const versionAssets = () => {
@@ -72,7 +139,8 @@ const versionAssets = () => {
     }
   }
   jeton = Math.round(recent).toString(36);
-  jetonExpire = Date.now() + 2000;
+  /* En production les fichiers ne bougent plus : inutile de relire le disque. */
+  jetonExpire = Date.now() + (prod ? 3600000 : 2000);
   return jeton;
 };
 
@@ -80,18 +148,26 @@ app.get(/\.html$/, (req, res, suite) => {
   const fichier = path.join(config.racinePublique, path.normalize(req.path).replace(/^[\\/]+/, ''));
   if (!fichier.startsWith(config.racinePublique) || !fs.existsSync(fichier)) return suite();
   const html = fs.readFileSync(fichier, 'utf8')
-    .replace(/(\/(?:css|js)\/[a-z-]+\.(?:css|js))\?v=[\w.]+/g, '$1?v=' + versionAssets());
+    .replace(/(\/(?:css|js)\/[a-z-]+\.(?:css|js))\?v=[\w.]+/g, '$1?v=' + versionAssets())
+    /* Le nonce autorise les quelques scripts en ligne des pages. */
+    .replace(/<script(?![^>]*\ssrc=)/g, `<script nonce="${res.locals.nonce}"`);
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
   res.send(html);
 });
 
-/* « no-cache » : le navigateur garde les fichiers mais revalide à chaque fois. */
+/* Les fichiers portant un jeton de version ne changent jamais sous cette adresse :
+   on peut les garder un an. Les autres sont revalidés à chaque visite. */
 app.use(express.static(config.racinePublique, {
   extensions: ['html'],
   etag: true,
   lastModified: true,
-  setHeaders: res => res.setHeader('Cache-Control', 'no-cache')
+  setHeaders: (res, chemin) => {
+    const versionne = res.req && res.req.query && res.req.query.v;
+    const media = /\.(?:jpg|jpeg|png|webp|svg|ico|woff2?)$/i.test(chemin);
+    res.setHeader('Cache-Control',
+      prod && (versionne || media) ? 'public, max-age=31536000, immutable' : 'no-cache');
+  }
 }));
 
 app.use((req, res) => {
@@ -102,9 +178,11 @@ app.use((req, res) => {
 });
 
 /* ------------------------------- erreurs -------------------------------- */
-app.use((err, _req, res, _suite) => {
-  console.error(err);
+app.use((err, req, res, _suite) => {
   const code = err.statusCode || 500;
+  /* En production on journalise l'essentiel sans exposer la pile au client. */
+  console.error(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} → ${code}`);
+  console.error(prod ? err.message : err.stack);
   res.status(code).json({
     erreur: code === 500 ? 'Une erreur est survenue côté serveur.' : err.message
   });
