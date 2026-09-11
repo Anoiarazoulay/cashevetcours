@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>S’identifier — Cashevent School</title>
 <meta name="description" content="Connectez-vous à votre espace Cashevent School : élève, parent ou administration.">
-<link rel="canonical" href="https://cashevent.ma/connexion.html">
+<link rel="canonical" href="https://cashevent.ma/connexion">
 <meta name="robots" content="noindex,follow">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Cashevent School">
@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="/css/style.css?v=3">
 <link rel="stylesheet" href="/css/ecole.css?v=3">
 <link rel="stylesheet" href="/css/accueil.css?v=3">
+<link rel="stylesheet" href="/css/pages.css?v=3">
 <link rel="stylesheet" href="/css/mobile.css?v=3">
 </head>
 <body class="page-nf">
@@ -27,7 +28,7 @@
   <div class="voile" aria-hidden="true"></div>
 
   <div class="nf-tete">
-    <a href="/accueil.html" class="brand"><b>CASHEVENT</b><em>School</em></a>
+    <a href="/accueil" class="brand"><b>CASHEVENT</b><em>School</em></a>
   </div>
 
   <div class="carte">
@@ -50,7 +51,7 @@
       <button class="nf-soumettre" type="submit">S’identifier</button>
     </form>
 
-    <p class="nf-bas">Nouveau sur Cashevent School ? <a href="/inscription.html">Inscrivez-vous.</a></p>
+    <p class="nf-bas">Nouveau sur Cashevent School ? <a href="/inscription">Inscrivez-vous.</a></p>
     <p class="nf-mention">Cette page est protégée : vos identifiants circulent chiffrés et votre
     session est conservée sur cet appareil pendant sept jours.</p>
 
@@ -64,6 +65,7 @@
     </div>
   </div>
 </div>
+<script src="/js/pied.js?v=3"></script>
 
 <script src="/js/api.js?v=3"></script>
 <script src="/js/accueil.js?v=3"></script>
@@ -89,7 +91,7 @@
       return r.json().then(function (j) { return { ok: r.ok, corps: j }; });
     }).then(function (x) {
       if (!x.ok) throw new Error(x.corps.erreur || 'Connexion impossible.');
-      var cible = { eleve: '/ecole.html', parent: '/espace-parent.html', admin: '/admin.html' };
+      var cible = { eleve: '/ecole', parent: '/espace-parent', admin: '/admin' };
       location.href = cible[x.corps.utilisateur.role] || '/';
     }).catch(function (err) {
       var zone = document.getElementById('erreur');

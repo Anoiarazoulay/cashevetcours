@@ -95,29 +95,29 @@ app.use('/api', api);
 /* Une page demandée sans le bon rôle renvoie vers la connexion :
    l'API reste la seule véritable barrière, ceci évite les écrans vides. */
 const PAGES = {
-  '/ecole.html': ['eleve', 'admin'],
-  '/matieres.html': ['eleve', 'admin'],
-  '/revisions.html': ['eleve', 'admin'],
-  '/progression.html': ['eleve', 'admin'],
-  '/espace-parent.html': ['parent', 'admin'],
-  '/admin.html': ['admin']
+  '/ecole': ['eleve', 'admin'],
+  '/matieres': ['eleve', 'admin'],
+  '/revisions': ['eleve', 'admin'],
+  '/progression': ['eleve', 'admin'],
+  '/espace-parent': ['parent', 'admin'],
+  '/admin': ['admin']
 };
 app.get(Object.keys(PAGES), (req, res, suite) => {
   const roles = PAGES[req.path];
-  if (!req.utilisateur) return res.redirect('/connexion.html?suite=' + encodeURIComponent(req.path));
+  if (!req.utilisateur) return res.redirect('/connexion?suite=' + encodeURIComponent(req.path));
   if (!roles.includes(req.utilisateur.role)) return res.redirect('/');
   suite();
 });
 
 /* Racine : la vitrine pour un visiteur, son espace pour un compte connecté */
 app.get('/', (req, res) => {
-  if (!req.utilisateur) return res.redirect('/accueil.html');
-  const cible = { eleve: '/ecole.html', parent: '/espace-parent.html', admin: '/admin.html' };
-  res.redirect(cible[req.utilisateur.role] || '/accueil.html');
+  if (!req.utilisateur) return res.redirect('/accueil');
+  const cible = { eleve: '/ecole', parent: '/espace-parent', admin: '/admin' };
+  res.redirect(cible[req.utilisateur.role] || '/accueil');
 });
 
 /* Un visiteur déjà connecté n'a rien à faire sur la vitrine ni sur les formulaires */
-app.get(['/accueil.html', '/connexion.html', '/inscription.html'], (req, res, suite) => {
+app.get(['/accueil', '/connexion', '/inscription'], (req, res, suite) => {
   if (req.utilisateur && !req.query.suite) return res.redirect('/');
   suite();
 });
@@ -126,13 +126,13 @@ app.get(['/accueil.html', '/connexion.html', '/inscription.html'], (req, res, su
 /* Généré à la demande : l'adresse du site vient de la requête, ce qui évite de
    figer un domaine dans un fichier statique. */
 const PAGES_PUBLIQUES = [
-  ['/accueil.html', '1.0', 'weekly'],
-  ['/a-propos.html', '0.8', 'monthly'],
-  ['/aide.html', '0.8', 'monthly'],
-  ['/contact.html', '0.6', 'yearly'],
-  ['/conditions.html', '0.3', 'yearly'],
-  ['/confidentialite.html', '0.3', 'yearly'],
-  ['/mentions-legales.html', '0.3', 'yearly']
+  ['/accueil', '1.0', 'weekly'],
+  ['/a-propos', '0.8', 'monthly'],
+  ['/aide', '0.8', 'monthly'],
+  ['/contact', '0.6', 'yearly'],
+  ['/conditions', '0.3', 'yearly'],
+  ['/confidentialite', '0.3', 'yearly'],
+  ['/mentions-legales', '0.3', 'yearly']
 ];
 
 app.get('/sitemap.xml', (req, res) => {
@@ -177,8 +177,17 @@ const versionAssets = () => {
   return jeton;
 };
 
-app.get(/\.html$/, (req, res, suite) => {
-  const fichier = path.join(config.racinePublique, path.normalize(req.path).replace(/^[\\/]+/, ''));
+/* « /contact.html » renvoie définitivement vers « /contact » : une seule adresse
+   par page, c'est ce qu'attendent les moteurs de recherche et les partages. */
+app.get(/^\/([\w-]+)\.html$/, (req, res, suite) => {
+  const nom = req.params[0];
+  if (!fs.existsSync(path.join(config.racinePublique, nom + '.html'))) return suite();
+  res.redirect(301, '/' + nom + req.originalUrl.slice(req.path.length));
+});
+
+/* Les pages sont servies sans extension, avec le jeton de version et le nonce. */
+app.get(/^\/([\w-]+)$/, (req, res, suite) => {
+  const fichier = path.join(config.racinePublique, req.params[0] + '.html');
   if (!fichier.startsWith(config.racinePublique) || !fs.existsSync(fichier)) return suite();
   const html = fs.readFileSync(fichier, 'utf8')
     .replace(/(\/(?:css|js)\/[a-z-]+\.(?:css|js))\?v=[\w.]+/g, '$1?v=' + versionAssets())
@@ -192,7 +201,6 @@ app.get(/\.html$/, (req, res, suite) => {
 /* Les fichiers portant un jeton de version ne changent jamais sous cette adresse :
    on peut les garder un an. Les autres sont revalidés à chaque visite. */
 app.use(express.static(config.racinePublique, {
-  extensions: ['html'],
   etag: true,
   lastModified: true,
   setHeaders: (res, chemin) => {

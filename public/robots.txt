@@ -3,21 +3,21 @@
 
 User-agent: *
 Allow: /$
-Allow: /accueil.html
-Allow: /a-propos.html
-Allow: /aide.html
-Allow: /contact.html
-Allow: /conditions.html
-Allow: /confidentialite.html
-Allow: /mentions-legales.html
+Allow: /accueil
+Allow: /a-propos
+Allow: /aide
+Allow: /contact
+Allow: /conditions
+Allow: /confidentialite
+Allow: /mentions-legales
 
 # Espaces privés : rien à y indexer, et l'accès y est refusé sans session.
-Disallow: /ecole.html
-Disallow: /matieres.html
-Disallow: /revisions.html
-Disallow: /progression.html
-Disallow: /espace-parent.html
-Disallow: /admin.html
+Disallow: /ecole
+Disallow: /matieres
+Disallow: /revisions
+Disallow: /progression
+Disallow: /espace-parent
+Disallow: /admin
 Disallow: /api/
 
 # Anciennes maquettes de démonstration, sans rapport avec la plateforme.

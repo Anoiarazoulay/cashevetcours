@@ -40,7 +40,7 @@
     const grille = document.getElementById('matieres');
     if (!grille) return;
     grille.innerHTML = matieres.map(m => `
-      <a class="nf-mat${m.image ? ' photo' : ''}" href="/inscription.html"
+      <a class="nf-mat${m.image ? ' photo' : ''}" href="/inscription"
          style="--c1:${m.teinte};--c2:${m.teinte2}">
         ${m.image ? `<img src="${m.image}" alt="" loading="lazy">` : ''}
         <span class="g" aria-hidden="true">${m.glyphe}</span>

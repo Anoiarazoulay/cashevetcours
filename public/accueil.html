@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cashevent School — tout le programme du bac, chapitre par chapitre</title>
 <meta name="description" content="Cours de répétition en vidéo, QCM corrigés et expliqués par l'IA, TP à télécharger et suivi parental. Tout le programme de 2ᵉ année Bac, chapitre par chapitre.">
-<link rel="canonical" href="https://cashevent.ma/accueil.html">
+<link rel="canonical" href="https://cashevent.ma/accueil">
 <meta name="robots" content="index,follow">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Cashevent School">
 <meta property="og:locale" content="fr_FR">
 <meta property="og:title" content="Cashevent School — tout le programme du bac, chapitre par chapitre">
 <meta property="og:description" content="Cours en vidéo, QCM corrigés et expliqués, TP avec corrigé, et un suivi que les parents comprennent en dix secondes.">
-<meta property="og:url" content="https://cashevent.ma/accueil.html">
+<meta property="og:url" content="https://cashevent.ma/accueil">
 <meta property="og:image" content="https://cashevent.ma/img/partage.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#000000">
@@ -21,6 +21,7 @@
 <link rel="stylesheet" href="/css/style.css?v=3">
 <link rel="stylesheet" href="/css/ecole.css?v=3">
 <link rel="stylesheet" href="/css/accueil.css?v=3">
+<link rel="stylesheet" href="/css/pages.css?v=3">
 <link rel="stylesheet" href="/css/mobile.css?v=3">
 </head>
 <body class="page-nf">
@@ -32,7 +33,7 @@
   <div class="nf-tete">
     <a href="/" class="brand"><b>CASHEVENT</b><em>School</em></a>
     <div class="nf-actions">
-      <a class="nf-bouton" href="/connexion.html">S’identifier</a>
+      <a class="nf-bouton" href="/connexion">S’identifier</a>
     </div>
   </div>
 
@@ -40,7 +41,7 @@
     <h1>Tout le programme du bac, chapitre par chapitre.</h1>
     <p class="accroche">Cours de répétition en vidéo, QCM corrigés par l’IA, TP avec corrigé — et les parents suivent la progression.</p>
     <p class="relance">Prêt à réviser ? Saisissez votre e-mail pour créer votre compte.</p>
-    <form class="nf-capture" action="/inscription.html" method="get">
+    <form class="nf-capture" action="/inscription" method="get">
       <span class="enveloppe">
         <input id="emailHero" name="email" type="email" placeholder=" " autocomplete="email" required>
         <label for="emailHero">Adresse e-mail</label>
@@ -187,7 +188,7 @@
 
     <div class="nf-relance">
       <p>Prêt à réviser ? Saisissez votre e-mail pour créer votre compte.</p>
-      <form class="nf-capture" action="/inscription.html" method="get">
+      <form class="nf-capture" action="/inscription" method="get">
         <span class="enveloppe">
           <input id="emailFaq" name="email" type="email" placeholder=" " autocomplete="email" required>
           <label for="emailFaq">Adresse e-mail</label>
@@ -201,20 +202,7 @@
   </div>
 </section>
 
-<footer class="nf-pied">
-  <p>Une question ? Écrivez-nous à <a href="mailto:contact@cashevent.ma">contact@cashevent.ma</a></p>
-  <div class="cols">
-    <a href="/connexion.html">S’identifier</a>
-    <a href="/inscription.html">Créer un compte</a>
-    <a href="/a-propos.html">À propos</a>
-    <a href="/aide.html">Centre d’aide</a>
-    <a href="/contact.html">Nous contacter</a>
-    <a href="/conditions.html">Conditions d’utilisation</a>
-    <a href="/confidentialite.html">Confidentialité</a>
-    <a href="/mentions-legales.html">Mentions légales</a>
-  </div>
-  <p>© <span id="annee">2026</span> Cashevent School — Maroc</p>
-</footer>
+<div id="pied"></div>
 
 <script type="application/ld+json">
 {
@@ -240,6 +228,7 @@
   ]
 }
 </script>
+<script src="/js/pied.js?v=3"></script>
 <script src="/js/accueil.js?v=3"></script>
 </body>
 </html>

@@ -49,18 +49,30 @@ une difficulté marquée sur les probabilités. Le parent suit les deux élèves
 
 Sept pages sont accessibles sans compte et indexables :
 
-| Page | Rôle |
+| Adresse | Rôle |
 |---|---|
-| `accueil.html` | la vitrine : bandeau, sections, matières, questions fréquentes |
-| `a-propos.html` | la méthode, le contenu d'un chapitre, le parti pris sur le suivi parental |
-| `aide.html` | centre d'aide : usage de la plateforme, comptes, problèmes techniques |
-| `contact.html` | formulaire de contact, relié à la base et lisible depuis l'administration |
-| `conditions.html` | conditions d'utilisation |
-| `confidentialite.html` | politique de confidentialité |
-| `mentions-legales.html` | éditeur, hébergement, propriété intellectuelle, signalement |
+| `/accueil` | la vitrine : bandeau, sections, matières, questions fréquentes |
+| `/a-propos` | la méthode, le contenu d'un chapitre, le parti pris sur le suivi parental |
+| `/aide` | centre d'aide : usage de la plateforme, comptes, problèmes techniques |
+| `/contact` | formulaire de contact, relié à la base et lisible depuis l'administration |
+| `/conditions` | conditions d'utilisation |
+| `/confidentialite` | politique de confidentialité |
+| `/mentions-legales` | éditeur, hébergement, propriété intellectuelle, signalement |
 
-L'en-tête et le pied de page de ces pages sont générés par `public/js/public.js` : ajouter une
-page se fait en un seul endroit.
+### Adresses
+
+Les pages se servent **sans extension** : `/contact`, pas `/contact.html`. L'ancienne forme
+existe encore et renvoie en 301 vers la nouvelle, pour ne casser ni un signet ni un lien
+déjà partagé. Le plan du site, les adresses canoniques et `robots.txt` emploient tous la
+forme courte.
+
+### Pied de page
+
+Un seul pied pour tout le site — pages publiques et espaces connectés — construit par
+`public/js/pied.js`. Il se pose tout seul sur les pages qui portent `<div id="pied"></div>`,
+et les espaces connectés l'appellent après avoir monté leur interface. Ajouter ou renommer
+un lien se fait à un seul endroit. L'en-tête des pages publiques vient de
+`public/js/public.js`, celui des espaces connectés de `public/js/entete.js`.
 
 ### Référencement
 
@@ -93,7 +105,7 @@ Un compte déjà connecté qui demande ces trois pages est renvoyé vers son esp
 
 ## Les trois espaces
 
-### Élève — `/ecole.html`, `/matieres.html`, `/revisions.html`, `/progression.html`
+### Élève — `/ecole`, `/matieres`, `/revisions`, `/progression`
 
 L'accueil reprend le principe des interfaces de streaming : un bandeau « reprendre le cours »,
 puis une rangée par matière dont chaque carte est un chapitre. Le clic ouvre la fiche du chapitre,
@@ -117,7 +129,7 @@ la liste mise de côté et les prochaines étapes suggérées.
 programme parcouru, moyenne, série de jours travaillés, date prévisionnelle d'arrivée,
 progression matière par matière et chapitres à reprendre.
 
-### Parent — `/espace-parent.html`
+### Parent — `/espace-parent`
 
 Le parent choisit l'enfant à consulter (le plus actif est proposé en premier), puis voit :
 
@@ -130,7 +142,7 @@ Le parent choisit l'enfant à consulter (le plus actif est proposé en premier),
 Le ton compte ce qui est accompli, jamais ce qui a manqué : la seule alerte négative est
 l'inactivité, formulée comme une relance. Un parent ne voit que les élèves qui lui sont rattachés.
 
-### Administration — `/admin.html`
+### Administration — `/admin`
 
 Quatre onglets :
 
@@ -174,7 +186,8 @@ public/
   espace-parent.html                               espace parent
   admin.html                                       administration
   css/  style.css · ecole.css · app.css · admin.css · accueil.css
-  js/   api.js · entete.js · ecole.js · parent.js · admin.js · connexion.js · accueil.js
+  js/   api.js · entete.js · public.js · pied.js · ecole.js · parent.js · progression.js
+        admin.js · connexion.js · accueil.js · contact.js
 ```
 
 ### Règles métier

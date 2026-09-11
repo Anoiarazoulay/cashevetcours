@@ -7,7 +7,7 @@
 
   const params = new URLSearchParams(location.search);
   const suite = params.get('suite');
-  const accueil = { eleve: '/ecole.html', parent: '/espace-parent.html', admin: '/admin.html' };
+  const accueil = { eleve: '/ecole', parent: '/espace-parent', admin: '/admin' };
   const rediriger = u => { location.href = suite || accueil[u.role] || '/'; };
 
   const erreur = $('#erreur');

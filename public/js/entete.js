@@ -16,12 +16,12 @@ window.UI = (() => {
   };
 
   const NAV = {
-    eleve: [['accueil', '/ecole.html', 'Accueil'], ['matieres', '/matieres.html', 'Matières'],
-            ['revisions', '/revisions.html', 'Mes révisions'],
-            ['progression', '/progression.html', 'Ma progression']],
-    parent: [['parent', '/espace-parent.html', 'Suivi de mon enfant']],
-    admin: [['admin', '/admin.html', 'Administration'], ['accueil', '/ecole.html', 'Vue élève'],
-            ['parent', '/espace-parent.html', 'Vue parent']]
+    eleve: [['accueil', '/ecole', 'Accueil'], ['matieres', '/matieres', 'Matières'],
+            ['revisions', '/revisions', 'Mes révisions'],
+            ['progression', '/progression', 'Ma progression']],
+    parent: [['parent', '/espace-parent', 'Suivi de mon enfant']],
+    admin: [['admin', '/admin', 'Administration'], ['accueil', '/ecole', 'Vue élève'],
+            ['parent', '/espace-parent', 'Vue parent']]
   };
 
   let tt;
@@ -68,26 +68,15 @@ window.UI = (() => {
     });
     document.addEventListener('click', () => { menu.classList.remove('open'); pr.setAttribute('aria-expanded', 'false'); });
     $('#deconnexion').addEventListener('click', async () => {
-      await API.post('/auth/deconnexion'); location.href = '/connexion.html';
+      await API.post('/auth/deconnexion'); location.href = '/connexion';
     });
 
     const auScroll = () => $('#header').classList.toggle('solid', window.scrollY > 40);
     auScroll(); window.addEventListener('scroll', auScroll, { passive: true });
   };
 
-  const pied = () => document.body.insertAdjacentHTML('beforeend', `
-<footer class="footer">
-  <div class="cols">
-    <a href="/a-propos.html">À propos</a>
-    <a href="/aide.html">Centre d’aide</a>
-    <a href="/contact.html">Nous contacter</a>
-    <a href="/conditions.html">Conditions d’utilisation</a>
-    <a href="/confidentialite.html">Confidentialité</a>
-    <a href="/mentions-legales.html">Mentions légales</a>
-  </div>
-  <p>© ${new Date().getFullYear()} Cashevent School — cours de répétition, QCM assistés par IA,
-  travaux pratiques corrigés et suivi parental.</p>
-</footer>`);
+  /* Le pied est commun à tout le site : voir js/pied.js. */
+  const pied = () => window.PIED && PIED.poser();
 
   /* Écran d'attente pendant les premiers appels réseau */
   const chargement = (actif, cible = document.body) => {
