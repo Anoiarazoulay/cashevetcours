@@ -235,3 +235,44 @@ body.page-nf{background:#000;color:#fff}
 /* L'affiche réelle dans la maquette de démonstration */
 .demo-carte img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
   filter:saturate(.95) brightness(.7)}
+
+/* ==================== Inscription en deux étapes ========================== */
+.nf-auth .carte.large{max-width:560px}
+
+.jalons{display:flex;gap:10px;margin:0 0 26px;counter-reset:none}
+.jalons li{
+  flex:1;display:flex;align-items:center;gap:10px;padding:0 0 12px;
+  border-bottom:2px solid #333;font-size:13.5px;color:#8c8c8c;list-style:none;transition:.2s;
+}
+.jalons li span{
+  width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex:none;
+  background:#2a2a2e;font-size:12px;font-weight:800;color:#b7b7b7;transition:.2s;
+}
+.jalons li.actif{color:#fff;border-bottom-color:var(--nf-rouge);font-weight:600}
+.jalons li.actif span{background:var(--nf-rouge);color:#fff}
+.jalons li.fait{color:#d2d2d2;border-bottom-color:#6fe0ac}
+.jalons li.fait span{background:#6fe0ac;color:#06240f}
+.jalons li.fait span::after{content:"✓";font-size:13px}
+.jalons li.fait span{font-size:0}
+
+.panneau-etape{display:flex;flex-direction:column;gap:16px}
+/* « display:flex » l'emporterait sur l'attribut « hidden » : sans cette règle,
+   les deux étapes s'affichent l'une sous l'autre. */
+.panneau-etape[hidden]{display:none}
+.deux-champs{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.deux-champs.large-gauche{grid-template-columns:1.6fr 1fr}
+
+/* Un champ « date » affiche déjà son gabarit : son étiquette reste en haut. */
+.nf-champ label.fixe{top:6px;font-size:11.5px}
+.nf-champ input[type=date]{padding-top:22px;color-scheme:dark}
+
+.rangee-boutons{display:flex;gap:10px;align-items:stretch}
+.rangee-boutons .nf-bouton{height:48px;border-radius:4px;flex:none;padding:0 20px}
+.nf-soumettre.grandir{flex:1;margin-top:0}
+
+@media (max-width:560px){
+  .deux-champs,.deux-champs.large-gauche{grid-template-columns:1fr}
+  .jalons li{font-size:12.5px;gap:8px}
+  .rangee-boutons{flex-direction:column-reverse}
+  .rangee-boutons .nf-bouton{width:100%;justify-content:center}
+}

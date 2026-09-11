@@ -54,17 +54,96 @@
   /* ------------------------------ inscription ----------------------------- */
   const formInscription = $('#formInscription');
   if (formInscription) {
-    const choix = $('#choixRole');
-    if (choix) choix.addEventListener('change', () => {
-      const parent = $('input[name=role]:checked').value === 'parent';
-      const champ = $('#champEnfant');
-      if (champ) champ.hidden = !parent;
+    const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    const valeur = n => (formInscription[n] ? String(formInscription[n].value).trim() : '');
+    const estParent = () => $('input[name=role]:checked').value === 'parent';
+
+    /* Un parent n'a ni filière ni lycée : les champs suivent le rôle choisi. */
+    const majRole = () => {
+      const parent = estParent();
+      const enfant = $('#champEnfant'), filiere = $('#champFiliere'), label = $('#labelEtablissement');
+      if (enfant) enfant.hidden = !parent;
+      if (filiere) filiere.hidden = parent;
+      if (label) label.textContent = parent ? 'Lycée de votre enfant' : 'Votre lycée';
       $$('#choixRole label').forEach(l => l.classList.toggle('actif', l.querySelector('input').checked));
+    };
+    const choix = $('#choixRole');
+    if (choix) { choix.addEventListener('change', majRole); majRole(); }
+
+    /* L'âge se déduit de la date : on l'affiche pour que la saisie se vérifie d'elle-même. */
+    const naissance = $('#dateNaissance'), ageDit = $('#ageCalcule');
+    const age = iso => {
+      if (!iso) return null;
+      const d = new Date(iso + 'T00:00:00');
+      if (isNaN(d)) return null;
+      const n = new Date();
+      let a = n.getFullYear() - d.getFullYear();
+      const m = n.getMonth() - d.getMonth();
+      if (m < 0 || (m === 0 && n.getDate() < d.getDate())) a--;
+      return a;
+    };
+    if (naissance && ageDit) naissance.addEventListener('input', () => {
+      const a = age(naissance.value);
+      ageDit.textContent = a === null ? '' : (a < 0 || a > 120 ? 'Date improbable' : a + ' ans');
     });
+
+    /* ------------------------------ les étapes ----------------------------- */
+    const panneaux = $$('.panneau-etape');
+    const jalons = $$('#jalons li');
+    let etape = 1;
+
+    const afficher = n => {
+      etape = n;
+      panneaux.forEach(p => { p.hidden = Number(p.dataset.etape) !== n; });
+      jalons.forEach((j, i) => {
+        j.classList.toggle('actif', i + 1 === n);
+        j.classList.toggle('fait', i + 1 < n);
+      });
+      cacher();
+      const premier = panneaux.find(p => !p.hidden).querySelector('input:not([type=radio]), select');
+      if (premier) premier.focus();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    /* Chaque étape se valide avant de laisser passer à la suivante. */
+    const etape1Valide = () => {
+      if (valeur('nom').length < 2) return 'Indiquez votre nom complet.';
+      if (!EMAIL.test(valeur('email'))) return 'Cette adresse e-mail n’est pas valide.';
+      if (valeur('motDePasse').length < 8)
+        return 'Le mot de passe doit contenir au moins 8 caractères.';
+      return null;
+    };
+    const etape2Valide = () => {
+      const a = age(valeur('dateNaissance'));
+      if (a === null) return 'Indiquez votre date de naissance.';
+      if (a < 5 || a > 100) return 'Cette date de naissance ne semble pas correcte.';
+      if (valeur('telephone').replace(/\D/g, '').length < 8)
+        return 'Indiquez un numéro de téléphone valide.';
+      if (valeur('ville').length < 2) return 'Indiquez votre ville.';
+      if (valeur('pays').length < 2) return 'Indiquez votre pays.';
+      const enfant = valeur('emailEnfant');
+      if (enfant && !EMAIL.test(enfant))
+        return 'L’adresse e-mail de votre enfant n’est pas valide.';
+      return null;
+    };
+
+    const suivant = $('[data-suivant]'), precedent = $('[data-precedent]');
+    if (suivant) suivant.addEventListener('click', () => {
+      const souci = etape1Valide();
+      if (souci) return montrer(souci);
+      afficher(2);
+    });
+    if (precedent) precedent.addEventListener('click', () => afficher(1));
+
     formInscription.addEventListener('submit', e => {
       e.preventDefault();
-      if (formInscription.motDePasse.value.length < 8)
-        return montrer('Le mot de passe doit contenir au moins 8 caractères.');
+      /* La soumission peut venir d'un « Entrée » frappé à la première étape. */
+      if (etape === 1) {
+        const souci = etape1Valide();
+        return souci ? montrer(souci) : afficher(2);
+      }
+      const souci = etape1Valide() || etape2Valide();
+      if (souci) return montrer(souci);
       envoyer(formInscription, '/auth/inscription');
     });
   }

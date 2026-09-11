@@ -35,10 +35,10 @@ Démarrez le service depuis l'icône WampServer avant `npm run db:init`.
 
 | Rôle | Adresse | Mot de passe |
 |---|---|---|
-| Élève | `yasmine@cashevent.ma` | `eleve1234` |
-| Élève (compte vierge) | `mehdi@cashevent.ma` | `eleve1234` |
-| Parent | `parent@cashevent.ma` | `parent1234` |
-| Administrateur | `admin@cashevent.ma` | `admin1234` |
+| Élève | `yasmine@cashevent.education` | `eleve1234` |
+| Élève (compte vierge) | `mehdi@cashevent.education` | `eleve1234` |
+| Parent | `parent@cashevent.education` | `parent1234` |
+| Administrateur | `admin@cashevent.education` | `admin1234` |
 
 Le compte de Yasmine contient un mois de travail : 18 chapitres terminés, 19 QCM passés,
 une difficulté marquée sur les probabilités. Le parent suit les deux élèves.
@@ -58,6 +58,21 @@ Sept pages sont accessibles sans compte et indexables :
 | `/conditions` | conditions d'utilisation |
 | `/confidentialite` | politique de confidentialité |
 | `/mentions-legales` | éditeur, hébergement, propriété intellectuelle, signalement |
+
+### Inscription
+
+Le formulaire se déroule en deux étapes : le compte (rôle, nom, e-mail, mot de passe), puis la
+fiche (date de naissance, téléphone, lycée, filière, ville, code postal, pays). Un mur de champs
+décourage ; deux écrans courts se remplissent.
+
+L'âge n'est pas stocké : il est recalculé à l'affichage à partir de la date de naissance, seule
+source de vérité. La filière et le lycée ne sont demandés qu'aux élèves, et un parent voit à la
+place le champ de rattachement de son enfant.
+
+Chaque étape est validée avant de laisser passer à la suivante, et le serveur revérifie tout :
+date plausible (entre 5 et 100 ans), téléphone d'au moins huit chiffres, ville et pays
+renseignés. L'administration affiche la fiche dans la liste des comptes, et le journal en
+conserve un résumé.
 
 ### Adresses
 
@@ -172,9 +187,11 @@ server/
     middleware/auth.js      JWT en cookie httpOnly, contrôle des rôles
     services/catalogue.js   lecture du catalogue, génération du document de TP
     services/progression.js avancement, statistiques, alertes, projection
+    outils/verification.js  contrôle avant mise en production
     routes/                 auth · catalogue · progression · parent · admin
   db/
-    schema.sql              16 tables
+    schema.sql              18 tables
+    migrations.js           colonnes ajoutées après coup, relançable sans risque
     init.js                 création de la base + schéma + peuplement
     seed.js                 import du catalogue et comptes de démonstration
     donnees/                source rédactionnelle : 8 matières, 48 chapitres, 144 questions

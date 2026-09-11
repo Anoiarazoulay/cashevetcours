@@ -5,13 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Créer un compte — Cashevent School</title>
 <meta name="description" content="Créez votre compte élève ou parent en moins d’une minute et accédez au programme du bac.">
-<link rel="canonical" href="https://cashevent.ma/inscription">
+<link rel="canonical" href="https://cashevent.education/inscription">
 <meta name="robots" content="noindex,follow">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Cashevent School">
 <meta property="og:locale" content="fr_FR">
 <meta property="og:title" content="Créer un compte — Cashevent School">
 <meta property="og:description" content="Créez votre compte élève ou parent en moins d’une minute et accédez au programme du bac.">
+<meta property="og:image" content="https://cashevent.education/img/partage.png">
 <meta name="theme-color" content="#000000">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Anton&display=swap" rel="stylesheet">
@@ -34,48 +35,125 @@
     </div>
   </div>
 
-  <div class="carte">
+  <div class="carte large">
     <h1>Créer un compte</h1>
+
+    <!-- Deux étapes : le compte d'abord, la fiche ensuite. Un mur de champs décourage. -->
+    <ol class="jalons" id="jalons">
+      <li class="actif"><span>1</span>Le compte</li>
+      <li><span>2</span>Votre fiche</li>
+    </ol>
 
     <p class="nf-erreur" id="erreur" hidden></p>
 
     <form id="formInscription" novalidate>
-      <div class="nf-roles" id="choixRole">
-        <label class="actif"><input type="radio" name="role" value="eleve" checked>
-          <b>Je suis élève</b><small>J’étudie le programme</small></label>
-        <label><input type="radio" name="role" value="parent">
-          <b>Je suis parent</b><small>Je suis la progression</small></label>
-      </div>
 
-      <div class="nf-champ">
-        <input id="nom" name="nom" type="text" placeholder=" " autocomplete="name" required>
-        <label for="nom">Nom complet</label>
-      </div>
-      <div class="nf-champ">
-        <input id="email" name="email" type="email" placeholder=" " autocomplete="email" required>
-        <label for="email">Adresse e-mail</label>
-      </div>
-      <div class="nf-champ">
-        <input id="motDePasse" name="motDePasse" type="password" placeholder=" " minlength="8"
-          autocomplete="new-password" required>
-        <label for="motDePasse">Mot de passe</label>
-        <span class="indice">8 caractères minimum.</span>
-      </div>
-      <div class="nf-champ" id="champEnfant" hidden>
-        <input id="emailEnfant" name="emailEnfant" type="email" placeholder=" ">
-        <label for="emailEnfant">Adresse e-mail de votre enfant (facultatif)</label>
-        <span class="indice">Son compte élève sera rattaché au vôtre immédiatement.</span>
-      </div>
+      <!-- ------------------------------ étape 1 ------------------------------ -->
+      <section class="panneau-etape" data-etape="1">
+        <div class="nf-roles" id="choixRole">
+          <label class="actif"><input type="radio" name="role" value="eleve" checked>
+            <b>Je suis élève</b><small>J’étudie le programme</small></label>
+          <label><input type="radio" name="role" value="parent">
+            <b>Je suis parent</b><small>Je suis la progression</small></label>
+        </div>
 
-      <button class="nf-soumettre" type="submit">Créer mon compte</button>
+        <div class="nf-champ">
+          <input id="nom" name="nom" type="text" placeholder=" " autocomplete="name" required maxlength="120">
+          <label for="nom">Nom complet</label>
+        </div>
+        <div class="nf-champ">
+          <input id="email" name="email" type="email" placeholder=" " autocomplete="email" required maxlength="190">
+          <label for="email">Adresse e-mail</label>
+        </div>
+        <div class="nf-champ">
+          <input id="motDePasse" name="motDePasse" type="password" placeholder=" " minlength="8"
+            autocomplete="new-password" required>
+          <label for="motDePasse">Mot de passe</label>
+          <span class="indice">8 caractères minimum.</span>
+        </div>
+
+        <button class="nf-soumettre" type="button" data-suivant>Continuer</button>
+      </section>
+
+      <!-- ------------------------------ étape 2 ------------------------------ -->
+      <section class="panneau-etape" data-etape="2" hidden>
+        <div class="deux-champs">
+          <div class="nf-champ">
+            <input id="dateNaissance" name="dateNaissance" type="date" placeholder=" "
+              autocomplete="bday" required>
+            <label for="dateNaissance" class="fixe">Date de naissance</label>
+            <span class="indice" id="ageCalcule"></span>
+          </div>
+          <div class="nf-champ">
+            <input id="telephone" name="telephone" type="tel" placeholder=" " autocomplete="tel"
+              maxlength="30" required>
+            <label for="telephone">Téléphone</label>
+            <span class="indice">Ex. 06 12 34 56 78</span>
+          </div>
+        </div>
+
+        <div class="nf-champ">
+          <input id="etablissement" name="etablissement" type="text" placeholder=" " maxlength="160">
+          <label for="etablissement" id="labelEtablissement">Votre lycée</label>
+        </div>
+
+        <div class="nf-champ" id="champFiliere">
+          <select id="filiere" name="filiere">
+            <option value="">Filière — à préciser</option>
+            <option>Sciences mathématiques A</option>
+            <option>Sciences mathématiques B</option>
+            <option selected>Sciences physiques (PC)</option>
+            <option>Sciences de la vie et de la Terre (SVT)</option>
+            <option>Sciences et technologies</option>
+            <option>Sciences économiques et gestion</option>
+            <option>Lettres et sciences humaines</option>
+            <option>Autre</option>
+          </select>
+        </div>
+
+        <div class="deux-champs large-gauche">
+          <div class="nf-champ">
+            <input id="ville" name="ville" type="text" placeholder=" " autocomplete="address-level2"
+              maxlength="120" required>
+            <label for="ville">Ville</label>
+          </div>
+          <div class="nf-champ">
+            <input id="codePostal" name="codePostal" type="text" placeholder=" "
+              autocomplete="postal-code" maxlength="20" inputmode="numeric">
+            <label for="codePostal">Code postal</label>
+          </div>
+        </div>
+
+        <div class="nf-champ">
+          <input id="pays" name="pays" type="text" placeholder=" " list="listePays"
+            autocomplete="country-name" maxlength="80" value="Maroc" required>
+          <label for="pays">Pays</label>
+          <datalist id="listePays">
+            <option>Maroc</option><option>Algérie</option><option>Tunisie</option>
+            <option>France</option><option>Belgique</option><option>Canada</option>
+            <option>Espagne</option><option>Mauritanie</option><option>Sénégal</option>
+          </datalist>
+        </div>
+
+        <div class="nf-champ" id="champEnfant" hidden>
+          <input id="emailEnfant" name="emailEnfant" type="email" placeholder=" " maxlength="190">
+          <label for="emailEnfant">Adresse e-mail de votre enfant (facultatif)</label>
+          <span class="indice">Son compte élève sera rattaché au vôtre immédiatement.</span>
+        </div>
+
+        <div class="rangee-boutons">
+          <button class="nf-bouton fantome" type="button" data-precedent>Retour</button>
+          <button class="nf-soumettre grandir" type="submit">Créer mon compte</button>
+        </div>
+      </section>
     </form>
 
     <p class="nf-bas">Déjà inscrit ? <a href="/connexion">S’identifier.</a></p>
-    <p class="nf-mention">En créant un compte, vous acceptez les conditions d’utilisation
-    de Cashevent School.</p>
+    <p class="nf-mention">En créant un compte, vous acceptez les
+    <a href="/conditions">conditions d’utilisation</a>. Vos coordonnées servent à vous identifier
+    et à vous joindre — voir la <a href="/confidentialite">politique de confidentialité</a>.</p>
   </div>
 </div>
-<script src="/js/pied.js?v=3"></script>
 
 <script src="/js/api.js?v=3"></script>
 <script src="/js/accueil.js?v=3"></script>

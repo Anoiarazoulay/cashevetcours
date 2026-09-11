@@ -109,7 +109,7 @@
       <div class="tableau">
         <table>
           <thead><tr><th>Nom</th><th>Rôle</th><th>Rattachements</th><th>Progression</th>
-            <th>Inscription</th><th>Dernière connexion</th><th>État</th><th></th></tr></thead>
+            <th>Fiche</th><th>Inscription</th><th>Dernière connexion</th><th>État</th><th></th></tr></thead>
           <tbody>${utilisateurs.map(u => `
             <tr data-utilisateur="${u.id}">
               <td><b>${echapper(u.nom)}</b><small>${echapper(u.email)}</small></td>
@@ -117,6 +117,13 @@
               <td>${u.role === 'parent' ? u.enfants + ' enfant(s)'
                 : u.role === 'eleve' ? u.parents + ' parent(s)' : '—'}</td>
               <td>${u.role === 'eleve' ? u.chapitres_finis + ' chapitres finis' : '—'}</td>
+              <td class="fiche-mini">${[
+                u.ville && (echapper(u.ville) + (u.pays ? ', ' + echapper(u.pays) : '')),
+                u.telephone && echapper(u.telephone),
+                u.age !== null && u.age !== undefined ? u.age + ' ans' : null,
+                u.filiere && echapper(u.filiere),
+                u.etablissement && echapper(u.etablissement)
+              ].filter(Boolean).join('<br>') || '—'}</td>
               <td>${dateFR(u.cree_le)}</td>
               <td>${dateFR(u.derniere_connexion)}</td>
               <td><span class="pastille ${u.actif ? 'ok' : 'off'}">${u.actif ? 'Actif' : 'Désactivé'}</span></td>

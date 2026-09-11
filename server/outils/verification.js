@@ -16,10 +16,10 @@ const titre = t => console.log('\n\x1b[1m' + t + '\x1b[0m');
 
 /* Mots de passe des comptes de démonstration : ils ne doivent pas survivre. */
 const DEMO = [
-  ['admin@cashevent.ma', 'admin1234'],
-  ['yasmine@cashevent.ma', 'eleve1234'],
-  ['mehdi@cashevent.ma', 'eleve1234'],
-  ['parent@cashevent.ma', 'parent1234']
+  ['admin@cashevent.education', 'admin1234'],
+  ['yasmine@cashevent.education', 'eleve1234'],
+  ['mehdi@cashevent.education', 'eleve1234'],
+  ['parent@cashevent.education', 'parent1234']
 ];
 
 (async () => {

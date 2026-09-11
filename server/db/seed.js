@@ -17,10 +17,10 @@ const chargerCatalogue = () => {
 };
 
 const COMPTES = [
-  { nom: 'Administration Cashevent', email: 'admin@cashevent.ma', mdp: 'admin1234', role: 'admin' },
-  { nom: 'Yasmine Alaoui', email: 'yasmine@cashevent.ma', mdp: 'eleve1234', role: 'eleve' },
-  { nom: 'Karim Alaoui', email: 'parent@cashevent.ma', mdp: 'parent1234', role: 'parent' },
-  { nom: 'Mehdi Benjelloun', email: 'mehdi@cashevent.ma', mdp: 'eleve1234', role: 'eleve' }
+  { nom: 'Administration Cashevent', email: 'admin@cashevent.education', mdp: 'admin1234', role: 'admin' },
+  { nom: 'Yasmine Alaoui', email: 'yasmine@cashevent.education', mdp: 'eleve1234', role: 'eleve' },
+  { nom: 'Karim Alaoui', email: 'parent@cashevent.education', mdp: 'parent1234', role: 'parent' },
+  { nom: 'Mehdi Benjelloun', email: 'mehdi@cashevent.education', mdp: 'eleve1234', role: 'eleve' }
 ];
 
 /* Un mois de travail crédible pour l'élève de démonstration */
@@ -99,8 +99,8 @@ async function insererComptes(cx) {
   }
   /* Le parent suit les deux élèves */
   await cx.query('INSERT INTO liens_famille (parent_id, eleve_id) VALUES (?,?), (?,?)',
-    [ids['parent@cashevent.ma'], ids['yasmine@cashevent.ma'],
-     ids['parent@cashevent.ma'], ids['mehdi@cashevent.ma']]);
+    [ids['parent@cashevent.education'], ids['yasmine@cashevent.education'],
+     ids['parent@cashevent.education'], ids['mehdi@cashevent.education']]);
   return ids;
 }
 
@@ -207,14 +207,14 @@ module.exports = async ({ reset = false } = {}) => {
     const ids = await insererComptes(cx);
     console.log('· 4 comptes créés (admin, parent, 2 élèves)');
 
-    await insererProgressionDemo(cx, ids['yasmine@cashevent.ma']);
+    await insererProgressionDemo(cx, ids['yasmine@cashevent.education']);
     console.log('· progression de démonstration pour Yasmine (un mois de travail)');
   });
 
   console.log('\nComptes de démonstration');
-  console.log('  admin   admin@cashevent.ma    / admin1234');
-  console.log('  élève   yasmine@cashevent.ma  / eleve1234');
-  console.log('  parent  parent@cashevent.ma   / parent1234');
+  console.log('  admin   admin@cashevent.education    / admin1234');
+  console.log('  élève   yasmine@cashevent.education  / eleve1234');
+  console.log('  parent  parent@cashevent.education   / parent1234');
   console.log('\nLancez le serveur avec : npm start\n');
   await pool.end();
 };

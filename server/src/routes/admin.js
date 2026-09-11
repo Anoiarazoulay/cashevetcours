@@ -60,6 +60,8 @@ routeur.get('/utilisateurs', async (req, res) => {
 
   const utilisateurs = await tous(`
     SELECT u.id, u.nom, u.email, u.role, u.niveau, u.actif, u.cree_le, u.derniere_connexion,
+           u.telephone, u.date_naissance, u.etablissement, u.filiere, u.ville, u.code_postal, u.pays,
+           TIMESTAMPDIFF(YEAR, u.date_naissance, CURDATE()) AS age,
            (SELECT COUNT(*) FROM liens_famille l WHERE l.parent_id = u.id) AS enfants,
            (SELECT COUNT(*) FROM liens_famille l WHERE l.eleve_id  = u.id) AS parents,
            (SELECT COUNT(*) FROM progression p WHERE p.eleve_id = u.id AND p.termine = 1) AS chapitres_finis

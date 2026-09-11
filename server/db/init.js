@@ -35,6 +35,9 @@ const reset = process.argv.includes('--reset');
   console.log('· schéma appliqué (' + (schema.match(/CREATE TABLE/g) || []).length + ' tables)');
   await cx.end();
 
+  /* Les colonnes ajoutées après la première version passent par les migrations. */
+  await require('./migrations').appliquer();
+
   await require('./seed')({ reset });
   process.exit(0);
 })().catch(e => {

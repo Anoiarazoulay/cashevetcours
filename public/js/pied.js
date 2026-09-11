@@ -38,7 +38,7 @@ window.PIED = (() => {
     </div>
     <div class="bas">
       <span>© ${new Date().getFullYear()} Cashevent School — Maroc</span>
-      <span><a href="mailto:contact@cashevent.ma">contact@cashevent.ma</a></span>
+      <span><a href="mailto:contact@cashevent.education">contact@cashevent.education</a></span>
     </div>
   </div>
 </footer>`;

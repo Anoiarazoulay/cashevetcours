@@ -29,4 +29,4 @@ Disallow: /nouveautes.html
 Disallow: /ma-liste.html
 Disallow: /langues.html
 
-Sitemap: https://cashevent.ma/sitemap.xml
+Sitemap: https://cashevent.education/sitemap.xml

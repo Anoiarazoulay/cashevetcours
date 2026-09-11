@@ -24,7 +24,9 @@ const attacher = async (req, _res, suite) => {
   try {
     const charge = jwt.verify(jeton, config.jwt.secret);
     const u = await un(
-      'SELECT id, nom, email, role, niveau, actif FROM utilisateurs WHERE id = ?', [charge.id]);
+      `SELECT id, nom, email, role, niveau, actif, telephone, date_naissance,
+              etablissement, filiere, ville, code_postal, pays
+         FROM utilisateurs WHERE id = ?`, [charge.id]);
     if (u && u.actif) req.utilisateur = u;
   } catch (e) { /* jeton expiré ou invalide : visiteur anonyme */ }
   suite();

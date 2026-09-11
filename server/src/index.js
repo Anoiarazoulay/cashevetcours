@@ -20,9 +20,9 @@ const { un, pool } = require('./db');
 
   const serveur = app.listen(config.port, () => {
     console.log(`· Cashevent School sur http://localhost:${config.port}`);
-    console.log('  élève  yasmine@cashevent.ma / eleve1234');
-    console.log('  parent parent@cashevent.ma  / parent1234');
-    console.log('  admin  admin@cashevent.ma   / admin1234\n');
+    console.log('  élève  yasmine@cashevent.education / eleve1234');
+    console.log('  parent parent@cashevent.education  / parent1234');
+    console.log('  admin  admin@cashevent.education   / admin1234\n');
   });
 
   const arreter = async signal => {

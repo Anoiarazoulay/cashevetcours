@@ -96,26 +96,10 @@ async function telechargerAffiche(videoId, fichier) {
   return 0;
 }
 
-/* ------------------------------ migration -------------------------------- */
-async function preparerColonnes() {
-  const colonnes = await tous(
-    `SELECT TABLE_NAME AS t, COLUMN_NAME AS c FROM information_schema.COLUMNS
-      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('chapitres','seances')`);
-  const existe = (t, c) => colonnes.some(x => x.t === t && x.c === c);
-  const ajouts = [
-    ['chapitres', 'image', "ALTER TABLE chapitres ADD COLUMN image VARCHAR(300) NULL"],
-    ['seances', 'video_titre', "ALTER TABLE seances ADD COLUMN video_titre VARCHAR(250) NULL"],
-    ['seances', 'video_chaine', "ALTER TABLE seances ADD COLUMN video_chaine VARCHAR(120) NULL"],
-    ['seances', 'video_duree', "ALTER TABLE seances ADD COLUMN video_duree VARCHAR(12) NULL"]
-  ];
-  for (const [t, c, sql] of ajouts)
-    if (!existe(t, c)) { await executer(sql); console.log('· colonne ajoutée : ' + t + '.' + c); }
-}
-
 /* --------------------------------- main ---------------------------------- */
 (async () => {
   fs.mkdirSync(IMAGES, { recursive: true });
-  await preparerColonnes();
+  await require('./migrations').appliquer();
 
   const chapitres = await tous(`
     SELECT c.id, c.numero, c.titre, c.image, m.code, m.nom AS matiere

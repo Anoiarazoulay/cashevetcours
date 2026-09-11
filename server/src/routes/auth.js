@@ -9,9 +9,28 @@ const journal = require('../services/journal');
 const routeur = express.Router();
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const texte = (v, max) => String(v == null ? '' : v).trim().slice(0, max) || null;
+
+/* Âge révolu à partir d'une date au format AAAA-MM-JJ, ou null si elle est absurde. */
+const ageDepuis = iso => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(iso || ''))) return null;
+  const d = new Date(iso + 'T00:00:00');
+  if (isNaN(d)) return null;
+  const n = new Date();
+  let a = n.getFullYear() - d.getFullYear();
+  const m = n.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && n.getDate() < d.getDate())) a--;
+  return a;
+};
 
 const profil = async u => {
-  const base = { id: u.id, nom: u.nom, email: u.email, role: u.role, niveau: u.niveau };
+  const base = {
+    id: u.id, nom: u.nom, email: u.email, role: u.role, niveau: u.niveau,
+    telephone: u.telephone || null, dateNaissance: u.date_naissance || null,
+    age: ageDepuis(u.date_naissance), etablissement: u.etablissement || null,
+    filiere: u.filiere || null, ville: u.ville || null,
+    codePostal: u.code_postal || null, pays: u.pays || null
+  };
   if (u.role === 'parent') {
     const { tous } = require('../db');
     base.enfants = await tous(
@@ -34,12 +53,40 @@ routeur.post('/inscription', async (req, res) => {
   if (motDePasse.length < 8)
     return res.status(400).json({ erreur: 'Le mot de passe doit contenir au moins 8 caractères.' });
 
+  /* ------------------------------ la fiche ------------------------------- */
+  const dateNaissance = String(req.body.dateNaissance || '').trim();
+  const age = ageDepuis(dateNaissance);
+  if (age === null)
+    return res.status(400).json({ erreur: 'Indiquez une date de naissance valide.' });
+  if (age < 5 || age > 100)
+    return res.status(400).json({ erreur: 'Cette date de naissance ne semble pas correcte.' });
+
+  const telephone = texte(req.body.telephone, 30);
+  if (!telephone || telephone.replace(/\D/g, '').length < 8)
+    return res.status(400).json({ erreur: 'Indiquez un numéro de téléphone valide.' });
+
+  const ville = texte(req.body.ville, 120);
+  if (!ville) return res.status(400).json({ erreur: 'Indiquez votre ville.' });
+
+  const pays = texte(req.body.pays, 80);
+  if (!pays) return res.status(400).json({ erreur: 'Indiquez votre pays.' });
+
+  const etablissement = texte(req.body.etablissement, 160);
+  const codePostal = texte(req.body.codePostal, 20);
+  /* La filière ne concerne que les élèves. */
+  const filiere = role === 'eleve' ? texte(req.body.filiere, 80) : null;
+
   if (await un('SELECT id FROM utilisateurs WHERE email = ?', [email]))
     return res.status(409).json({ erreur: 'Un compte existe déjà avec cette adresse.' });
 
   const r = await executer(
-    'INSERT INTO utilisateurs (nom, email, mot_de_passe, role, niveau) VALUES (?,?,?,?,?)',
-    [nom, email, bcrypt.hashSync(motDePasse, 10), role, role === 'eleve' ? config.niveauParDefaut : null]);
+    `INSERT INTO utilisateurs
+       (nom, email, mot_de_passe, role, niveau, telephone, date_naissance,
+        etablissement, filiere, ville, code_postal, pays)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+    [nom, email, bcrypt.hashSync(motDePasse, 10), role,
+     role === 'eleve' ? config.niveauParDefaut : null,
+     telephone, dateNaissance, etablissement, filiere, ville, codePostal, pays]);
 
   /* Un parent qui indique l'e-mail de son enfant est relié immédiatement. */
   const emailEnfant = String(req.body.emailEnfant || '').trim().toLowerCase();
@@ -57,7 +104,8 @@ routeur.post('/inscription', async (req, res) => {
   poserCookie(res, signer(u));
   await journal.enregistrer(req, {
     categorie: 'compte', action: 'Inscription', cible: email, acteur: u,
-    details: role === 'parent' ? (lie ? 'Parent — enfant rattaché : ' + emailEnfant : 'Parent') : 'Élève'
+    details: (role === 'parent' ? 'Parent' : 'Élève · ' + (filiere || 'filière non précisée')) +
+      ' · ' + age + ' ans · ' + ville + (lie ? ' · enfant rattaché : ' + emailEnfant : '')
   });
   res.status(201).json({ utilisateur: await profil(u), enfantLie: lie });
 });
