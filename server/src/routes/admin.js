@@ -7,45 +7,14 @@ const { requiert } = require('../middleware/auth');
 const cat = require('../services/catalogue');
 const prog = require('../services/progression');
 const journal = require('../services/journal');
+const suivi = require('../services/suivi');
+const exos = require('../services/exercices');
 
 const routeur = express.Router();
-routeur.use(requiert('admin', 'enseignant'));
+routeur.use(requiert('admin'));
 
 const entier = v => Number.isInteger(Number(v)) && Number(v) > 0 ? Number(v) : null;
 const texte = (v, max = 400) => String(v == null ? '' : v).trim().slice(0, max);
-
-/* Un enseignant emprunte les mêmes routes de catalogue que l'administration,
-   mais seulement pour ses matières : tout le reste — comptes, liens de
-   famille, journal, matières elles-mêmes — lui reste fermé. */
-const OUVERT_ENSEIGNANT = [
-  ['GET', /^\/matieres$/], ['GET', /^\/chapitres$/], ['GET', /^\/chapitres\/\d+$/],
-  ['POST', /^\/chapitres$/], ['PATCH', /^\/chapitres\/\d+$/],
-  ['DELETE', /^\/chapitres\/\d+$/], ['PUT', /^\/chapitres\/\d+\/questions$/]
-];
-
-const saMatiere = async (enseignantId, matiereId) => !!await un(
-  'SELECT 1 AS ok FROM enseignant_matieres WHERE enseignant_id = ? AND matiere_id = ?',
-  [enseignantId, matiereId]);
-
-routeur.use(async (req, res, suite) => {
-  if (req.utilisateur.role === 'admin') return suite();
-
-  const chemin = req.path.replace(/\/$/, '') || '/';
-  if (!OUVERT_ENSEIGNANT.some(([m, re]) => m === req.method && re.test(chemin)))
-    return res.status(403).json({ erreur: 'Réservé à l’administration.' });
-
-  /* Les listes se filtrent plus bas ; ici on garde les écritures. */
-  const idChapitre = entier((chemin.match(/^\/chapitres\/(\d+)/) || [])[1]);
-  const matiereId = idChapitre
-    ? (await un('SELECT matiere_id FROM chapitres WHERE id = ?', [idChapitre]) || {}).matiere_id
-    : entier(req.body && req.body.matiereId);
-
-  if (matiereId && !await saMatiere(req.utilisateur.id, matiereId))
-    return res.status(403).json({ erreur: 'Cette matière ne fait pas partie des vôtres.' });
-  if (!matiereId && req.method !== 'GET')
-    return res.status(400).json({ erreur: 'Matière manquante.' });
-  suite();
-});
 
 /* ------------------------------ tableau de bord ---------------------------- */
 routeur.get('/tableau-bord', async (_req, res) => {
@@ -83,7 +52,7 @@ routeur.get('/tableau-bord', async (_req, res) => {
   res.json({ comptes, catalogue, actifs7: activite.actifs7, qcm: moyennes, recents, fragiles });
 });
 
-/* Matières confiées à un enseignant : sans elles, il ne peut rien modifier. */
+/* Matières d'un enseignant : ses élèves ne peuvent le désigner que dans celles-ci. */
 routeur.get('/enseignants/:id/matieres', async (req, res) => {
   const id = entier(req.params.id);
   const lignes = await tous(
@@ -111,6 +80,106 @@ routeur.put('/enseignants/:id/matieres', async (req, res) => {
     categorie: 'compte', action: 'Matières d’un enseignant modifiées',
     cible: u.nom + ' — ' + (ids.length ? ids.length + ' matière(s)' : 'aucune') });
   res.json({ matieres: ids });
+});
+
+/* ---------------------- enseignants : rémunérations ------------------------ */
+/* Ce que Cashevent doit à chaque enseignant pour un mois. Seuls les suivis
+   enregistrés comptent, et chacun garde la date à laquelle le dossier de
+   l'élève a été ouvert : c'est ce qui permet de vérifier avant de payer. */
+routeur.get('/remunerations', async (req, res) => {
+  const mois = suivi.moisValide(req.query.mois) ? req.query.mois : await suivi.moisCourant();
+  const lignes = await tous(
+    `SELECT u.id, u.nom, u.email, u.telephone, u.actif, en.code,
+            (SELECT COUNT(*) FROM referents r
+               JOIN utilisateurs e ON e.id = r.eleve_id AND e.actif = 1
+              WHERE r.enseignant_id = u.id) AS eleves,
+            (SELECT COUNT(*) FROM suivis s WHERE s.enseignant_id = u.id AND s.mois = ?) AS suivis,
+            (SELECT GROUP_CONCAT(m.nom ORDER BY m.ordre SEPARATOR ', ')
+               FROM enseignant_matieres em JOIN matieres m ON m.id = em.matiere_id
+              WHERE em.enseignant_id = u.id) AS matieres
+       FROM utilisateurs u
+       LEFT JOIN enseignants en ON en.utilisateur_id = u.id
+      WHERE u.role = 'enseignant'
+      ORDER BY suivis DESC, u.nom`, [mois]);
+
+  const enseignants = lignes.map(l => ({
+    ...l, eleves: Number(l.eleves), suivis: Number(l.suivis), du: suivi.montant(Number(l.suivis))
+  }));
+  res.json({
+    mois, tarif: suivi.tarif(), enseignants,
+    total: suivi.montant(enseignants.reduce((n, e) => n + e.suivis, 0))
+  });
+});
+
+/* Le détail qui justifie un montant : un suivi par ligne, avec ses preuves. */
+routeur.get('/remunerations/:id', async (req, res) => {
+  const mois = suivi.moisValide(req.query.mois) ? req.query.mois : await suivi.moisCourant();
+  const suivis = await tous(
+    `SELECT s.statut, s.commentaire, s.consulte_le, s.cree_le, s.maj_le,
+            e.nom AS eleve, m.nom AS matiere,
+            (SELECT COUNT(*) FROM consultations c
+              WHERE c.enseignant_id = s.enseignant_id AND c.eleve_id = s.eleve_id
+                AND c.matiere_id = s.matiere_id
+                AND DATE_FORMAT(c.vu_le, '%Y-%m') = s.mois) AS consultations
+       FROM suivis s
+       JOIN utilisateurs e ON e.id = s.eleve_id
+       JOIN matieres m ON m.id = s.matiere_id
+      WHERE s.enseignant_id = ? AND s.mois = ?
+      ORDER BY s.cree_le`, [entier(req.params.id), mois]);
+  res.json({ mois, suivis: suivis.map(x => ({ ...x, consultations: Number(x.consultations) })) });
+});
+
+/* ------------------------ exercices générés : relecture --------------------- */
+/* Retirée de l'espace enseignant : avec une inscription libre, n'importe qui
+   pourrait valider une série. La relecture reste à l'administration. */
+routeur.get('/exercices', async (_req, res) => {
+  const series = await tous(
+    `SELECT x.id, x.niveau, x.valide, x.note_relecture, x.cree_le, x.modele,
+            c.id AS chapitre_id, c.numero, c.titre, m.nom AS matiere, m.teinte,
+            u.nom AS relecteur
+       FROM exercices x
+       JOIN chapitres c ON c.id = x.chapitre_id
+       JOIN matieres  m ON m.id = c.matiere_id
+       LEFT JOIN utilisateurs u ON u.id = x.valide_par
+      ORDER BY x.valide, x.cree_le DESC`);
+  res.json({ series });
+});
+
+routeur.get('/exercices/:id', async (req, res) => {
+  const s = await un(
+    'SELECT x.*, c.titre FROM exercices x JOIN chapitres c ON c.id = x.chapitre_id WHERE x.id = ?',
+    [entier(req.params.id)]);
+  if (!s) return res.status(404).json({ erreur: 'Série introuvable.' });
+  const contenu = typeof s.contenu === 'string' ? JSON.parse(s.contenu) : s.contenu;
+  res.json({ serie: { ...contenu, id: s.id, niveau: s.niveau, valide: !!s.valide,
+    note: s.note_relecture, titre: s.titre } });
+});
+
+routeur.post('/exercices/:id/valider', async (req, res) => {
+  const s = await un(
+    `SELECT x.id, x.niveau, c.titre FROM exercices x
+       JOIN chapitres c ON c.id = x.chapitre_id WHERE x.id = ?`, [entier(req.params.id)]);
+  if (!s) return res.status(404).json({ erreur: 'Série introuvable.' });
+  await executer('UPDATE exercices SET valide = 1, valide_par = ?, note_relecture = ? WHERE id = ?',
+    [req.utilisateur.id, texte(req.body.note, 400) || null, s.id]);
+  await journal.enregistrer(req, {
+    categorie: 'catalogue', action: 'Exercices validés', cible: s.titre + ' · ' + s.niveau });
+  res.json({ valide: true });
+});
+
+routeur.post('/exercices/:id/regenerer', async (req, res) => {
+  const s = await un(
+    `SELECT x.id, x.niveau, x.chapitre_id, c.titre FROM exercices x
+       JOIN chapitres c ON c.id = x.chapitre_id WHERE x.id = ?`, [entier(req.params.id)]);
+  if (!s) return res.status(404).json({ erreur: 'Série introuvable.' });
+  if (!exos.actif())
+    return res.status(503).json({ erreur: 'Le générateur d’exercices n’est pas configuré.' });
+  const serie = await exos.generer(s.chapitre_id, s.niveau);
+  await executer('UPDATE exercices SET valide = 0, valide_par = NULL, note_relecture = NULL WHERE id = ?',
+    [s.id]);
+  await journal.enregistrer(req, {
+    categorie: 'catalogue', action: 'Exercices regénérés', cible: s.titre + ' · ' + s.niveau });
+  res.json({ serie });
 });
 
 /* -------------------------------- utilisateurs ----------------------------- */
@@ -210,18 +279,13 @@ routeur.delete('/liens', async (req, res) => {
 });
 
 /* ---------------------------------- matières ------------------------------- */
-routeur.get('/matieres', async (req, res) => {
-  /* Un enseignant ne voit que les matières qui lui sont confiées. */
-  const sien = req.utilisateur.role === 'enseignant';
+routeur.get('/matieres', async (_req, res) => {
   res.json({
     matieres: await tous(`
       SELECT m.*, (SELECT COUNT(*) FROM chapitres c WHERE c.matiere_id = m.id) AS chapitres,
              (SELECT COUNT(*) FROM questions q JOIN chapitres c ON c.id = q.chapitre_id
                WHERE c.matiere_id = m.id) AS questions
-        FROM matieres m
-       ${sien ? `WHERE m.id IN (SELECT matiere_id FROM enseignant_matieres
-                                 WHERE enseignant_id = ?)` : ''}
-       ORDER BY m.ordre, m.id`, sien ? [req.utilisateur.id] : [])
+        FROM matieres m ORDER BY m.ordre, m.id`)
   });
 });
 
@@ -271,10 +335,6 @@ routeur.get('/chapitres', async (req, res) => {
   const matiereId = entier(req.query.matiereId);
   const clauses = [], params = [];
   if (matiereId) { clauses.push('c.matiere_id = ?'); params.push(matiereId); }
-  if (req.utilisateur.role === 'enseignant') {
-    clauses.push('c.matiere_id IN (SELECT matiere_id FROM enseignant_matieres WHERE enseignant_id = ?)');
-    params.push(req.utilisateur.id);
-  }
   res.json({
     chapitres: await tous(`
       SELECT c.id, c.numero, c.titre, c.duree, c.difficulte, c.publie,

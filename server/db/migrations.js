@@ -44,34 +44,110 @@ const TABLES = [
        REFERENCES chapitres(id) ON DELETE CASCADE
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
 
-  /* Espace enseignant : des classes, et les élèves qui y sont rattachés. */
-  ['classes', `CREATE TABLE IF NOT EXISTS classes (
+  /* ------------------------- enseignants référents ------------------------ */
+  /* Le code qu'un enseignant donne à ses élèves pour qu'ils le désignent. */
+  ['enseignants', `CREATE TABLE IF NOT EXISTS enseignants (
+     utilisateur_id INT UNSIGNED NOT NULL PRIMARY KEY,
+     code CHAR(6) NOT NULL,
+     cree_le DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     UNIQUE KEY uq_enseignants_code (code),
+     CONSTRAINT fk_enseignants_utilisateur FOREIGN KEY (utilisateur_id)
+       REFERENCES utilisateurs(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
+
+  /* Un professeur par élève et par matière, choisi par l'élève lui-même :
+     c'est la seule porte d'accès d'un enseignant aux données d'un élève. */
+  ['referents', `CREATE TABLE IF NOT EXISTS referents (
+     eleve_id      INT UNSIGNED NOT NULL,
+     matiere_id    INT UNSIGNED NOT NULL,
+     enseignant_id INT UNSIGNED NOT NULL,
+     depuis DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     PRIMARY KEY (eleve_id, matiere_id),
+     KEY idx_referents_enseignant (enseignant_id, matiere_id),
+     CONSTRAINT fk_referents_eleve FOREIGN KEY (eleve_id)
+       REFERENCES utilisateurs(id) ON DELETE CASCADE,
+     CONSTRAINT fk_referents_matiere FOREIGN KEY (matiere_id)
+       REFERENCES matieres(id) ON DELETE CASCADE,
+     CONSTRAINT fk_referents_enseignant FOREIGN KEY (enseignant_id)
+       REFERENCES utilisateurs(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
+
+  /* Chaque ouverture du dossier d'un élève. Un suivi ne peut être enregistré
+     que si le dossier a été consulté dans le mois : c'est la preuve de travail. */
+  ['consultations', `CREATE TABLE IF NOT EXISTS consultations (
      id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
      enseignant_id INT UNSIGNED NOT NULL,
-     nom VARCHAR(120) NOT NULL,
-     niveau VARCHAR(80) NULL,
-     code CHAR(6) NOT NULL,
-     archivee TINYINT(1) NOT NULL DEFAULT 0,
+     eleve_id      INT UNSIGNED NOT NULL,
+     matiere_id    INT UNSIGNED NOT NULL,
+     vu_le DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     KEY idx_consultations (enseignant_id, eleve_id, matiere_id, vu_le),
+     CONSTRAINT fk_consultations_enseignant FOREIGN KEY (enseignant_id)
+       REFERENCES utilisateurs(id) ON DELETE CASCADE,
+     CONSTRAINT fk_consultations_eleve FOREIGN KEY (eleve_id)
+       REFERENCES utilisateurs(id) ON DELETE CASCADE,
+     CONSTRAINT fk_consultations_matiere FOREIGN KEY (matiere_id)
+       REFERENCES matieres(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
+
+  /* Le suivi du mois. Une ligne = une rémunération due, avec sa preuve. */
+  ['suivis', `CREATE TABLE IF NOT EXISTS suivis (
+     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+     enseignant_id INT UNSIGNED NOT NULL,
+     eleve_id      INT UNSIGNED NOT NULL,
+     matiere_id    INT UNSIGNED NOT NULL,
+     mois CHAR(7) NOT NULL,
+     statut ENUM('bonne_voie','encourager','aide') NOT NULL,
+     commentaire VARCHAR(600) NULL,
+     consulte_le DATETIME NOT NULL,
      cree_le DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-     UNIQUE KEY uq_classes_code (code),
-     KEY idx_classes_enseignant (enseignant_id),
-     CONSTRAINT fk_classes_enseignant FOREIGN KEY (enseignant_id)
+     maj_le  DATETIME NULL,
+     lu_le   DATETIME NULL,
+     UNIQUE KEY uq_suivis_mois (enseignant_id, eleve_id, matiere_id, mois),
+     KEY idx_suivis_mois (mois, enseignant_id),
+     KEY idx_suivis_eleve (eleve_id, cree_le),
+     CONSTRAINT fk_suivis_enseignant FOREIGN KEY (enseignant_id)
+       REFERENCES utilisateurs(id) ON DELETE CASCADE,
+     CONSTRAINT fk_suivis_eleve FOREIGN KEY (eleve_id)
+       REFERENCES utilisateurs(id) ON DELETE CASCADE,
+     CONSTRAINT fk_suivis_matiere FOREIGN KEY (matiere_id)
+       REFERENCES matieres(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
+
+  /* TP envoyés par un enseignant. Le fichier vit en base : un redéploiement
+     efface le disque de l'hébergeur, jamais la base. */
+  ['tp_envois', `CREATE TABLE IF NOT EXISTS tp_envois (
+     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+     enseignant_id INT UNSIGNED NOT NULL,
+     matiere_id    INT UNSIGNED NOT NULL,
+     titre VARCHAR(160) NOT NULL,
+     consigne TEXT NULL,
+     echeance DATE NULL,
+     fichier_nom  VARCHAR(200) NOT NULL,
+     fichier_type VARCHAR(100) NOT NULL,
+     taille INT UNSIGNED NOT NULL,
+     fichier MEDIUMBLOB NOT NULL,
+     cree_le DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     KEY idx_tp_envois_enseignant (enseignant_id, cree_le),
+     CONSTRAINT fk_tp_envois_enseignant FOREIGN KEY (enseignant_id)
+       REFERENCES utilisateurs(id) ON DELETE CASCADE,
+     CONSTRAINT fk_tp_envois_matiere FOREIGN KEY (matiere_id)
+       REFERENCES matieres(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
+
+  ['tp_destinataires', `CREATE TABLE IF NOT EXISTS tp_destinataires (
+     envoi_id INT UNSIGNED NOT NULL,
+     eleve_id INT UNSIGNED NOT NULL,
+     telecharge_le DATETIME NULL,
+     PRIMARY KEY (envoi_id, eleve_id),
+     KEY idx_tp_destinataires_eleve (eleve_id),
+     CONSTRAINT fk_tp_dest_envoi FOREIGN KEY (envoi_id)
+       REFERENCES tp_envois(id) ON DELETE CASCADE,
+     CONSTRAINT fk_tp_dest_eleve FOREIGN KEY (eleve_id)
        REFERENCES utilisateurs(id) ON DELETE CASCADE
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
 
-  ['classe_eleves', `CREATE TABLE IF NOT EXISTS classe_eleves (
-     classe_id INT UNSIGNED NOT NULL,
-     eleve_id  INT UNSIGNED NOT NULL,
-     ajoute_le DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-     PRIMARY KEY (classe_id, eleve_id),
-     KEY idx_classe_eleves_eleve (eleve_id),
-     CONSTRAINT fk_classe_eleves_classe FOREIGN KEY (classe_id)
-       REFERENCES classes(id) ON DELETE CASCADE,
-     CONSTRAINT fk_classe_eleves_eleve FOREIGN KEY (eleve_id)
-       REFERENCES utilisateurs(id) ON DELETE CASCADE
-   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
-
-  /* Les matières qu'un enseignant a le droit de modifier. */
+  /* Les matières qu'un enseignant déclare enseigner : un élève ne peut le
+     désigner que dans l'une d'elles. */
   ['enseignant_matieres', `CREATE TABLE IF NOT EXISTS enseignant_matieres (
      enseignant_id INT UNSIGNED NOT NULL,
      matiere_id    INT UNSIGNED NOT NULL,

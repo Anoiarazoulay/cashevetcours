@@ -20,11 +20,9 @@ window.UI = (() => {
             ['revisions', '/revisions', 'Mes révisions'],
             ['progression', '/progression', 'Ma progression']],
     parent: [['parent', '/espace-parent', 'Suivi de mon enfant']],
-    enseignant: [['enseignant', '/espace-enseignant', 'Mes classes'],
-                 ['accueil', '/ecole', 'Vue élève']],
+    enseignant: [['enseignant', '/espace-enseignant', 'Mon tableau de bord']],
     admin: [['admin', '/admin', 'Administration'], ['accueil', '/ecole', 'Vue élève'],
-            ['parent', '/espace-parent', 'Vue parent'],
-            ['enseignant', '/espace-enseignant', 'Vue enseignant']]
+            ['parent', '/espace-parent', 'Vue parent']]
   };
 
   let tt;

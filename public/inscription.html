@@ -42,6 +42,7 @@
     <ol class="jalons" id="jalons">
       <li class="actif"><span>1</span>Le compte</li>
       <li><span>2</span>Votre fiche</li>
+      <li data-jalon-eleve><span>3</span>Vos professeurs</li>
     </ol>
 
     <p class="nf-erreur" id="erreur" hidden></p>
@@ -55,6 +56,8 @@
             <b>Je suis élève</b><small>J’étudie le programme</small></label>
           <label><input type="radio" name="role" value="parent">
             <b>Je suis parent</b><small>Je suis la progression</small></label>
+          <label><input type="radio" name="role" value="enseignant">
+            <b>Je suis enseignant</b><small>Je suis mes élèves</small></label>
         </div>
 
         <div class="nf-champ">
@@ -111,6 +114,12 @@
           </select>
         </div>
 
+        <div class="nf-champ" id="champMatieres" hidden>
+          <span class="nf-legende">Les matières que vous enseignez</span>
+          <div class="nf-matieres" id="listeMatieres"></div>
+          <span class="indice">Vos élèves pourront vous désigner comme professeur dans ces matières.</span>
+        </div>
+
         <div class="deux-champs large-gauche">
           <div class="nf-champ">
             <input id="ville" name="ville" type="text" placeholder=" " autocomplete="address-level2"
@@ -141,6 +150,19 @@
           <span class="indice">Son compte élève sera rattaché au vôtre immédiatement.</span>
         </div>
 
+        <div class="rangee-boutons">
+          <button class="nf-bouton fantome" type="button" data-precedent>Retour</button>
+          <button class="nf-soumettre grandir" type="submit" id="boutonEtape2">Créer mon compte</button>
+        </div>
+      </section>
+
+      <!-- ------------------------------ étape 3 ------------------------------ -->
+      <!-- Élèves seulement : chaque professeur référent ne suit qu'une matière. -->
+      <section class="panneau-etape" data-etape="3" hidden>
+        <p class="nf-intro">Indiquez le code que vos professeurs vous ont donné. Chacun pourra suivre
+          votre progression <b>dans sa matière uniquement</b>. Étape facultative : vous pourrez les
+          ajouter plus tard, depuis « Ma progression ».</p>
+        <div class="nf-profs" id="listeProfesseurs"></div>
         <div class="rangee-boutons">
           <button class="nf-bouton fantome" type="button" data-precedent>Retour</button>
           <button class="nf-soumettre grandir" type="submit">Créer mon compte</button>

@@ -38,6 +38,32 @@
     .then(r => { POPULAIRES = r.populaires || []; if (page === 'accueil') rendre(); })
     .catch(() => { });
 
+  /* Ce que les professeurs référents ont adressé à l'élève : TP et messages.
+     Chargé après coup, comme le classement : la page n'attend pas. */
+  let TRAVAUX = { tp: [], messages: [] };
+  if (!lectureSeule) API.get('/professeurs/travaux')
+    .then(r => { TRAVAUX = r; if (page === 'accueil') rendre(); })
+    .catch(() => { });
+
+  document.addEventListener('click', async e => {
+    /* Le téléchargement suit le lien ; on met simplement la carte à jour. */
+    const tp = e.target.closest('[data-tp-prof]');
+    if (tp) {
+      const t = TRAVAUX.tp.find(x => x.id === Number(tp.dataset.tpProf));
+      if (t && !t.telecharge_le) setTimeout(() => { t.telecharge_le = new Date().toISOString(); rendre(); }, 800);
+      return;
+    }
+    const lu = e.target.closest('[data-message-lu]');
+    if (!lu) return;
+    lu.disabled = true;
+    try {
+      await API.post('/professeurs/messages/' + lu.dataset.messageLu + '/lu');
+      const m = TRAVAUX.messages.find(x => x.id === Number(lu.dataset.messageLu));
+      if (m) m.lu_le = new Date().toISOString();
+      rendre();
+    } catch (err) { lu.disabled = false; message(err.message); }
+  });
+
   /* ------------------------------ état local ------------------------------ */
   const etat = id => S.ch[id] || { seances: [], resume: false, tp: false, fini: false, avancement: 0, qcm: null };
   const pc = id => etat(id).avancement || 0;
@@ -533,6 +559,35 @@
     if (s.revoir.length) rows.push(rangee('revoir', 'À revoir en priorité', s.revoir.map(x => carte(x)), '· score inférieur à 60 %'));
     M.forEach(m => rows.push(rangee('r-' + m.id, m.nom, m.chapitres.map(x => carte(x, false)),
       `· ${m.chapitres.length} chapitres · coef. ${m.coef}`)));
+    /* Ce que les professeurs ont envoyé passe avant tout le reste. Leurs noms,
+       titres et messages sont saisis par eux : tout est échappé. */
+    const nonLus = TRAVAUX.messages.filter(m => !m.lu_le);
+    const aRecuperer = TRAVAUX.tp.filter(t => !t.telecharge_le).length;
+    const jourLong = j => new Date(j + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+    if (nonLus.length || TRAVAUX.tp.length) rows.unshift(`
+      <section class="de-mes-profs">
+        <div class="rowhead"><h2>De vos professeurs <span class="rowhead-sous">· ${
+          aRecuperer ? aRecuperer + ' TP à récupérer' : 'TP et messages'}</span></h2></div>
+        <div class="profs-grille">
+          ${nonLus.map(m => `
+            <article class="carte-prof message ${txt(m.statut)}">
+              <span class="etiquette-mat" style="--c1:${txt(m.teinte)}">${txt(m.matiere)}</span>
+              <b>${txt(m.enseignant)}</b>
+              <p>${txt(m.commentaire)}</p>
+              <button class="pilule" data-message-lu="${m.id}">J’ai lu</button>
+            </article>`).join('')}
+          ${TRAVAUX.tp.slice(0, 6).map(t => `
+            <article class="carte-prof tp${t.telecharge_le ? ' recupere' : ''}">
+              <span class="etiquette-mat" style="--c1:${txt(t.teinte)}">${txt(t.matiere)}</span>
+              <b>${txt(t.titre)}</b>
+              <small>${txt(t.enseignant)}${t.echeance ? ' · à rendre le ' + jourLong(t.echeance) : ''}</small>
+              ${t.consigne ? `<p>${txt(t.consigne)}</p>` : ''}
+              <a class="pilule${t.telecharge_le ? '' : ' blanc'}" href="/api/professeurs/travaux/${t.id}/fichier"
+                data-tp-prof="${t.id}">${t.telecharge_le ? 'Télécharger à nouveau' : 'Télécharger le TP'}</a>
+            </article>`).join('')}
+        </div>
+      </section>`);
+
     $('[data-rows]').innerHTML = rows.join('');
   };
 

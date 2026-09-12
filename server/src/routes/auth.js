@@ -2,9 +2,10 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const config = require('../config');
-const { un, executer } = require('../db');
+const { tous, un, executer } = require('../db');
 const { signer, poserCookie, retirerCookie, requiert } = require('../middleware/auth');
 const journal = require('../services/journal');
+const suivi = require('../services/suivi');
 
 const routeur = express.Router();
 
@@ -41,12 +42,14 @@ const profil = async u => {
   return base;
 };
 
-/* POST /api/auth/inscription — élève ou parent uniquement */
+/* POST /api/auth/inscription — élève, parent ou enseignant.
+   L'inscription d'un enseignant est libre : il ne voit un élève que si cet
+   élève l'a lui-même désigné, jamais par sa seule inscription. */
 routeur.post('/inscription', async (req, res) => {
   const nom = String(req.body.nom || '').trim();
   const email = String(req.body.email || '').trim().toLowerCase();
   const motDePasse = String(req.body.motDePasse || '');
-  const role = ['eleve', 'parent'].includes(req.body.role) ? req.body.role : 'eleve';
+  const role = ['eleve', 'parent', 'enseignant'].includes(req.body.role) ? req.body.role : 'eleve';
 
   if (nom.length < 2) return res.status(400).json({ erreur: 'Indiquez votre nom complet.' });
   if (!EMAIL.test(email)) return res.status(400).json({ erreur: 'Cette adresse e-mail n’est pas valide.' });
@@ -76,6 +79,20 @@ routeur.post('/inscription', async (req, res) => {
   /* La filière ne concerne que les élèves. */
   const filiere = role === 'eleve' ? texte(req.body.filiere, 80) : null;
 
+  /* Un enseignant déclare ses matières : ses élèves ne pourront le désigner
+     que dans l'une d'elles. */
+  let matieresEnseignees = [];
+  if (role === 'enseignant') {
+    const brut = Array.isArray(req.body.matieresEnseignees)
+      ? req.body.matieresEnseignees : String(req.body.matieresEnseignees || '').split(',');
+    const ids = [...new Set(brut.map(Number).filter(n => Number.isInteger(n) && n > 0))];
+    if (ids.length)
+      matieresEnseignees = (await tous(
+        `SELECT id FROM matieres WHERE id IN (${ids.map(() => '?').join(',')})`, ids)).map(m => m.id);
+    if (!matieresEnseignees.length)
+      return res.status(400).json({ erreur: 'Indiquez au moins une matière que vous enseignez.' });
+  }
+
   if (await un('SELECT id FROM utilisateurs WHERE email = ?', [email]))
     return res.status(409).json({ erreur: 'Un compte existe déjà avec cette adresse.' });
 
@@ -100,14 +117,43 @@ routeur.post('/inscription', async (req, res) => {
     }
   }
 
+  /* Le code de l'enseignant est créé tout de suite : il peut le donner à
+     ses élèves dès la fin de l'inscription. */
+  if (role === 'enseignant') {
+    await executer('INSERT INTO enseignant_matieres (enseignant_id, matiere_id) VALUES ?',
+      [matieresEnseignees.map(m => [r.insertId, m])]);
+    await suivi.profil(r.insertId);
+  }
+
+  /* Un élève peut désigner ses professeurs dès l'inscription. Un code erroné
+     n'empêche pas la création du compte : il se corrige ensuite. */
+  const professeurs = [];
+  if (role === 'eleve' && Array.isArray(req.body.professeurs)) {
+    for (const choix of req.body.professeurs.slice(0, 20)) {
+      const code = String((choix && choix.code) || '').trim();
+      if (!code) continue;
+      try {
+        const e = await suivi.designer(r.insertId, choix.matiereId, code);
+        if (e) professeurs.push({ matiereId: Number(choix.matiereId), nom: e.nom });
+      } catch (err) {
+        if (!err.statut) throw err;
+      }
+    }
+  }
+
   const u = await un('SELECT * FROM utilisateurs WHERE id = ?', [r.insertId]);
   poserCookie(res, signer(u));
   await journal.enregistrer(req, {
     categorie: 'compte', action: 'Inscription', cible: email, acteur: u,
-    details: (role === 'parent' ? 'Parent' : 'Élève · ' + (filiere || 'filière non précisée')) +
+    details: ({
+      parent: 'Parent',
+      enseignant: 'Enseignant · ' + matieresEnseignees.length + ' matière(s)',
+      eleve: 'Élève · ' + (filiere || 'filière non précisée') +
+        (professeurs.length ? ' · ' + professeurs.length + ' professeur(s) désigné(s)' : '')
+    })[role] +
       ' · ' + age + ' ans · ' + ville + (lie ? ' · enfant rattaché : ' + emailEnfant : '')
   });
-  res.status(201).json({ utilisateur: await profil(u), enfantLie: lie });
+  res.status(201).json({ utilisateur: await profil(u), enfantLie: lie, professeurs });
 });
 
 /* POST /api/auth/connexion */

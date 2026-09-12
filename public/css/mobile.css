@@ -333,7 +333,14 @@
   .ligne-eleve .jauge{order:2; flex:1 1 100%; width:auto}
   .ligne-eleve .chiffre{order:3; text-align:left; min-width:0; margin-right:14px}
   .ligne-eleve .pilule.mini{order:4}
-  .ligne-eleve .pilule.mini[data-eleve]{margin-left:auto}
+  .ligne-eleve .statut-suivi{order:3}
+  .ligne-eleve .pilule.mini[data-dossier]{margin-left:auto}
+  .choix-statut{grid-template-columns:1fr}
+  .mini-stats{grid-template-columns:1fr 1fr}
+  .code-prof span{font-size:26px; letter-spacing:.16em}
+  .ligne-prof{flex-wrap:wrap}
+  .ligne-prof .nom{flex:1 1 100%}
+  .ligne-prof .code{flex:1}
 
   .modale{padding:16px 12px}
   .modale-corps{padding:20px 16px}

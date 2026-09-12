@@ -14,7 +14,7 @@ const idValide = v => Number.isInteger(Number(v)) && Number(v) > 0;
 /* GET /api/catalogue/public — vitrine : uniquement les matières et leur volume */
 routeur.get('/catalogue/public', async (_req, res) => {
   const [matieres, affiches, chiffres] = await Promise.all([
-    tous(`SELECT m.nom, m.court, m.teinte, m.teinte2, m.glyphe,
+    tous(`SELECT m.id, m.nom, m.court, m.teinte, m.teinte2, m.glyphe,
                  (SELECT COUNT(*) FROM chapitres c WHERE c.matiere_id = m.id AND c.publie = 1) AS chapitres,
                  (SELECT c.image FROM chapitres c
                    WHERE c.matiere_id = m.id AND c.publie = 1 AND c.image IS NOT NULL

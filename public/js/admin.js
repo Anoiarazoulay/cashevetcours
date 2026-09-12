@@ -19,6 +19,7 @@
   const ONGLETS = [
     ['bord', 'Tableau de bord'], ['utilisateurs', 'Utilisateurs'],
     ['catalogue', 'Catalogue'], ['suivi', 'Suivi des élèves'],
+    ['enseignants', 'Enseignants'], ['exercices', 'Exercices'],
     ['messages', 'Messages'], ['journal', 'Journal']
   ];
   let onglet = location.hash.slice(1) || 'bord';
@@ -238,7 +239,7 @@
       });
   }
 
-  /* Les matières d'un enseignant : elles décident de ce qu'il peut modifier. */
+  /* Les matières d'un enseignant : celles où ses élèves peuvent le désigner. */
   async function matieresEnseignant(u) {
     let matieres, siennes;
     try {
@@ -248,8 +249,8 @@
     } catch (e) { return message(e.message); }
 
     dialogue('Matières de ' + u.nom, `
-      <p class="sous">Cochez les matières dont ${echapper(u.nom)} a la charge. Sans matière,
-        cet enseignant peut suivre ses classes mais ne modifie aucun contenu.</p>
+      <p class="sous">Cochez les matières que ${echapper(u.nom)} enseigne : ses élèves ne pourront
+        le désigner comme professeur référent que dans celles-ci.</p>
       ${matieres.map(m => `
         <label class="case-outil" style="padding:6px 0">
           <input type="checkbox" name="m${m.id}" ${siennes.includes(m.id) ? 'checked' : ''}>
@@ -727,6 +728,169 @@
     gestionnaire = null;
   }
 
+  /* ------------------------------- enseignants ---------------------------- */
+  /* Ce que Cashevent doit à chaque enseignant, et la preuve de chaque suivi. */
+  let moisRemu = null;
+  const fcfa = n => Number(n).toLocaleString('fr-FR') + ' FCFA';
+  const eur = n => Number(n).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+  const moisFR = m => new Date(m + '-01T00:00:00').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  const dateHeure = d => d ? new Date(d).toLocaleString('fr-FR',
+    { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+  const STATUTS_SUIVI = { bonne_voie: 'En bonne voie', encourager: 'À encourager', aide: 'A besoin d’aide' };
+
+  async function rendreEnseignants() {
+    attente();
+    const d = await API.get('/admin/remunerations' + (moisRemu ? '?mois=' + moisRemu : ''));
+    moisRemu = d.mois;
+    const possibles = d.enseignants.reduce((n, e) => n + e.eleves, 0);
+
+    vue.innerHTML = `
+      <div class="barre-outils">
+        <label class="case-outil">Mois <input class="champ" type="month" id="moisRemu" value="${d.mois}"></label>
+        <span class="sous">Tarif : ${fcfa(d.tarif.fcfa)} ≈ ${eur(d.tarif.eur)} par élève suivi, par matière.</span>
+      </div>
+      <div class="tuiles">
+        <div class="tuile"><div class="lab">Enseignants inscrits</div><div class="val">${d.enseignants.length}</div></div>
+        <div class="tuile"><div class="lab">Suivis possibles</div><div class="val">${possibles}</div>
+          <div class="sous">désignations élève × matière</div></div>
+        <div class="tuile"><div class="lab">Suivis faits — ${moisFR(d.mois)}</div><div class="val">${d.total.unites}</div></div>
+        <div class="tuile"><div class="lab">À verser</div><div class="val">${fcfa(d.total.fcfa)}</div>
+          <div class="sous">≈ ${eur(d.total.eur)}</div></div>
+      </div>
+      <div class="table-defile"><table class="tableau">
+        <thead><tr><th>Enseignant</th><th>Code</th><th>Matières</th><th>Élèves</th>
+          <th>Suivis faits</th><th>À verser</th><th></th></tr></thead>
+        <tbody>${d.enseignants.map(e => `
+          <tr>
+            <td><b>${echapper(e.nom)}</b><small>${echapper(e.email)}${e.telephone ? ' · ' + echapper(e.telephone) : ''}</small></td>
+            <td>${e.code ? echapper(e.code) : '—'}</td>
+            <td class="fiche-mini">${echapper(e.matieres || '—')}</td>
+            <td>${e.eleves}</td>
+            <td>${e.suivis}</td>
+            <td><b>${fcfa(e.du.fcfa)}</b><small>≈ ${eur(e.du.eur)}</small></td>
+            <td class="actions-ligne">${e.suivis ? `<button class="mini" data-preuves="${e.id}">Preuves</button>` : ''}</td>
+          </tr>`).join('')}</tbody>
+      </table></div>
+      ${d.enseignants.length ? '' : '<p class="sous vide">Aucun enseignant inscrit pour l’instant.</p>'}
+      <p class="sous" style="margin-top:14px">Un suivi n’est compté que si l’enseignant a ouvert le dossier
+        de l’élève dans le mois avant de l’enregistrer. Le détail de chaque suivi se consulte avant paiement.</p>`;
+
+    $('#moisRemu').addEventListener('change', e => {
+      if (e.target.value) { moisRemu = e.target.value; rendreEnseignants(); }
+    });
+
+    gestionnaire = async e => {
+      const b = e.target.closest('[data-preuves]'); if (!b) return;
+      const ens = d.enseignants.find(x => x.id === Number(b.dataset.preuves));
+      let p;
+      try { p = await API.get('/admin/remunerations/' + ens.id + '?mois=' + d.mois); }
+      catch (err) { return message(err.message); }
+      fenetre('Suivis de ' + ens.nom + ' — ' + moisFR(d.mois), `
+        <p class="sous">${p.suivis.length} suivi(s) · ${fcfa(ens.du.fcfa)} à verser.</p>
+        <div class="table-defile"><table class="tableau">
+          <thead><tr><th>Élève</th><th>Matière</th><th>Avis</th><th>Dossier ouvert</th><th>Suivi enregistré</th></tr></thead>
+          <tbody>${p.suivis.map(s => `<tr>
+            <td><b>${echapper(s.eleve)}</b></td>
+            <td>${echapper(s.matiere)}</td>
+            <td>${STATUTS_SUIVI[s.statut] || echapper(s.statut)}${s.commentaire ? `<small>${echapper(s.commentaire)}</small>` : ''}</td>
+            <td class="quand-cell">${dateHeure(s.consulte_le)}<small>${s.consultations} ouverture(s) dans le mois</small></td>
+            <td class="quand-cell">${dateHeure(s.maj_le || s.cree_le)}</td>
+          </tr>`).join('')}</tbody>
+        </table></div>`, 'large');
+    };
+  }
+
+  /* -------------------------------- exercices ----------------------------- */
+  /* La relecture des séries générées reste à l'administration. */
+  const NIVEAUX_EXO = { application: 'Application', entrainement: 'Entraînement', bac: 'Type bac' };
+
+  async function rendreExercices() {
+    attente();
+    const { series } = await API.get('/admin/exercices');
+    if (!series.length) {
+      vue.innerHTML = `<div class="vide-etat"><b>Aucune série générée pour l’instant</b>
+        Une série apparaît ici dès qu’un élève ouvre les exercices d’un chapitre.</div>`;
+      gestionnaire = null;
+      return;
+    }
+    const aRelire = series.filter(s => !s.valide).length;
+    vue.innerHTML = `
+      <p class="sous">${aRelire
+        ? `<b>${aRelire} série(s) à relire.</b> Les élèves les voient déjà ; la validation indique qu’elles ont été vérifiées.`
+        : 'Toutes les séries ont été relues.'}</p>
+      <div class="panneau">${series.map(s => `
+        <div class="ligne-chap">
+          <span class="pastille-mat" style="background:${echapper(s.teinte)}"></span>
+          <span class="nom"><b>${echapper(s.titre)}</b>
+            <small>${echapper(s.matiere)} · chapitre ${s.numero} · ${NIVEAUX_EXO[s.niveau] || s.niveau} · ${dateFR(s.cree_le)}</small></span>
+          ${s.valide ? `<span class="etiquette ok">Relue${s.relecteur ? ' par ' + echapper(s.relecteur) : ''}</span>`
+            : '<span class="etiquette">À relire</span>'}
+          <button class="mini" data-lire-serie="${s.id}">Lire</button>
+        </div>`).join('')}</div>`;
+
+    gestionnaire = async e => {
+      const b = e.target.closest('[data-lire-serie]'); if (!b) return;
+      let serie;
+      try { ({ serie } = await API.get('/admin/exercices/' + b.dataset.lireSerie)); }
+      catch (err) { return message(err.message); }
+
+      const f = fenetre(serie.titre + ' — ' + (NIVEAUX_EXO[serie.niveau] || serie.niveau), `
+        ${(serie.exercices || []).map((x, i) => `
+          <article class="exo-relecture">
+            <h3>${i + 1}. ${echapper(x.titre)} ${x.bareme ? `<span class="etiquette">${echapper(x.bareme)}</span>` : ''}</h3>
+            <p>${echapper(x.enonce)}</p>
+            ${x.donnees && x.donnees.length ? `<ul>${x.donnees.map(t => `<li>${echapper(t)}</li>`).join('')}</ul>` : ''}
+            <div class="corrige-relecture"><b>Correction</b>
+              <ol>${(x.correction.etapes || []).map(t => `<li>${echapper(t)}</li>`).join('')}</ol>
+              <p><b>Réponse</b> ${echapper(x.correction.reponse)}</p>
+            </div>
+          </article>`).join('')}
+        <label class="espace-haut" style="display:block">Remarque de relecture
+          <input class="champ" id="noteSerie" maxlength="400" value="${echapper(serie.note || '')}"></label>
+        <div class="rangee-boutons espace-haut">
+          <button class="pilule blanc" type="button" data-valider-serie>Valider la série</button>
+          <button class="pilule" type="button" data-refaire-serie>Faire une autre série</button>
+        </div>`, 'large');
+
+      f.fond.addEventListener('click', async ev => {
+        if (ev.target.closest('[data-valider-serie]')) {
+          try {
+            await API.post('/admin/exercices/' + serie.id + '/valider', { note: $('#noteSerie').value });
+            message('Série validée.'); f.fermer(); rendreExercices();
+          } catch (err) { message(err.message); }
+        }
+        if (ev.target.closest('[data-refaire-serie]')) {
+          if (!confirm('Remplacer cette série par une nouvelle ?')) return;
+          message('Rédaction en cours, comptez une minute…');
+          try {
+            await API.post('/admin/exercices/' + serie.id + '/regenerer');
+            message('Nouvelle série rédigée.'); f.fermer(); rendreExercices();
+          } catch (err) { message(err.message); }
+        }
+      });
+    };
+  }
+
+  /* Fenêtre de lecture : l'habillage des dialogues, sans formulaire à valider. */
+  function fenetre(titre, corpsHTML, taille = '') {
+    const fond = document.createElement('div');
+    fond.className = 'dlg-fond';
+    fond.innerHTML = `
+      <div class="dlg ${taille}" role="dialog" aria-modal="true">
+        <header><h2>${echapper(titre)}</h2>
+          <button type="button" class="close" data-annuler aria-label="Fermer">${UI.ICO.croix}</button></header>
+        <div class="dlg-corps">${corpsHTML}</div>
+        <footer><button type="button" class="pilule" data-annuler>Fermer</button></footer>
+      </div>`;
+    document.body.appendChild(fond);
+    document.body.style.overflow = 'hidden';
+    const fermer = () => { fond.remove(); document.body.style.overflow = ''; };
+    fond.addEventListener('click', e => {
+      if (e.target === fond || e.target.closest('[data-annuler]')) fermer();
+    });
+    return { fond, fermer };
+  }
+
   /* -------------------------------- dialogue ------------------------------ */
   function dialogue(titre, corpsHTML, valider, taille = '', apresRendu) {
     const fond = document.createElement('div');
@@ -769,6 +933,8 @@
       else if (onglet === 'catalogue') await rendreCatalogue();
       else if (onglet === 'messages') await rendreMessages();
       else if (onglet === 'journal') await rendreJournal();
+      else if (onglet === 'enseignants') await rendreEnseignants();
+      else if (onglet === 'exercices') await rendreExercices();
       else await rendreSuivi();
     } catch (e) { vue.innerHTML = `<div class="vide-etat"><b>Erreur</b>${e.message}</div>`; }
   }

@@ -276,3 +276,39 @@ body.page-nf{background:#000;color:#fff}
   .rangee-boutons{flex-direction:column-reverse}
   .rangee-boutons .nf-bouton{width:100%;justify-content:center}
 }
+
+/* =============== inscription : enseignant et professeurs référents ========== */
+.nf-roles{grid-template-columns:repeat(3,1fr)}
+/* « hidden » perdait face au display des jalons : même piège qu'aux étapes. */
+.jalons li[hidden]{display:none}
+.nf-legende{display:block;font-size:13px;color:#b3b3b3;margin-bottom:8px}
+.nf-matieres{display:flex;flex-wrap:wrap;gap:8px}
+.nf-matieres label{position:relative;display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 12px;
+  border-radius:4px;border:1px solid #454545;font-size:13.5px;cursor:pointer;transition:.15s}
+.nf-matieres label:hover{border-color:#777}
+.nf-matieres label.actif{border-color:#fff;background:#1f1f1f}
+.nf-matieres input{position:absolute;opacity:0;pointer-events:none}
+.nf-matieres .pt,.nf-prof .pt{width:8px;height:8px;border-radius:50%;flex:none}
+
+.nf-intro{font-size:14px;color:#b3b3b3;line-height:1.55;margin-bottom:16px}
+.nf-intro b{color:#fff}
+.nf-profs{display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
+.nf-prof{display:grid;grid-template-columns:1fr 104px;align-items:center;gap:4px 10px;padding:8px 10px;
+  border:1px solid #333;border-radius:4px}
+.nf-prof .mat{display:flex;align-items:center;gap:8px;font-size:14px}
+.nf-prof input{height:36px;border-radius:4px;border:1px solid #454545;background:#161616;color:#fff;
+  padding:0 10px;font-size:14px;letter-spacing:.14em;text-transform:uppercase;font-variant-numeric:tabular-nums}
+.nf-prof input:focus{outline:none;border-color:#fff}
+.nf-prof .verdict{grid-column:1/-1;font-size:12.5px}
+.nf-prof .verdict:empty{display:none}
+.nf-prof.ok{border-color:rgba(63,208,138,.55)}
+.nf-prof.ok .verdict{color:#6fe0ac}
+.nf-prof.ok .verdict::before{content:"✓ "}
+.nf-prof.ko{border-color:rgba(229,9,20,.55)}
+.nf-prof.ko .verdict{color:#ff8a8a}
+
+@media (max-width:640px){
+  .nf-roles{grid-template-columns:1fr}
+}
+/* Dans une rangée à deux boutons, le bouton principal gardait une hauteur écrasée. */
+.rangee-boutons .nf-soumettre{min-height:48px}

@@ -53,6 +53,9 @@ app.use(helmet({
   hsts: prod ? { maxAge: 15552000, includeSubDomains: true } : false
 }));
 
+/* Les TP envoyés par les enseignants arrivent encodés en base64 : 5 Mo de
+   fichier font un peu moins de 7 Mo de JSON. Cette route seule a droit à plus. */
+app.use('/api/enseignant/tp', express.json({ limit: '8mb' }));
 app.use(express.json({ limit: '256kb' }));
 app.use(cookieParser());
 app.use(attacher);
@@ -70,6 +73,9 @@ const limite = (minutes, max, message) => rateLimit({
 
 const limiteConnexion = limite(15, 20,
   'Trop de tentatives de connexion. Réessayez dans quelques minutes.');
+/* La recherche d'un professeur par code est publique : on empêche de parcourir les codes. */
+const limiteCode = limite(15, 60,
+  'Trop de recherches de code. Réessayez dans quelques minutes.');
 const limiteApi = limite(15, 1000,
   'Trop de requêtes. Patientez un instant avant de recommencer.');
 
@@ -78,12 +84,14 @@ const api = express.Router();
 api.use(limiteApi);
 api.post('/auth/connexion', limiteConnexion);
 api.post('/auth/inscription', limiteConnexion);
+api.get('/professeurs/code/:code', limiteCode);
 api.use('/auth', require('./routes/auth'));
 api.use('/', require('./routes/catalogue'));
 api.use('/progression', require('./routes/progression'));
 api.use('/parent', require('./routes/parent'));
 api.use('/admin', require('./routes/admin'));
 api.use('/enseignant', require('./routes/enseignant'));
+api.use('/professeurs', require('./routes/professeurs'));
 api.use('/contact', require('./routes/contact'));
 api.get('/sante', (_req, res) => res.json({
   ok: true, version: require('../../package.json').version,
@@ -101,7 +109,7 @@ const PAGES = {
   '/revisions': ['eleve', 'admin'],
   '/progression': ['eleve', 'admin'],
   '/espace-parent': ['parent', 'admin'],
-  '/espace-enseignant': ['enseignant', 'admin'],
+  '/espace-enseignant': ['enseignant'],
   '/admin': ['admin']
 };
 app.get(Object.keys(PAGES), (req, res, suite) => {

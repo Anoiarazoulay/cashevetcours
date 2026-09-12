@@ -7,7 +7,8 @@
 
   const params = new URLSearchParams(location.search);
   const suite = params.get('suite');
-  const accueil = { eleve: '/ecole', parent: '/espace-parent', admin: '/admin' };
+  const accueil = { eleve: '/ecole', parent: '/espace-parent',
+                    enseignant: '/espace-enseignant', admin: '/admin' };
   const rediriger = u => { location.href = suite || accueil[u.role] || '/'; };
 
   const erreur = $('#erreur');
@@ -17,14 +18,17 @@
   };
   const cacher = () => { if (erreur) erreur.hidden = true; };
 
-  const envoyer = async (form, chemin) => {
+  const envoyer = async (form, chemin, completer) => {
     cacher();
-    const bouton = form.querySelector('[type=submit]');
+    /* Dans un formulaire à étapes, c'est le bouton visible qui doit patienter. */
+    const bouton = form.querySelector('.panneau-etape:not([hidden]) [type=submit]') ||
+      form.querySelector('[type=submit]');
     const texte = bouton.textContent;
     bouton.disabled = true; bouton.textContent = 'Un instant…';
     try {
       const donnees = {};
       new FormData(form).forEach((v, k) => donnees[k] = v);
+      if (completer) completer(donnees);
       const r = await API.post(chemin, donnees);
       rediriger(r.utilisateur);
     } catch (e) {
@@ -56,19 +60,83 @@
   if (formInscription) {
     const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
     const valeur = n => (formInscription[n] ? String(formInscription[n].value).trim() : '');
-    const estParent = () => $('input[name=role]:checked').value === 'parent';
+    const role = () => $('input[name=role]:checked').value;
 
-    /* Un parent n'a ni filière ni lycée : les champs suivent le rôle choisi. */
+    /* Chaque rôle a sa fiche : l'élève sa filière et ses professeurs, le parent
+       son enfant, l'enseignant les matières qu'il enseigne. */
     const majRole = () => {
-      const parent = estParent();
+      const r = role();
       const enfant = $('#champEnfant'), filiere = $('#champFiliere'), label = $('#labelEtablissement');
-      if (enfant) enfant.hidden = !parent;
-      if (filiere) filiere.hidden = parent;
-      if (label) label.textContent = parent ? 'Lycée de votre enfant' : 'Votre lycée';
+      const matieres = $('#champMatieres'), jalon = $('[data-jalon-eleve]'), bouton = $('#boutonEtape2');
+      if (enfant) enfant.hidden = r !== 'parent';
+      if (filiere) filiere.hidden = r !== 'eleve';
+      if (matieres) matieres.hidden = r !== 'enseignant';
+      if (jalon) jalon.hidden = r !== 'eleve';
+      if (bouton) bouton.textContent = r === 'eleve' ? 'Continuer' : 'Créer mon compte';
+      if (label) label.textContent = { parent: 'Lycée de votre enfant',
+        enseignant: 'Établissement où vous enseignez' }[r] || 'Votre lycée';
       $$('#choixRole label').forEach(l => l.classList.toggle('actif', l.querySelector('input').checked));
     };
     const choix = $('#choixRole');
     if (choix) { choix.addEventListener('change', majRole); majRole(); }
+
+    /* Les matières servent deux fois : cases à cocher pour l'enseignant,
+       codes des professeurs pour l'élève. */
+    const echapper = t => String(t == null ? '' : t)
+      .replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const listeMatieres = $('#listeMatieres'), listeProfs = $('#listeProfesseurs');
+    if (listeMatieres || listeProfs) {
+      fetch('/api/catalogue/public', { credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(d => {
+          const matieres = d.matieres || [];
+          if (listeMatieres) listeMatieres.innerHTML = matieres.map(m => `
+            <label><input type="checkbox" name="matieresEnseignees" value="${m.id}">
+              <span class="pt" style="background:${echapper(m.teinte)}"></span>${echapper(m.nom)}</label>`).join('');
+          if (listeProfs) listeProfs.innerHTML = matieres.map(m => `
+            <div class="nf-prof">
+              <span class="mat"><span class="pt" style="background:${echapper(m.teinte)}"></span>${echapper(m.nom)}</span>
+              <input type="text" autocomplete="off" maxlength="6" placeholder="Code" data-code="${m.id}"
+                aria-label="Code de votre professeur de ${echapper(m.nom)}">
+              <span class="verdict" aria-live="polite"></span>
+            </div>`).join('');
+        })
+        .catch(() => { });
+    }
+    if (listeMatieres) listeMatieres.addEventListener('change', e => {
+      const l = e.target.closest('label'); if (l) l.classList.toggle('actif', e.target.checked);
+    });
+
+    /* Le nom du professeur s'affiche dès que le code est complet : l'élève sait
+       tout de suite s'il s'est trompé de code ou de matière. */
+    const verdicts = new Map();
+    if (listeProfs) listeProfs.addEventListener('input', e => {
+      const champ = e.target.closest('[data-code]'); if (!champ) return;
+      champ.value = champ.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const ligne = champ.closest('.nf-prof'), verdict = ligne.querySelector('.verdict');
+      const matiereId = Number(champ.dataset.code);
+      verdicts.delete(matiereId);
+      ligne.classList.remove('ok', 'ko');
+      verdict.textContent = '';
+      clearTimeout(champ._minuteur);
+      if (champ.value.length < 6) return;
+      const code = champ.value;
+      champ._minuteur = setTimeout(async () => {
+        try {
+          const { enseignant } = await API.get('/professeurs/code/' + code);
+          if (champ.value !== code) return;
+          const enseigne = enseignant.matieres.some(m => m.id === matiereId);
+          verdicts.set(matiereId, enseigne);
+          ligne.classList.add(enseigne ? 'ok' : 'ko');
+          verdict.textContent = enseigne ? enseignant.nom : enseignant.nom + ' n’enseigne pas cette matière';
+        } catch (err) {
+          if (champ.value !== code) return;
+          verdicts.set(matiereId, false);
+          ligne.classList.add('ko');
+          verdict.textContent = err.message;
+        }
+      }, 250);
+    });
 
     /* L'âge se déduit de la date : on l'affiche pour que la saisie se vérifie d'elle-même. */
     const naissance = $('#dateNaissance'), ageDit = $('#ageCalcule');
@@ -121,19 +189,33 @@
         return 'Indiquez un numéro de téléphone valide.';
       if (valeur('ville').length < 2) return 'Indiquez votre ville.';
       if (valeur('pays').length < 2) return 'Indiquez votre pays.';
+      if (role() === 'enseignant' && !$$('input[name=matieresEnseignees]:checked').length)
+        return 'Cochez au moins une matière que vous enseignez.';
       const enfant = valeur('emailEnfant');
       if (enfant && !EMAIL.test(enfant))
         return 'L’adresse e-mail de votre enfant n’est pas valide.';
       return null;
     };
 
-    const suivant = $('[data-suivant]'), precedent = $('[data-precedent]');
+    /* Un code saisi doit être complet et reconnu ; un champ vide est permis. */
+    const etape3Valide = () => {
+      for (const champ of $$('[data-code]')) {
+        if (!champ.value) continue;
+        const nom = champ.closest('.nf-prof').querySelector('.mat').textContent.trim();
+        if (champ.value.length < 6) return `Le code de votre professeur de ${nom} est incomplet.`;
+        if (verdicts.get(Number(champ.dataset.code)) === false)
+          return `Corrigez ou effacez le code de votre professeur de ${nom}.`;
+      }
+      return null;
+    };
+
+    const suivant = $('[data-suivant]');
     if (suivant) suivant.addEventListener('click', () => {
       const souci = etape1Valide();
       if (souci) return montrer(souci);
       afficher(2);
     });
-    if (precedent) precedent.addEventListener('click', () => afficher(1));
+    $$('[data-precedent]').forEach(b => b.addEventListener('click', () => afficher(Math.max(1, etape - 1))));
 
     formInscription.addEventListener('submit', e => {
       e.preventDefault();
@@ -144,7 +226,17 @@
       }
       const souci = etape1Valide() || etape2Valide();
       if (souci) return montrer(souci);
-      envoyer(formInscription, '/auth/inscription');
+      /* L'élève passe par l'étape de ses professeurs avant l'envoi. */
+      if (etape === 2 && role() === 'eleve') return afficher(3);
+      const souci3 = etape === 3 ? etape3Valide() : null;
+      if (souci3) return montrer(souci3);
+      envoyer(formInscription, '/auth/inscription', donnees => {
+        donnees.matieresEnseignees = $$('input[name=matieresEnseignees]:checked').map(c => Number(c.value));
+        donnees.professeurs = role() === 'eleve'
+          ? $$('[data-code]').filter(c => c.value.length === 6)
+              .map(c => ({ matiereId: Number(c.dataset.code), code: c.value }))
+          : [];
+      });
     });
   }
 

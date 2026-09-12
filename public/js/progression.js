@@ -116,4 +116,54 @@
   const notif = $('#notif');
   if (notif) notif.addEventListener('click', () => message(
     s.revoir.length ? `${s.revoir.length} chapitre(s) à reprendre` : 'Aucun chapitre à reprendre.'));
+
+  /* --------------------------- professeurs référents ------------------------- */
+  /* Un professeur par matière, désigné par son code. Il ne verra que cette
+     matière-là : c'est l'élève qui ouvre la porte, et lui seul. */
+  const echapperProf = t => String(t == null ? '' : t)
+    .replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const zoneProfs = $('#mesProfs');
+
+  const rendreProfs = async () => {
+    let matieres;
+    try { ({ matieres } = await API.get('/professeurs/mes')); }
+    catch (e) { zoneProfs.innerHTML = `<p class="sous">${echapperProf(e.message)}</p>`; return; }
+    zoneProfs.innerHTML = matieres.map(m => `
+      <form class="ligne-prof" data-matiere="${m.id}">
+        <span class="pt" style="background:${echapperProf(m.teinte)}"></span>
+        <span class="nom"><b>${echapperProf(m.nom)}</b>
+          <small>${m.enseignant ? echapperProf(m.enseignant) : 'Aucun professeur désigné'}</small></span>
+        <input class="champ code" name="code" maxlength="6" autocomplete="off"
+          placeholder="Code"
+          aria-label="Code du professeur de ${echapperProf(m.nom)}">
+        <button class="pilule mini" type="submit">${m.enseignant ? 'Changer' : 'Désigner'}</button>
+        ${m.enseignant
+          ? `<button class="pilule mini fantome" type="button" data-retirer-prof="${m.id}">Retirer</button>` : ''}
+      </form>`).join('');
+  };
+
+  if (zoneProfs) {
+    rendreProfs();
+    zoneProfs.addEventListener('input', e => {
+      if (e.target.name === 'code') e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    });
+    zoneProfs.addEventListener('submit', async e => {
+      e.preventDefault();
+      const f = e.target, code = f.code.value.trim();
+      if (code.length !== 6) return message('Le code d’un professeur compte 6 caractères.');
+      try {
+        const r = await API.put('/professeurs/mes/' + f.dataset.matiere, { code });
+        message(r.enseignant.nom + ' est désormais votre professeur référent.');
+        rendreProfs();
+      } catch (err) { message(err.message); }
+    });
+    zoneProfs.addEventListener('click', async e => {
+      const b = e.target.closest('[data-retirer-prof]'); if (!b) return;
+      if (!confirm('Retirer ce professeur ? Il ne verra plus votre progression dans cette matière.')) return;
+      try {
+        await API.put('/professeurs/mes/' + b.dataset.retirerProf, { code: '' });
+        message('Professeur retiré.'); rendreProfs();
+      } catch (err) { message(err.message); }
+    });
+  }
 })();

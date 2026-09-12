@@ -19,6 +19,15 @@ const config = {
     cookie: 'cashevent_session'
   },
   niveauParDefaut: process.env.NIVEAU || '2ᵉ année Bac — Sciences',
+  /* Enseignants référents. Un montant par élève suivi, par matière et par mois,
+     dû seulement si le suivi du mois a été enregistré. */
+  remuneration: {
+    fcfa: Number(process.env.REMUNERATION_FCFA || 50),
+    /* Parité fixe du franc CFA : 1 € = 655,957 FCFA. */
+    fcfaParEuro: 655.957
+  },
+  /* Au-delà, une matière sans activité signale un élève à suivre. */
+  inactiviteJours: 14,
   /* Générateur d'exercices. Sans clé, la fonction se désactive proprement :
      le reste de la plateforme n'en dépend pas. Les séries produites sont
      enregistrées en base et resservies à tout le monde — un chapitre n'est

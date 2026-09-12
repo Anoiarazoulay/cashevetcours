@@ -141,16 +141,6 @@
 .titre-courant small{color:var(--text-3);font-size:12.5px}
 .etiquette.ok{background:rgba(63,208,138,.18);color:#6fe0ac}
 
-/* Les classes : des cartes, on en a rarement plus d'une dizaine. */
-.cartes-classes{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:12px}
-.carte-classe{text-align:left;padding:16px;border-radius:12px;border:1px solid var(--line-2);
-  background:var(--card-2);display:flex;flex-direction:column;gap:4px;transition:.15s}
-.carte-classe:hover{background:#2c2c31;border-color:#4a4a52}
-.carte-classe b{font-size:15px}
-.carte-classe small{color:var(--text-3);font-size:12.5px}
-.carte-classe .code{margin-top:6px;font-size:11px;font-weight:700;letter-spacing:.1em;
-  color:#9db6ff;font-variant-numeric:tabular-nums}
-
 /* Une ligne d'élève : identité, avancement, chiffres, actions. */
 .ligne-eleve{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
 .ligne-eleve:last-child{border-bottom:0}
@@ -199,3 +189,102 @@
 /* Le bouton de retour ouvre la barre : il ne doit pas être renvoyé à droite. */
 .barre-outils .pilule[data-retour]{margin-left:0}
 .barre-outils .titre-courant{margin-right:auto}
+
+/* ====================== Espace enseignant référent ========================= */
+.bandeau-remu{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;padding:14px 18px;margin-bottom:18px;
+  border-radius:12px;background:linear-gradient(135deg,rgba(63,208,138,.14),rgba(76,141,255,.12));
+  border:1px solid rgba(63,208,138,.3)}
+.bandeau-remu b{font-size:14px;color:#6fe0ac}
+.bandeau-remu span{font-size:14px;color:var(--text-2)}
+.tuile .val small{font-size:15px;color:var(--text-3);font-weight:600}
+.tuile .val.petit{font-size:17px;line-height:1.3}
+.tuile.principale-remu{border-color:rgba(63,208,138,.35);background:linear-gradient(135deg,rgba(63,208,138,.1),transparent)}
+.tuile.principale-remu .val{color:#6fe0ac}
+
+/* Le code se dicte en classe : il doit se lire de loin. */
+.code-prof{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:14px 0 4px}
+.code-prof span{font-size:34px;font-weight:800;letter-spacing:.22em;font-variant-numeric:tabular-nums;
+  padding:8px 18px;border-radius:10px;background:#101012;border:1px dashed #4a4a52}
+.etapes-prof{margin:18px 0 0 20px;color:var(--text-2);font-size:14px;line-height:1.7}
+
+.nom small .pastille-mat{display:inline-block;width:8px;height:8px;margin-right:4px;vertical-align:1px}
+.statut-suivi{flex:none;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:5px;
+  background:rgba(245,165,36,.16);color:#f5c078;white-space:nowrap}
+.statut-suivi.fait{background:rgba(63,208,138,.16);color:#6fe0ac}
+
+.ligne-matiere-prof{padding:12px 0;border-bottom:1px solid var(--line)}
+.ligne-matiere-prof:last-child{border-bottom:0}
+.ligne-matiere-prof .tete{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.ligne-matiere-prof .tete small{color:var(--text-3);font-size:12.5px;margin-left:auto}
+.jauge.large{width:100%;display:block}
+.mini-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 0}
+.mini-stats dt{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em}
+.mini-stats dd{font-size:15px;font-weight:700;margin:2px 0 0}
+
+.notion-difficile{padding:10px 0;border-bottom:1px solid var(--line)}
+.notion-difficile:last-child{border-bottom:0}
+.notion-difficile .tete{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.notion-difficile .tete small{color:var(--text-3);font-size:12.5px}
+.tags-prof,.notion-difficile .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tags-prof span,.notion-difficile .tags span{font-size:12px;padding:3px 9px;border-radius:5px;
+  background:#2c2c31;color:var(--text-2)}
+
+.ligne-remu{display:flex;align-items:baseline;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.ligne-remu:last-child{border-bottom:0}
+.ligne-remu span:first-child{flex:1;text-transform:capitalize}
+.ligne-remu small{color:var(--text-3)}
+
+/* Dossier d'un élève */
+.sur-titre{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--text-3);margin-bottom:4px}
+.alerte-prof{margin:14px 0;padding:12px 16px;border-radius:10px;background:rgba(245,165,36,.1);
+  border:1px solid rgba(245,165,36,.3)}
+.alerte-prof b{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#f5c078}
+.alerte-prof ul{margin:6px 0 0 18px;font-size:14px;color:var(--text-2);line-height:1.6}
+.tableau-defile,.table-defile{overflow-x:auto}
+.tableau .score-faible{color:#ff8a9c;font-weight:700}
+.tableau .jauge{display:inline-block;vertical-align:middle;width:70px;margin-right:6px}
+.etiquette.muet{background:#2c2c31;color:var(--text-3)}
+
+.choix-statut{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.choix-statut label{position:relative;border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;
+  cursor:pointer;transition:.15s}
+.choix-statut label:hover{border-color:#5a5a64}
+.choix-statut label.actif{border-color:#fff;background:#26262a}
+.choix-statut input{position:absolute;opacity:0;pointer-events:none}
+.choix-statut b{display:block;font-size:13.5px}
+.choix-statut small{display:block;font-size:12px;color:var(--text-3);margin-top:2px;line-height:1.35}
+.champ-libelle{display:block;font-size:13px;color:var(--text-2);margin-top:12px}
+.champ-libelle small{color:var(--text-3)}
+.champ-libelle .champ{margin-top:6px;width:100%}
+textarea.champ{height:auto;padding:10px 12px;line-height:1.5;resize:vertical}
+.champ.fichier{padding:8px}
+
+.choix-matieres{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.choix-matieres label{position:relative;display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;
+  border-radius:8px;border:1px solid var(--line-2);cursor:pointer;font-size:13.5px}
+.choix-matieres label.actif{border-color:#fff;background:#26262a}
+.choix-matieres input{position:absolute;opacity:0;pointer-events:none}
+
+/* TP */
+.destinataires{border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;margin-top:12px;
+  max-height:220px;overflow-y:auto}
+.destinataires legend{font-size:13px;color:var(--text-2);padding:0 6px}
+.destinataires label{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13.5px}
+.ligne-tp{padding:12px 0;border-bottom:1px solid var(--line)}
+.ligne-tp:last-child{border-bottom:0}
+.ligne-tp .tete{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ligne-tp .tete small{flex-basis:100%;color:var(--text-3);font-size:12.5px;margin-left:18px}
+.ligne-tp .pied-tp{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;margin-left:18px}
+.lien-fichier{color:#9db6ff;font-size:13.5px;text-decoration:underline;text-underline-offset:3px;
+  overflow-wrap:anywhere}
+
+/* Retouches vues à l'écran. « .case-outil input » dessine une case à cocher :
+   le sélecteur de mois en héritait. */
+.case-outil input[type=month]{width:auto;height:36px;padding:0 10px;accent-color:auto}
+.barre-outils > .sous,#vue > p.sous{font-size:13px;color:var(--text-3);line-height:1.55}
+.ligne-eleve .av.petite{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;flex:none;
+  background:#2c2c31;font-size:13px;font-weight:700}
+.modale-corps .tuiles{padding-left:0;padding-right:0;margin-top:14px}
+.etiquette.encours{background:rgba(76,141,255,.16);color:#9db6ff}
+.ligne-tp .chiffre{border:0;background:none;padding:0;font-size:13px;font-weight:600;color:var(--text-2);text-align:left}
