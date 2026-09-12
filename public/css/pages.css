@@ -67,7 +67,7 @@
 }
 .encadre.attention{
   border-color:rgba(245,165,36,.35);
-  background:linear-gradient(135deg,rgba(245,165,36,.12),rgba(225,29,61,.08));
+  background:linear-gradient(135deg,rgba(245,165,36,.12),rgba(205,92,180,.08));
 }
 .encadre b{display:block; font-size:15px; margin-bottom:7px; color:#fff}
 .encadre p{font-size:14.5px; margin-bottom:0; line-height:1.6}

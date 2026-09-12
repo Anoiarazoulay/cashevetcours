@@ -2,8 +2,8 @@
    Codes visuels de la plateforme : noir profond, accent rouge, séparateurs épais. */
 
 :root{
-  --nf-rouge:#e11d3d;
-  --nf-rouge-vif:#f6193d;
+  --nf-rouge:#CD5CB4;
+  --nf-rouge-vif:#DB7BC6;
   --nf-gris:#232323;
   --nf-champ:#161616;
   --nf-bordure:#5b5b5b;
@@ -304,8 +304,8 @@ body.page-nf{background:#000;color:#fff}
 .nf-prof.ok{border-color:rgba(63,208,138,.55)}
 .nf-prof.ok .verdict{color:#6fe0ac}
 .nf-prof.ok .verdict::before{content:"✓ "}
-.nf-prof.ko{border-color:rgba(229,9,20,.55)}
-.nf-prof.ko .verdict{color:#ff8a8a}
+.nf-prof.ko{border-color:rgba(205,92,180,.55)}
+.nf-prof.ko .verdict{color:#E9A6DA}
 
 @media (max-width:640px){
   .nf-roles{grid-template-columns:1fr}

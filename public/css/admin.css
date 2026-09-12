@@ -119,8 +119,8 @@
 /* ---------------------------------- journal -------------------------------- */
 .case-outil{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-2);cursor:pointer}
 .case-outil input{width:16px;height:16px;accent-color:#4c8dff}
-.tableau tr.echec{background:rgba(225,29,61,.07)}
-.tableau tr.echec:hover{background:rgba(225,29,61,.12)}
+.tableau tr.echec{background:rgba(205,92,180,.07)}
+.tableau tr.echec:hover{background:rgba(205,92,180,.12)}
 .quand-cell{white-space:nowrap;color:var(--text-3);font-size:12.5px}
 .tableau td.detail{color:var(--text-3);font-size:12.5px;max-width:280px}
 .tableau td.ip{color:#6a6a72;font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -152,8 +152,8 @@
 .jauge i{display:block;height:100%;border-radius:3px}
 .pastille-mat{width:10px;height:10px;border-radius:50%;flex:none}
 .pilule.mini{height:28px;padding:0 12px;font-size:12.5px;border-radius:6px}
-.pilule.danger{background:rgba(225,29,61,.16);color:#ff8a9c}
-.pilule.danger:hover{background:rgba(225,29,61,.28)}
+.pilule.danger{background:rgba(205,92,180,.16);color:#E9A6DA}
+.pilule.danger:hover{background:rgba(205,92,180,.28)}
 
 /* Fenêtre de lecture : fiche d'élève et relecture d'une série. */
 .modale{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.72);overflow-y:auto;
@@ -183,7 +183,7 @@
   border:0; background:none; padding:0; text-align:right; flex:none;
   font-size:13.5px; font-weight:700; color:var(--text-2);
   font-variant-numeric:tabular-nums; min-width:52px}
-.ligne-eleve .chiffre.faible, .ligne-chap .chiffre.faible{color:#ff8a9c; font-weight:600}
+.ligne-eleve .chiffre.faible, .ligne-chap .chiffre.faible{color:#E9A6DA; font-weight:600}
 .ligne-eleve .chiffre.faible{min-width:76px}
 
 /* Le bouton de retour ouvre la barre : il ne doit pas être renvoyé à droite. */
@@ -242,7 +242,7 @@
 .alerte-prof b{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#f5c078}
 .alerte-prof ul{margin:6px 0 0 18px;font-size:14px;color:var(--text-2);line-height:1.6}
 .tableau-defile,.table-defile{overflow-x:auto}
-.tableau .score-faible{color:#ff8a9c;font-weight:700}
+.tableau .score-faible{color:#E9A6DA;font-weight:700}
 .tableau .jauge{display:inline-block;vertical-align:middle;width:70px;margin-right:6px}
 .etiquette.muet{background:#2c2c31;color:var(--text-3)}
 

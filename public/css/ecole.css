@@ -1,6 +1,6 @@
 /* CASHEVENT SCHOOL — surcouche pédagogique (s'appuie sur css/style.css) */
 :root{
-  --brand:#e11d3d; --ok:#3fd08a; --warn:#f5a524; --info:#4c8dff;
+  --brand:#CD5CB4; --ok:#3fd08a; --warn:#f5a524; --info:#4c8dff;
   --card:#1b1b1d; --card-2:#232326; --line-2:#34343a;
   --chap-w:300px; --chap-h:172px;
 }
@@ -127,7 +127,7 @@
 .gros-bouton:hover{background:#2c2c31;border-color:#4a4a52}
 .gros-bouton .ico{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;flex:none;font-size:19px}
 .gros-bouton.qcm .ico{background:linear-gradient(135deg,#4c8dff,#7b3bf5)}
-.gros-bouton.tp .ico{background:linear-gradient(135deg,#f5a524,#e11d3d)}
+.gros-bouton.tp .ico{background:linear-gradient(135deg,#f5a524,#CD5CB4)}
 .gros-bouton b{display:block;font-size:14.5px;margin-bottom:2px}
 .gros-bouton small{display:block;font-size:12.5px;color:var(--text-3);line-height:1.35}
 .gros-bouton .rep{margin-left:auto;width:20px;height:20px;border-radius:50%;background:var(--brand);font-size:11px;font-weight:800;display:grid;place-items:center;flex:none}
@@ -166,7 +166,7 @@
 .rep-btn:disabled{cursor:default}
 .rep-btn.juste{border-color:var(--ok);background:rgba(63,208,138,.12)}
 .rep-btn.juste .l{background:var(--ok);color:#06240f}
-.rep-btn.faux{border-color:var(--brand);background:rgba(225,29,61,.12)}
+.rep-btn.faux{border-color:var(--brand);background:rgba(205,92,180,.12)}
 .rep-btn.faux .l{background:var(--brand)}
 .expli{border-radius:10px;padding:14px 16px;background:linear-gradient(135deg,rgba(76,141,255,.12),rgba(123,59,245,.12));border:1px solid rgba(120,140,255,.28);margin-bottom:20px}
 .expli b{display:flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#9db6ff;margin-bottom:8px}
