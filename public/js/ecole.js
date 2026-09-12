@@ -624,10 +624,47 @@
       les QCM et les chapitres inachevés apparaîtront ici automatiquement.</div>`;
   };
 
+  /* La cloche : messages et TP des professeurs d'abord, chapitres à revoir ensuite. */
+  const ilYa = d => {
+    if (!d) return '';
+    const j = Math.floor((Date.now() - new Date(d)) / 86400000);
+    return j <= 0 ? 'Aujourd’hui' : j === 1 ? 'Hier' : j < 7 ? `Il y a ${j} jours`
+      : new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+  };
+  const majNotifications = () => {
+    const liste = [];
+    TRAVAUX.messages.filter(m => !m.lu_le).forEach(m => liste.push({
+      initiale: (m.enseignant || '?').trim()[0].toUpperCase(), teinte: m.teinte,
+      titre: 'Message de ' + m.enseignant, texte: m.matiere + ' — ' + m.commentaire, quand: ilYa(m.le),
+      action: async () => {
+        try {
+          await API.post('/professeurs/messages/' + m.id + '/lu');
+          m.lu_le = new Date().toISOString();
+          message(m.enseignant + ' : ' + m.commentaire);
+          rendre();
+        } catch (err) { message(err.message); }
+      }
+    }));
+    TRAVAUX.tp.filter(t => !t.telecharge_le).forEach(t => liste.push({
+      initiale: 'TP', teinte: t.teinte, titre: 'Nouveau TP · ' + t.matiere,
+      texte: t.titre + (t.echeance ? ' — à rendre le ' +
+        new Date(t.echeance + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : ''),
+      quand: ilYa(t.cree_le) + ' · ' + t.enseignant,
+      href: '/api/professeurs/travaux/' + t.id + '/fichier',
+      action: () => setTimeout(() => { t.telecharge_le = new Date().toISOString(); rendre(); }, 800)
+    }));
+    stats().revoir.forEach(c => liste.push({
+      image: c.image, initiale: c.matiere.glyphe, teinte: c.matiere.teinte,
+      titre: 'À revoir · ' + c.titre,
+      texte: `Dernier score au QCM : ${etat(c.id).qcm.pc} %. Relisez le résumé, puis refaites le QCM.`,
+      quand: c.matiere.nom + ' · chapitre ' + c.n,
+      action: () => ouvrir(c.id)
+    }));
+    UI.notifications(liste);
+  };
+
   const rendre = () => {
-    const n = stats().revoir.length;
-    const badge = $('#notifCount');
-    if (badge) { badge.textContent = n; badge.style.display = n ? '' : 'none'; }
+    majNotifications();
     if (page === 'accueil') rendreAccueil();
     if (page === 'matieres') rendreMatieres();
     if (page === 'revisions') rendreRevisions();
@@ -635,13 +672,9 @@
   rendre();
 
   /* ------------------------------ interactions ---------------------------- */
-  const notif = $('#notif');
-  if (notif) notif.addEventListener('click', () => {
-    const s = stats();
-    message(s.revoir.length
-      ? `${s.revoir.length} chapitre(s) à revoir, à commencer par « ${s.revoir[0].titre} »`
-      : 'Aucun chapitre à revoir. Continuez ainsi !');
-  });
+  /* Lien direct vers un chapitre (#chapitre-12) : utilisé par la cloche des autres pages. */
+  const ancre = location.hash.match(/^#chapitre-(\d+)$/);
+  if (ancre && parId(ancre[1])) ouvrir(Number(ancre[1]));
 
   const sb = $('#searchbar'), q = $('#q');
   if (sb) {

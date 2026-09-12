@@ -101,9 +101,16 @@
           <span class="score faible">${c.score} %</span></div>`).join('')
       : '<p class="sous">Aucun chapitre sous la barre des 60 %. Rien à signaler.</p>';
 
-    const badge = $('#notifCount');
-    const alertesAttention = tb.alertes.filter(a => a.ton === 'attention').length;
-    if (badge) { badge.textContent = alertesAttention; badge.style.display = alertesAttention ? '' : 'none'; }
+    /* La cloche reprend les alertes du tableau de bord. Seuls les points
+       d'attention comptent dans la pastille : un encouragement n'est pas une alarme. */
+    UI.notifications(tb.alertes.map(a => ({
+      initiale: a.icone,
+      teinte: a.ton === 'attention' ? 'rgba(245,165,36,.22)' : 'rgba(63,208,138,.18)',
+      titre: a.titre, texte: a.texte,
+      quand: (tb.eleve ? tb.eleve.nom : '') + (a.quand ? ' · le ' + jourFR(a.quand) : ''),
+      compte: a.ton === 'attention',
+      action: () => { const cible = $('#alertes'); if (cible) cible.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    })));
   };
 
   const charger = async id => {
@@ -123,11 +130,6 @@
     const b = e.target.closest('[data-enfant]'); if (b) charger(b.dataset.enfant);
   });
 
-  const notif = $('#notif');
-  if (notif) notif.addEventListener('click', () => {
-    const a = $$('.alerte.attention b')[0];
-    message(a ? a.textContent : 'Aucune alerte en cours');
-  });
 
   /* ------------------------- rattacher un enfant -------------------------- */
   const form = $('#formEnfant');

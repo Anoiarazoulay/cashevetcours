@@ -113,9 +113,25 @@
     `et le TP téléchargé (${Math.round(w.tp * 100)} %). Un chapitre passe « à reprendre » ` +
     `quand le dernier score au QCM descend sous ${tb.seuilARevoir} %.`;
 
-  const notif = $('#notif');
-  if (notif) notif.addEventListener('click', () => message(
-    s.revoir.length ? `${s.revoir.length} chapitre(s) à reprendre` : 'Aucun chapitre à reprendre.'));
+  /* La cloche : ce que les professeurs ont envoyé, puis les chapitres à reprendre,
+     qui s'ouvrent directement dans l'espace élève. */
+  const noteChapitre = c => ({
+    initiale: '!', teinte: c.matiere.teinte, titre: 'À revoir · ' + c.titre,
+    texte: `Dernier score au QCM : ${c.score} %. Relisez le résumé, puis refaites le QCM.`,
+    quand: c.matiere.nom + ' · chapitre ' + c.numero, href: '/ecole#chapitre-' + c.id
+  });
+  UI.notifications(s.revoir.map(noteChapitre));
+  API.get('/professeurs/travaux').then(t => UI.notifications([
+    ...t.messages.filter(m => !m.lu_le).map(m => ({
+      initiale: (m.enseignant || '?').trim()[0].toUpperCase(), teinte: m.teinte,
+      titre: 'Message de ' + m.enseignant, texte: m.matiere + ' — ' + m.commentaire, href: '/ecole'
+    })),
+    ...t.tp.filter(x => !x.telecharge_le).map(x => ({
+      initiale: 'TP', teinte: x.teinte, titre: 'Nouveau TP · ' + x.matiere, texte: x.titre,
+      quand: x.enseignant, href: '/api/professeurs/travaux/' + x.id + '/fichier'
+    })),
+    ...s.revoir.map(noteChapitre)
+  ])).catch(() => { });
 
   /* --------------------------- professeurs référents ------------------------- */
   /* Un professeur par matière, désigné par son code. Il ne verra que cette

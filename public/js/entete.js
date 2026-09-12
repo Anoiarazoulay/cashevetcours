@@ -26,6 +26,7 @@ window.UI = (() => {
   };
 
   let tt;
+  let notesNotif = new Map();
   const message = m => {
     let t = $('#toast');
     if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
@@ -47,8 +48,12 @@ window.UI = (() => {
       <button type="button" class="ic" id="searchBtn" aria-label="Rechercher un chapitre" style="padding:0">${ICO.loupe}</button>
       <input id="q" type="search" placeholder="Chapitre, notion…" aria-label="Rechercher un chapitre">
     </form>` : ''}
-    ${options.notifications ? `<button class="ic" id="notif" aria-label="Notifications">${ICO.cloche}
-      <span class="count" id="notifCount" style="display:none">0</span></button>` : ''}
+    ${options.notifications ? `<div class="notif-zone" id="notifZone">
+      <button class="ic" id="notif" aria-label="Notifications" aria-haspopup="true" aria-expanded="false">${ICO.cloche}
+        <span class="count" id="notifCount" style="display:none">0</span></button>
+      <div class="notif-panneau" id="notifPanneau" role="menu" aria-label="Notifications">
+        <div class="notif-vide">Chargement…</div></div>
+    </div>` : ''}
     <div class="profile" id="profile" aria-expanded="false">
       <button class="pbtn" id="pbtn" aria-haspopup="true" aria-label="Mon compte">
         <span class="avatar avatar-init" aria-hidden="true">${initiale}</span><span class="caret"></span></button>
@@ -69,12 +74,71 @@ window.UI = (() => {
       e.stopPropagation(); const o = menu.classList.toggle('open'); pr.setAttribute('aria-expanded', o);
     });
     document.addEventListener('click', () => { menu.classList.remove('open'); pr.setAttribute('aria-expanded', 'false'); });
+
+    /* La cloche ouvre un panneau déroulant, comme sur Netflix : au survol quand
+       l'appareil a une souris, au toucher sinon. */
+    const zone = $('#notifZone');
+    if (zone) {
+      const bouton = $('#notif');
+      const survol = window.matchMedia && matchMedia('(hover: hover)').matches;
+      const basculer = ouvert => {
+        zone.classList.toggle('ouvert', ouvert);
+        bouton.setAttribute('aria-expanded', ouvert);
+        if (ouvert) { menu.classList.remove('open'); pr.setAttribute('aria-expanded', 'false'); }
+      };
+      bouton.addEventListener('click', e => {
+        e.stopPropagation();
+        basculer(survol ? true : !zone.classList.contains('ouvert'));
+      });
+      zone.addEventListener('click', e => {
+        e.stopPropagation();
+        const element = e.target.closest('[data-notif]'); if (!element) return;
+        const note = notesNotif.get(element.dataset.notif);
+        basculer(false);
+        if (note && note.action) note.action();
+      });
+      if (survol) {
+        let minuteur;
+        zone.addEventListener('mouseenter', () => { clearTimeout(minuteur); basculer(true); });
+        zone.addEventListener('mouseleave', () => { minuteur = setTimeout(() => basculer(false), 250); });
+      }
+      $('#pbtn').addEventListener('click', () => basculer(false));
+      document.addEventListener('click', () => basculer(false));
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') basculer(false); });
+    }
     $('#deconnexion').addEventListener('click', async () => {
       await API.post('/auth/deconnexion'); location.href = '/connexion';
     });
 
     const auScroll = () => $('#header').classList.toggle('solid', window.scrollY > 40);
     auScroll(); window.addEventListener('scroll', auScroll, { passive: true });
+  };
+
+  /* Contenu de la cloche. Chaque page fournit sa liste, du plus urgent au moins
+     urgent : { titre, texte, quand?, image?, initiale?, teinte?, href?, action?,
+     compte? (false : n'augmente pas la pastille), lu? (grisé) }.
+     Tout le texte est échappé ici : noms et messages viennent des utilisateurs. */
+  const esc = t => String(t == null ? '' : t)
+    .replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const notifications = liste => {
+    const panneau = $('#notifPanneau'), pastille = $('#notifCount');
+    if (!panneau) return;
+    const n = liste.filter(x => x.compte !== false && !x.lu).length;
+    pastille.textContent = n > 9 ? '9+' : n;
+    pastille.style.display = n ? '' : 'none';
+    notesNotif = new Map(liste.map((x, i) => [String(i), x]));
+
+    panneau.innerHTML = liste.length ? liste.map((x, i) => {
+      const vignette = x.image
+        ? `<img src="${esc(x.image)}" alt="" loading="lazy">`
+        : `<span class="notif-initiale" style="background:${esc(x.teinte || '#333')}">${esc(x.initiale || '')}</span>`;
+      const ouvrante = x.href ? `a href="${esc(x.href)}"` : 'button type="button"';
+      return `<${ouvrante} class="notif-item${x.lu ? ' lu' : ''}" data-notif="${i}" role="menuitem">
+          <span class="notif-vignette">${vignette}</span>
+          <span class="notif-texte"><b>${esc(x.titre)}</b><span>${esc(x.texte)}</span>${
+            x.quand ? `<small>${esc(x.quand)}</small>` : ''}</span>
+        </${x.href ? 'a' : 'button'}>`;
+    }).join('') : '<div class="notif-vide">Aucune notification pour l’instant.</div>';
   };
 
   /* Le pied est commun à tout le site : voir js/pied.js. */
@@ -98,5 +162,5 @@ window.UI = (() => {
       `<div class="vide-etat" style="padding-top:120px"><b>Impossible d’afficher cette page</b>${texte}</div>`);
   };
 
-  return { $, $$, ICO, message, entete, pied, chargement, erreurFatale };
+  return { $, $$, ICO, message, entete, notifications, pied, chargement, erreurFatale };
 })();
