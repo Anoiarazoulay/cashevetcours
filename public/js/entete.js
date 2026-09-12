@@ -20,8 +20,11 @@ window.UI = (() => {
             ['revisions', '/revisions', 'Mes révisions'],
             ['progression', '/progression', 'Ma progression']],
     parent: [['parent', '/espace-parent', 'Suivi de mon enfant']],
+    enseignant: [['enseignant', '/espace-enseignant', 'Mes classes'],
+                 ['accueil', '/ecole', 'Vue élève']],
     admin: [['admin', '/admin', 'Administration'], ['accueil', '/ecole', 'Vue élève'],
-            ['parent', '/espace-parent', 'Vue parent']]
+            ['parent', '/espace-parent', 'Vue parent'],
+            ['enseignant', '/espace-enseignant', 'Vue enseignant']]
   };
 
   let tt;
@@ -54,7 +57,8 @@ window.UI = (() => {
       <div class="menu" id="menu" role="menu">
         <div class="menu-tete"><b>${utilisateur.nom}</b><small>${utilisateur.email}</small>
           <span class="role-pastille role-${utilisateur.role}">${
-            { eleve: 'Élève', parent: 'Parent', admin: 'Administrateur' }[utilisateur.role]}</span></div>
+            { eleve: 'Élève', parent: 'Parent', enseignant: 'Enseignant',
+              admin: 'Administrateur' }[utilisateur.role]}</span></div>
         ${liens.map(([, href, l]) => `<a role="menuitem" href="${href}">${l}</a>`).join('')}
         <button role="menuitem" id="deconnexion">Se déconnecter</button>
       </div>

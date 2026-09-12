@@ -175,6 +175,11 @@
           <span class="rep">2</span>
         </button>
 
+        <button class="gros-bouton exos" data-exos>
+          <span class="ico">✎</span>
+          <span><b>Exercices corrigés</b><small>Énoncés et corrections rédigés par l’assistant</small></span>
+        </button>
+
         <button class="gros-bouton tp" data-tp>
           <span class="ico">⤓</span>
           <span><b>TP à télécharger</b><small>Énoncé + corrigé détaillé (.txt)${e.tp ? ' — déjà téléchargé' : ''}</small></span>
@@ -230,6 +235,20 @@
     const agir = async fn => { try { await fn(); } catch (err) { message(err.message); } };
 
     if (e.target.closest('[data-tp]')) return telechargerTP(c);
+
+    /* Les exercices se consultent aussi en lecture seule : un parent doit
+       pouvoir regarder ce que son enfant travaille. */
+    if (e.target.closest('[data-exos]')) return ouvrirExercices(c);
+    const niv = e.target.closest('[data-niveau]');
+    if (niv) return ouvrirExercices(c, niv.dataset.niveau);
+    if (e.target.closest('[data-retour-fiche]')) return rafraichir();
+    const corr = e.target.closest('[data-corrige]');
+    if (corr) {
+      const exo = corr.closest('.exo');
+      const ouvert = exo.classList.toggle('ouvert');
+      corr.textContent = ouvert ? 'Masquer la correction' : 'Voir la correction';
+      return;
+    }
 
     if (e.target.closest('[data-lire]')) {
       const suivante = c.seances.find(x => !etat(c.id).seances.includes(x.id)) || c.seances[0];
@@ -306,6 +325,80 @@
     document.body.appendChild(a); a.click(); a.remove();
     message('TP téléchargé : énoncé + corrigé');
     if (!lectureSeule) { await new Promise(r => setTimeout(r, 600)); await resynchroniser(); rafraichir(); }
+  };
+
+  /* ----------------------------- exercices IA ----------------------------- */
+  /* Le texte vient d'un modèle : il est échappé avant d'entrer dans la page. */
+  const txt = t => String(t == null ? '' : t)
+    .replace(/[&<>"]/g, x => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[x]));
+
+  const NIVEAUX_EXO = [
+    ['application', 'Application'],
+    ['entrainement', 'Entraînement'],
+    ['bac', 'Type bac']
+  ];
+
+  const ouvrirExercices = async (c, niveau = 'entrainement') => {
+    finQCM();
+    const enTete = `
+      <button class="close" aria-label="Fermer" data-fermer>${ICO.croix}</button>
+      <div class="lecteur court">
+        <span class="g" aria-hidden="true">${c.matiere.glyphe}</span>
+        <div class="habillage">
+          <div class="num">${c.matiere.nom} · Chapitre ${c.n}</div><h2>${c.titre}</h2></div>
+      </div>`;
+    const onglets = `<div class="exos-niveaux">${NIVEAUX_EXO.map(([cle, nom]) =>
+      `<button class="niv${cle === niveau ? ' on' : ''}" data-niveau="${cle}">${nom}</button>`).join('')}</div>`;
+
+    const sheet = bg.querySelector('.sheet');
+    sheet.innerHTML = enTete + `<div class="exos-vue">${onglets}
+      <div class="chargement"><span class="rond"></span>
+        <p>Préparation des exercices…<br><small>La première fois, l’assistant les rédige : comptez une minute.</small></p>
+      </div></div>`;
+
+    let serie;
+    try {
+      ({ serie } = await API.get('/chapitres/' + c.id + '/exercices?niveau=' + niveau));
+    } catch (e) {
+      sheet.innerHTML = enTete + `<div class="exos-vue">${onglets}
+        <div class="vide-etat"><b>Exercices indisponibles</b>${txt(e.message)}</div>
+        <div class="rangee-boutons"><button class="pilule" data-retour-fiche>Retour au chapitre</button></div>
+      </div>`;
+      return;
+    }
+
+    const exercices = (serie.exercices || []).map((x, i) => `
+      <article class="exo">
+        <header><span class="n">${i + 1}</span>
+          <b>${txt(x.titre)}</b>
+          ${x.bareme ? `<span class="bareme">${txt(x.bareme)}</span>` : ''}</header>
+        <p class="enonce">${txt(x.enonce)}</p>
+        ${x.donnees && x.donnees.length
+          ? `<ul class="donnees">${x.donnees.map(d => `<li>${txt(d)}</li>`).join('')}</ul>` : ''}
+        ${x.indice ? `<details class="indice"><summary>Un indice pour démarrer</summary>
+             <p>${txt(x.indice)}</p></details>` : ''}
+        <button class="pilule" data-corrige>Voir la correction</button>
+        <div class="corrige">
+          <ol>${(x.correction.etapes || []).map(t => `<li>${txt(t)}</li>`).join('')}</ol>
+          <p class="reponse"><b>Réponse</b> ${txt(x.correction.reponse)}</p>
+          ${x.correction.erreurs && x.correction.erreurs.length
+            ? `<div class="erreurs"><b>Erreurs fréquentes</b>
+                 <ul>${x.correction.erreurs.map(t => `<li>${txt(t)}</li>`).join('')}</ul></div>` : ''}
+        </div>
+      </article>`).join('');
+
+    sheet.innerHTML = enTete + `<div class="exos-vue">${onglets}
+      <div class="exos-tete"><b><span class="ia">✦</span> Exercices corrigés</b>
+        <span class="compteur">${(serie.exercices || []).length} exercices · corrections détaillées</span></div>
+      ${exercices}
+      <div class="rangee-boutons">
+        <button class="pilule blanc" data-qcm>Passer le QCM du chapitre</button>
+        <button class="pilule" data-retour-fiche>Retour au chapitre</button>
+      </div>
+      <p class="exos-pied">Série rédigée par l’assistant à partir du résumé du chapitre.
+        Signalez-nous toute erreur : elle sera corrigée.</p>
+    </div>`;
+    bg.scrollTop = 0;
   };
 
   /* ---------------------------------- QCM --------------------------------- */

@@ -69,7 +69,9 @@ const DEMO = [
 
   const attendues = ['utilisateurs', 'liens_famille', 'matieres', 'chapitres', 'notions', 'seances',
     'resume_lignes', 'tp_lignes', 'questions', 'options_reponse', 'progression', 'seances_vues',
-    'tentatives_qcm', 'reponses_qcm', 'ma_liste', 'activite', 'journal'];
+    'tentatives_qcm', 'reponses_qcm', 'ma_liste', 'activite', 'journal',
+    /* Ajoutées par les migrations : exercices générés et espace enseignant. */
+    'exercices', 'classes', 'classe_eleves', 'enseignant_matieres'];
   const manquantes = attendues.filter(t => !tables.includes(t));
   if (manquantes.length) bloque('Tables manquantes : ' + manquantes.join(', ') + ' — lancez « npm run db:init »');
   else ok(`${attendues.length} tables présentes`);
@@ -132,6 +134,19 @@ const DEMO = [
   admins.length ? ok(`${admins.length} administrateur(s) actif(s)`)
     : bloque('Aucun administrateur actif : plus personne ne pourra gérer la plateforme');
 
+  /* Un enseignant sans matière suit ses classes mais ne modifie rien : c'est
+     presque toujours un rattachement oublié à la création du compte. */
+  const profs = comptes.filter(u => u.role === 'enseignant' && u.actif);
+  if (profs.length) {
+    const rattaches = await tous(
+      'SELECT DISTINCT enseignant_id AS id FROM enseignant_matieres');
+    const orphelins = profs.filter(p => !rattaches.some(r => r.id === p.id));
+    orphelins.length
+      ? alerte(`${orphelins.length} enseignant(s) sans matière : ` +
+          orphelins.map(p => p.nom).join(', '))
+      : ok(`${profs.length} enseignant(s), tous rattachés à une matière`);
+  }
+
   let demoRestants = 0;
   for (const [email, mdp] of DEMO) {
     const u = comptes.find(x => x.email === email);
@@ -150,7 +165,7 @@ const DEMO = [
   /* ------------------------------- ressources ------------------------------ */
   titre('Ressources du serveur');
   const pages = ['accueil.html', 'connexion.html', 'inscription.html', 'ecole.html',
-    'matieres.html', 'revisions.html', 'progression.html', 'espace-parent.html', 'admin.html',
+    'matieres.html', 'revisions.html', 'progression.html', 'espace-parent.html', 'espace-enseignant.html', 'admin.html',
     'a-propos.html', 'aide.html', 'contact.html', 'conditions.html', 'confidentialite.html',
     'mentions-legales.html', '404.html'];
   const absentes = pages.filter(p => !fs.existsSync(path.join(config.racinePublique, p)));

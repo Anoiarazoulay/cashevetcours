@@ -83,6 +83,7 @@ api.use('/', require('./routes/catalogue'));
 api.use('/progression', require('./routes/progression'));
 api.use('/parent', require('./routes/parent'));
 api.use('/admin', require('./routes/admin'));
+api.use('/enseignant', require('./routes/enseignant'));
 api.use('/contact', require('./routes/contact'));
 api.get('/sante', (_req, res) => res.json({
   ok: true, version: require('../../package.json').version,
@@ -100,6 +101,7 @@ const PAGES = {
   '/revisions': ['eleve', 'admin'],
   '/progression': ['eleve', 'admin'],
   '/espace-parent': ['parent', 'admin'],
+  '/espace-enseignant': ['enseignant', 'admin'],
   '/admin': ['admin']
 };
 app.get(Object.keys(PAGES), (req, res, suite) => {
@@ -112,7 +114,8 @@ app.get(Object.keys(PAGES), (req, res, suite) => {
 /* Racine : la vitrine pour un visiteur, son espace pour un compte connecté */
 app.get('/', (req, res) => {
   if (!req.utilisateur) return res.redirect('/accueil');
-  const cible = { eleve: '/ecole', parent: '/espace-parent', admin: '/admin' };
+  const cible = { eleve: '/ecole', parent: '/espace-parent',
+                  enseignant: '/espace-enseignant', admin: '/admin' };
   res.redirect(cible[req.utilisateur.role] || '/accueil');
 });
 

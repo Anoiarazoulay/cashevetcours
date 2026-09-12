@@ -6,6 +6,7 @@ const { requiert } = require('../middleware/auth');
 const cat = require('../services/catalogue');
 const prog = require('../services/progression');
 const journal = require('../services/journal');
+const exos = require('../services/exercices');
 
 const routeur = express.Router();
 const idValide = v => Number.isInteger(Number(v)) && Number(v) > 0;
@@ -61,6 +62,33 @@ routeur.get('/chapitres/:id', requiert(), async (req, res) => {
   const c = await cat.chapitre(req.params.id);
   if (!c || !c.publie) return res.status(404).json({ erreur: 'Ce chapitre n’existe pas.' });
   res.json({ chapitre: c });
+});
+
+/* GET /api/chapitres/:id/exercices — série corrigée, générée une seule fois.
+
+   La série vit en base : le premier élève qui ouvre le chapitre déclenche
+   l'appel au modèle, les suivants lisent la même page. « ?regenerer=1 » est
+   réservé à l'administration, c'est le seul chemin qui redépense. */
+routeur.get('/chapitres/:id/exercices', requiert(), async (req, res) => {
+  if (!idValide(req.params.id)) return res.status(400).json({ erreur: 'Identifiant de chapitre invalide.' });
+  const niveau = String(req.query.niveau || 'entrainement');
+  if (!exos.NIVEAUX[niveau]) return res.status(400).json({ erreur: 'Niveau d’exercices inconnu.' });
+
+  const refaire = req.query.regenerer === '1' && req.utilisateur.role === 'admin';
+  if (!refaire) {
+    const dejaLa = await exos.serie(Number(req.params.id), niveau);
+    if (dejaLa) return res.json({ serie: dejaLa, genere: false });
+  }
+
+  if (!exos.actif())
+    return res.status(503).json({ erreur: 'Le générateur d’exercices n’est pas encore activé.' });
+
+  const serie = await exos.generer(Number(req.params.id), niveau);
+  await journal.enregistrer(req, {
+    categorie: 'catalogue', action: 'Exercices générés',
+    cible: `Chapitre ${req.params.id} · série « ${niveau} » · ` +
+      `${serie.cout.entree} jetons d’entrée, ${serie.cout.sortie} de sortie` });
+  res.json({ serie, genere: true });
 });
 
 /* GET /api/chapitres/:id/tp — le fichier, et la consultation est enregistrée */

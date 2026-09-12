@@ -133,3 +133,69 @@
 .cat-apprentissage{background:rgba(123,59,245,.2);color:#c0a8ff}
 .plus{display:flex;justify-content:center;padding:20px 0 0}
 .tableau td.fiche-mini{font-size:12px;color:var(--text-3);line-height:1.5;max-width:190px}
+
+/* ========================= Espace enseignant ============================== */
+.titre-bloc{font-size:16px;font-weight:700;margin:0 0 4px}
+.titre-bloc.espace-haut{margin-top:28px}
+.titre-courant{display:flex;flex-direction:column;line-height:1.25}
+.titre-courant small{color:var(--text-3);font-size:12.5px}
+.etiquette.ok{background:rgba(63,208,138,.18);color:#6fe0ac}
+
+/* Les classes : des cartes, on en a rarement plus d'une dizaine. */
+.cartes-classes{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:12px}
+.carte-classe{text-align:left;padding:16px;border-radius:12px;border:1px solid var(--line-2);
+  background:var(--card-2);display:flex;flex-direction:column;gap:4px;transition:.15s}
+.carte-classe:hover{background:#2c2c31;border-color:#4a4a52}
+.carte-classe b{font-size:15px}
+.carte-classe small{color:var(--text-3);font-size:12.5px}
+.carte-classe .code{margin-top:6px;font-size:11px;font-weight:700;letter-spacing:.1em;
+  color:#9db6ff;font-variant-numeric:tabular-nums}
+
+/* Une ligne d'élève : identité, avancement, chiffres, actions. */
+.ligne-eleve{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.ligne-eleve:last-child{border-bottom:0}
+.ligne-eleve .nom{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.3}
+.ligne-eleve .nom b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ligne-eleve .nom small{color:var(--text-3);font-size:12px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.jauge{flex:none;width:88px;height:6px;border-radius:3px;background:#2c2c31;overflow:hidden}
+.jauge i{display:block;height:100%;border-radius:3px}
+.pastille-mat{width:10px;height:10px;border-radius:50%;flex:none}
+.pilule.mini{height:28px;padding:0 12px;font-size:12.5px;border-radius:6px}
+.pilule.danger{background:rgba(225,29,61,.16);color:#ff8a9c}
+.pilule.danger:hover{background:rgba(225,29,61,.28)}
+
+/* Fenêtre de lecture : fiche d'élève et relecture d'une série. */
+.modale{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.72);overflow-y:auto;
+  padding:40px 16px;display:flex;justify-content:center;align-items:flex-start}
+.modale-corps{position:relative;width:100%;max-width:760px;background:var(--card);
+  border:1px solid var(--line-2);border-radius:14px;padding:28px}
+.modale-corps .close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;
+  background:#2c2c31;font-size:18px;line-height:1;color:var(--text-2)}
+.modale-corps .close:hover{background:#3a3a42;color:#fff}
+.modale-corps h2{font-size:20px;margin-bottom:2px}
+
+/* Relecture d'exercices : l'énoncé et sa correction, sans fioriture. */
+.exo-relecture{padding:16px 0;border-bottom:1px solid var(--line)}
+.exo-relecture h3{font-size:15px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.exo-relecture p{font-size:14.5px;line-height:1.6;color:var(--text-2)}
+.exo-relecture ul{margin:8px 0 0 18px;font-size:14px;color:var(--text-2);line-height:1.6}
+.corrige-relecture{margin-top:12px;padding:14px 16px;border-radius:10px;background:var(--card-2);
+  border:1px solid var(--line-2)}
+.corrige-relecture b{display:block;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text-3);margin-bottom:8px}
+.corrige-relecture ol{margin:0 0 10px 18px;font-size:14px;line-height:1.65;color:var(--text-2)}
+.corrige-relecture ol li{margin-bottom:4px}
+
+/* « chiffre » désigne aussi les grandes cartes de la vitrine (pages.css).
+   Dans une ligne de suivi, il ne doit être qu'une valeur discrète. */
+.ligne-eleve .chiffre, .ligne-chap .chiffre{
+  border:0; background:none; padding:0; text-align:right; flex:none;
+  font-size:13.5px; font-weight:700; color:var(--text-2);
+  font-variant-numeric:tabular-nums; min-width:52px}
+.ligne-eleve .chiffre.faible, .ligne-chap .chiffre.faible{color:#ff8a9c; font-weight:600}
+.ligne-eleve .chiffre.faible{min-width:76px}
+
+/* Le bouton de retour ouvre la barre : il ne doit pas être renvoyé à droite. */
+.barre-outils .pilule[data-retour]{margin-left:0}
+.barre-outils .titre-courant{margin-right:auto}

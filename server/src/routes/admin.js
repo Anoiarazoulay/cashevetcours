@@ -9,10 +9,43 @@ const prog = require('../services/progression');
 const journal = require('../services/journal');
 
 const routeur = express.Router();
-routeur.use(requiert('admin'));
+routeur.use(requiert('admin', 'enseignant'));
 
 const entier = v => Number.isInteger(Number(v)) && Number(v) > 0 ? Number(v) : null;
 const texte = (v, max = 400) => String(v == null ? '' : v).trim().slice(0, max);
+
+/* Un enseignant emprunte les mêmes routes de catalogue que l'administration,
+   mais seulement pour ses matières : tout le reste — comptes, liens de
+   famille, journal, matières elles-mêmes — lui reste fermé. */
+const OUVERT_ENSEIGNANT = [
+  ['GET', /^\/matieres$/], ['GET', /^\/chapitres$/], ['GET', /^\/chapitres\/\d+$/],
+  ['POST', /^\/chapitres$/], ['PATCH', /^\/chapitres\/\d+$/],
+  ['DELETE', /^\/chapitres\/\d+$/], ['PUT', /^\/chapitres\/\d+\/questions$/]
+];
+
+const saMatiere = async (enseignantId, matiereId) => !!await un(
+  'SELECT 1 AS ok FROM enseignant_matieres WHERE enseignant_id = ? AND matiere_id = ?',
+  [enseignantId, matiereId]);
+
+routeur.use(async (req, res, suite) => {
+  if (req.utilisateur.role === 'admin') return suite();
+
+  const chemin = req.path.replace(/\/$/, '') || '/';
+  if (!OUVERT_ENSEIGNANT.some(([m, re]) => m === req.method && re.test(chemin)))
+    return res.status(403).json({ erreur: 'Réservé à l’administration.' });
+
+  /* Les listes se filtrent plus bas ; ici on garde les écritures. */
+  const idChapitre = entier((chemin.match(/^\/chapitres\/(\d+)/) || [])[1]);
+  const matiereId = idChapitre
+    ? (await un('SELECT matiere_id FROM chapitres WHERE id = ?', [idChapitre]) || {}).matiere_id
+    : entier(req.body && req.body.matiereId);
+
+  if (matiereId && !await saMatiere(req.utilisateur.id, matiereId))
+    return res.status(403).json({ erreur: 'Cette matière ne fait pas partie des vôtres.' });
+  if (!matiereId && req.method !== 'GET')
+    return res.status(400).json({ erreur: 'Matière manquante.' });
+  suite();
+});
 
 /* ------------------------------ tableau de bord ---------------------------- */
 routeur.get('/tableau-bord', async (_req, res) => {
@@ -20,6 +53,7 @@ routeur.get('/tableau-bord', async (_req, res) => {
     un(`SELECT COUNT(*) AS total,
                SUM(role = 'eleve')  AS eleves,
                SUM(role = 'parent') AS parents,
+               SUM(role = 'enseignant') AS enseignants,
                SUM(role = 'admin')  AS admins,
                SUM(actif = 0)       AS desactives FROM utilisateurs`),
     un(`SELECT (SELECT COUNT(*) FROM matieres)         AS matieres,
@@ -49,9 +83,39 @@ routeur.get('/tableau-bord', async (_req, res) => {
   res.json({ comptes, catalogue, actifs7: activite.actifs7, qcm: moyennes, recents, fragiles });
 });
 
+/* Matières confiées à un enseignant : sans elles, il ne peut rien modifier. */
+routeur.get('/enseignants/:id/matieres', async (req, res) => {
+  const id = entier(req.params.id);
+  const lignes = await tous(
+    'SELECT matiere_id FROM enseignant_matieres WHERE enseignant_id = ?', [id]);
+  res.json({ matieres: lignes.map(l => l.matiere_id) });
+});
+
+routeur.put('/enseignants/:id/matieres', async (req, res) => {
+  const id = entier(req.params.id);
+  const u = await un('SELECT id, nom, role FROM utilisateurs WHERE id = ?', [id]);
+  if (!u) return res.status(404).json({ erreur: 'Utilisateur introuvable.' });
+  if (u.role !== 'enseignant')
+    return res.status(400).json({ erreur: 'Ce compte n’est pas un compte enseignant.' });
+
+  const ids = (Array.isArray(req.body.matieres) ? req.body.matieres : [])
+    .map(entier).filter(Boolean);
+
+  await transaction(async cx => {
+    await cx.query('DELETE FROM enseignant_matieres WHERE enseignant_id = ?', [id]);
+    for (const m of ids)
+      await cx.query('INSERT IGNORE INTO enseignant_matieres (enseignant_id, matiere_id) VALUES (?,?)',
+        [id, m]);
+  });
+  await journal.enregistrer(req, {
+    categorie: 'compte', action: 'Matières d’un enseignant modifiées',
+    cible: u.nom + ' — ' + (ids.length ? ids.length + ' matière(s)' : 'aucune') });
+  res.json({ matieres: ids });
+});
+
 /* -------------------------------- utilisateurs ----------------------------- */
 routeur.get('/utilisateurs', async (req, res) => {
-  const role = ['eleve', 'parent', 'admin'].includes(req.query.role) ? req.query.role : null;
+  const role = ['eleve', 'parent', 'enseignant', 'admin'].includes(req.query.role) ? req.query.role : null;
   const q = texte(req.query.q, 80);
   const clauses = [], params = [];
   if (role) { clauses.push('u.role = ?'); params.push(role); }
@@ -71,7 +135,7 @@ routeur.get('/utilisateurs', async (req, res) => {
 
 routeur.post('/utilisateurs', async (req, res) => {
   const nom = texte(req.body.nom, 120), email = texte(req.body.email, 190).toLowerCase();
-  const role = ['eleve', 'parent', 'admin'].includes(req.body.role) ? req.body.role : 'eleve';
+  const role = ['eleve', 'parent', 'enseignant', 'admin'].includes(req.body.role) ? req.body.role : 'eleve';
   const mdp = String(req.body.motDePasse || '');
   if (nom.length < 2) return res.status(400).json({ erreur: 'Indiquez un nom.' });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))
@@ -96,7 +160,7 @@ routeur.patch('/utilisateurs/:id', async (req, res) => {
   if (req.body.nom !== undefined) { champs.push('nom = ?'); params.push(texte(req.body.nom, 120)); }
   if (req.body.niveau !== undefined) { champs.push('niveau = ?'); params.push(texte(req.body.niveau, 80) || null); }
   if (req.body.actif !== undefined) { champs.push('actif = ?'); params.push(req.body.actif ? 1 : 0); }
-  if (req.body.role !== undefined && ['eleve', 'parent', 'admin'].includes(req.body.role)) {
+  if (req.body.role !== undefined && ['eleve', 'parent', 'enseignant', 'admin'].includes(req.body.role)) {
     if (u.id === req.utilisateur.id && req.body.role !== 'admin')
       return res.status(400).json({ erreur: 'Vous ne pouvez pas retirer votre propre rôle d’administrateur.' });
     champs.push('role = ?'); params.push(req.body.role);
@@ -146,13 +210,18 @@ routeur.delete('/liens', async (req, res) => {
 });
 
 /* ---------------------------------- matières ------------------------------- */
-routeur.get('/matieres', async (_req, res) => {
+routeur.get('/matieres', async (req, res) => {
+  /* Un enseignant ne voit que les matières qui lui sont confiées. */
+  const sien = req.utilisateur.role === 'enseignant';
   res.json({
     matieres: await tous(`
       SELECT m.*, (SELECT COUNT(*) FROM chapitres c WHERE c.matiere_id = m.id) AS chapitres,
              (SELECT COUNT(*) FROM questions q JOIN chapitres c ON c.id = q.chapitre_id
                WHERE c.matiere_id = m.id) AS questions
-        FROM matieres m ORDER BY m.ordre, m.id`)
+        FROM matieres m
+       ${sien ? `WHERE m.id IN (SELECT matiere_id FROM enseignant_matieres
+                                 WHERE enseignant_id = ?)` : ''}
+       ORDER BY m.ordre, m.id`, sien ? [req.utilisateur.id] : [])
   });
 });
 
@@ -200,6 +269,12 @@ routeur.delete('/matieres/:id', async (req, res) => {
 /* --------------------------------- chapitres ------------------------------- */
 routeur.get('/chapitres', async (req, res) => {
   const matiereId = entier(req.query.matiereId);
+  const clauses = [], params = [];
+  if (matiereId) { clauses.push('c.matiere_id = ?'); params.push(matiereId); }
+  if (req.utilisateur.role === 'enseignant') {
+    clauses.push('c.matiere_id IN (SELECT matiere_id FROM enseignant_matieres WHERE enseignant_id = ?)');
+    params.push(req.utilisateur.id);
+  }
   res.json({
     chapitres: await tous(`
       SELECT c.id, c.numero, c.titre, c.duree, c.difficulte, c.publie,
@@ -207,8 +282,8 @@ routeur.get('/chapitres', async (req, res) => {
              (SELECT COUNT(*) FROM questions q WHERE q.chapitre_id = c.id) AS questions,
              (SELECT COUNT(*) FROM seances s  WHERE s.chapitre_id = c.id) AS seances
         FROM chapitres c JOIN matieres m ON m.id = c.matiere_id
-       ${matiereId ? 'WHERE c.matiere_id = ?' : ''}
-       ORDER BY m.ordre, c.numero`, matiereId ? [matiereId] : [])
+       ${clauses.length ? 'WHERE ' + clauses.join(' AND ') : ''}
+       ORDER BY m.ordre, c.numero`, params)
   });
 });
 

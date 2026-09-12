@@ -19,6 +19,15 @@ const config = {
     cookie: 'cashevent_session'
   },
   niveauParDefaut: process.env.NIVEAU || '2ᵉ année Bac — Sciences',
+  /* Générateur d'exercices. Sans clé, la fonction se désactive proprement :
+     le reste de la plateforme n'en dépend pas. Les séries produites sont
+     enregistrées en base et resservies à tout le monde — un chapitre n'est
+     donc facturé qu'une fois, pas une fois par élève. */
+  ia: {
+    cle: process.env.ANTHROPIC_API_KEY || '',
+    modele: process.env.IA_MODELE || 'claude-opus-5',
+    active: !!process.env.ANTHROPIC_API_KEY
+  },
   /* Pondération de l'avancement d'un chapitre (somme = 1) */
   poids: { seances: 0.5, resume: 0.1, qcm: 0.25, tp: 0.15 },
   seuilARevoir: 60,

@@ -13,7 +13,7 @@
   const echapper = t => String(t == null ? '' : t)
     .replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const dateFR = d => d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
-  const ROLES = { eleve: 'Élève', parent: 'Parent', admin: 'Admin' };
+  const ROLES = { eleve: 'Élève', parent: 'Parent', enseignant: 'Enseignant', admin: 'Admin' };
 
   /* --------------------------------- onglets ------------------------------ */
   const ONGLETS = [
@@ -99,7 +99,8 @@
     vue.innerHTML = `
       <div class="barre-outils">
         <div class="pills serres" id="filtres">
-          ${[['', 'Tous'], ['eleve', 'Élèves'], ['parent', 'Parents'], ['admin', 'Administrateurs']]
+          ${[['', 'Tous'], ['eleve', 'Élèves'], ['parent', 'Parents'],
+             ['enseignant', 'Enseignants'], ['admin', 'Administrateurs']]
             .map(([v, l]) => `<button data-role="${v}" class="${filtreRole === v ? 'active' : ''}">${l}</button>`).join('')}
         </div>
         <input class="champ" id="rech" type="search" placeholder="Nom ou e-mail…" value="${echapper(recherche)}">
@@ -129,6 +130,8 @@
               <td><span class="pastille ${u.actif ? 'ok' : 'off'}">${u.actif ? 'Actif' : 'Désactivé'}</span></td>
               <td class="actions-ligne">
                 <button class="mini" data-modifier="${u.id}">Modifier</button>
+                ${u.role === 'enseignant'
+                  ? `<button class="mini" data-matieres="${u.id}">Matières</button>` : ''}
                 <button class="mini" data-basculer="${u.id}">${u.actif ? 'Désactiver' : 'Réactiver'}</button>
                 <button class="mini danger" data-supprimer="${u.id}">Supprimer</button>
               </td>
@@ -183,6 +186,9 @@
       const mod = e.target.closest('[data-modifier]');
       if (mod) return formulaireUtilisateur(utilisateurs.find(u => u.id === Number(mod.dataset.modifier)));
 
+      const mat = e.target.closest('[data-matieres]');
+      if (mat) return matieresEnseignant(utilisateurs.find(u => u.id === Number(mat.dataset.matieres)));
+
       const bascule = e.target.closest('[data-basculer]');
       if (bascule) {
         const u = utilisateurs.find(x => x.id === Number(bascule.dataset.basculer));
@@ -229,6 +235,32 @@
         }
         message(creation ? 'Compte créé.' : 'Compte mis à jour.');
         rendreUtilisateurs();
+      });
+  }
+
+  /* Les matières d'un enseignant : elles décident de ce qu'il peut modifier. */
+  async function matieresEnseignant(u) {
+    let matieres, siennes;
+    try {
+      [{ matieres }, { matieres: siennes }] = await Promise.all([
+        API.get('/admin/matieres'), API.get('/admin/enseignants/' + u.id + '/matieres')
+      ]);
+    } catch (e) { return message(e.message); }
+
+    dialogue('Matières de ' + u.nom, `
+      <p class="sous">Cochez les matières dont ${echapper(u.nom)} a la charge. Sans matière,
+        cet enseignant peut suivre ses classes mais ne modifie aucun contenu.</p>
+      ${matieres.map(m => `
+        <label class="case-outil" style="padding:6px 0">
+          <input type="checkbox" name="m${m.id}" ${siennes.includes(m.id) ? 'checked' : ''}>
+          <span>${echapper(m.nom)} <small style="color:var(--text-3)">· ${m.chapitres} chapitres</small></span>
+        </label>`).join('')}`,
+      async donnees => {
+        const choisies = matieres.map(m => m.id).filter(id => donnees['m' + id]);
+        await API.put('/admin/enseignants/' + u.id + '/matieres', { matieres: choisies });
+        message(choisies.length
+          ? choisies.length + ' matière(s) confiée(s) à ' + u.nom
+          : 'Plus aucune matière confiée à ' + u.nom);
       });
   }
 

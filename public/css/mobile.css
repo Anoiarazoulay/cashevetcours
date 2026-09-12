@@ -96,6 +96,14 @@
 
   /* --------------------------------- QCM ---------------------------------- */
   .qcm-vue{padding:6px 16px 30px}
+
+  /* ---------------------------- exercices corrigés ------------------------ */
+  .exos-vue{padding:6px 16px 30px}
+  .exo{padding:15px 16px}
+  .exo header b{font-size:14.5px}
+  .exo .enonce{font-size:14.5px}
+  .exo .pilule{width:100%; justify-content:center}
+  .exos-tete{flex-direction:column; align-items:flex-start; gap:4px}
   .question{font-size:17.5px}
   .rep-btn{padding:12px 13px; font-size:14.5px}
   .bilan .anneau{width:112px; height:112px}
@@ -315,6 +323,20 @@
   .ligne-chap .pt{order:0}
   .ligne-chap .score{order:2; margin-left:22px}
   .ligne-chap .mini{order:3; margin-left:auto}
+
+  /* Espace enseignant. Sans ordre explicite, les chiffres passaient avant le
+     nom de l'élève : on lisait « 38 % » puis seulement après de qui il s'agit. */
+  .ligne-chap .chiffre{order:2; margin-left:22px}
+  .ligne-eleve{flex-wrap:wrap; row-gap:6px}
+  .ligne-eleve .av{order:0}
+  .ligne-eleve .nom{order:1; flex:1 1 0}
+  .ligne-eleve .jauge{order:2; flex:1 1 100%; width:auto}
+  .ligne-eleve .chiffre{order:3; text-align:left; min-width:0; margin-right:14px}
+  .ligne-eleve .pilule.mini{order:4}
+  .ligne-eleve .pilule.mini[data-eleve]{margin-left:auto}
+
+  .modale{padding:16px 12px}
+  .modale-corps{padding:20px 16px}
 
   /* Cibles tactiles : rien en dessous de 40 px de haut. */
   .mini{height:38px; padding:0 15px}
