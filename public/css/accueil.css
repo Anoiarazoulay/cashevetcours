@@ -281,10 +281,14 @@ body.page-nf{background:#000;color:#fff}
 .nf-roles{grid-template-columns:repeat(3,1fr)}
 /* « hidden » perdait face au display des jalons : même piège qu'aux étapes. */
 .jalons li[hidden]{display:none}
+/* Un bloc de choix n'est pas un champ à étiquette flottante : ses « label » sont
+   des puces cliquables, pas des étiquettes posées par-dessus une saisie. */
+.nf-bloc{position:relative}
+.nf-bloc .indice{display:block;margin-top:8px;font-size:12.5px;color:#8c8c8c}
 .nf-legende{display:block;font-size:13px;color:#b3b3b3;margin-bottom:8px}
 .nf-choix-matieres{display:flex;flex-wrap:wrap;gap:8px}
 .nf-choix-matieres label{position:relative;display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 12px;
-  border-radius:4px;border:1px solid #454545;font-size:13.5px;cursor:pointer;transition:.15s}
+  border-radius:4px;border:1px solid #454545;font-size:13.5px;color:#fff;cursor:pointer;transition:.15s;pointer-events:auto}
 .nf-choix-matieres label:hover{border-color:#777}
 .nf-choix-matieres label.actif{border-color:#fff;background:#1f1f1f}
 .nf-choix-matieres input{position:absolute;opacity:0;pointer-events:none}

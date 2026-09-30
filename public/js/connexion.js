@@ -12,9 +12,12 @@
   const rediriger = u => { location.href = suite || accueil[u.role] || '/'; };
 
   const erreur = $('#erreur');
+  /* Le message est en tête de la carte : sur un téléphone, le bouton qui l'a
+     déclenché est loin en dessous. On y ramène l'écran. */
   const montrer = texte => {
     if (!erreur) return alert(texte);
     erreur.textContent = texte; erreur.hidden = false;
+    erreur.scrollIntoView({ block: 'center', behavior: 'smooth' });
   };
   const cacher = () => { if (erreur) erreur.hidden = true; };
 
