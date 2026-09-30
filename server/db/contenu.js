@@ -112,7 +112,18 @@ async function telechargerAffiche(videoId, fichier) {
     const seances = await tous(
       'SELECT id, numero, titre, video_url FROM seances WHERE chapitre_id = ? ORDER BY numero', [c.id]);
     if (!seances.length) continue;
-    if (!force && c.image && seances.every(s => s.video_url)) continue;
+    if (!force && c.image && seances.every(s => s.video_url)) {
+      /* Chapitre déjà pourvu, mais affiche absente du disque (installation neuve,
+         dossier ignoré par Git) : on la reprend de la vidéo déjà rattachée,
+         sans nouvelle recherche — les cours choisis ne changent pas. */
+      const fichier = path.join(IMAGES, c.id + '.jpg');
+      const id = (String(seances[0].video_url).match(/[?&]v=([\w-]{11})/) || [])[1];
+      if (!fs.existsSync(fichier) && id && await telechargerAffiche(id, fichier)) {
+        affiches++;
+        await pause(300);
+      }
+      continue;
+    }
 
     /* Requête précise d'abord ; repli sur une formulation plus large si elle ne rend rien. */
     const requetes = [

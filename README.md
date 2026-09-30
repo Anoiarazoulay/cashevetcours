@@ -33,12 +33,16 @@ Démarrez le service depuis l'icône WampServer avant `npm run db:init`.
 
 ### Comptes de démonstration
 
-| Rôle | Adresse | Mot de passe |
-|---|---|---|
-| Élève | `yasmine@cashevent.education` | `eleve1234` |
-| Élève (compte vierge) | `mehdi@cashevent.education` | `eleve1234` |
-| Parent | `parent@cashevent.education` | `parent1234` |
-| Administrateur | `admin@cashevent.education` | `admin1234` |
+Chaque rôle a sa propre page de connexion ; `/connexion` propose de choisir. Le serveur refuse
+un compte qui se présente sur la page d'un autre rôle (un élève sur `/connexion/admin`, par exemple).
+
+| Rôle | Page de connexion | Adresse | Mot de passe |
+|---|---|---|---|
+| Élève | `/connexion/eleve` | `yasmine@cashevent.education` | `eleve1234` |
+| Élève (compte vierge) | `/connexion/eleve` | `mehdi@cashevent.education` | `eleve1234` |
+| Parent | `/connexion/parent` | `parent@cashevent.education` | `parent1234` |
+| Enseignant | `/connexion/enseignant` | — (créé à l'inscription ou par l'administration) | |
+| Administrateur | `/connexion/admin` | `admin@cashevent.education` | `admin1234` |
 
 Le compte de Yasmine contient un mois de travail : 18 chapitres terminés, 19 QCM passés,
 une difficulté marquée sur les probabilités. Le parent suit les deux élèves.
@@ -156,6 +160,24 @@ Le parent choisit l'enfant à consulter (le plus actif est proposé en premier),
 
 Le ton compte ce qui est accompli, jamais ce qui a manqué : la seule alerte négative est
 l'inactivité, formulée comme une relance. Un parent ne voit que les élèves qui lui sont rattachés.
+
+### Enseignant référent — `/espace-enseignant`
+
+Pensé pour suivre de cent à mille élèves :
+
+- **Tableau de bord** — la classe d'un coup d'œil : suivis à faire, élèves signalés, inactifs,
+  pas encore commencés, suivis faits (chaque groupe s'ouvre d'un clic dans « Mes élèves »), et la
+  répartition de la progression par tranche de 25 %.
+- **Mes élèves** — recherche par nom, filtres par matière, filière et état (avec effectifs), tri
+  par priorité, progression, moyenne ou inactivité, pagination par 50, export tableur (CSV).
+- **Tournée** — enchaîne les dossiers de la sélection sans suivi : l'enseignant lit le dossier,
+  choisit l'état (touches 1, 2, 3), relit le message proposé à partir des chapitres ratés et de
+  l'inactivité, puis Ctrl + Entrée enregistre et ouvre l'élève suivant. Rien n'est coché d'avance :
+  chaque suivi exige toujours l'ouverture du dossier dans le mois.
+- **TP** — envoi à tous ses élèves de la matière, aux seuls élèves signalés, ou à une sélection filtrable.
+
+La progression de tous les élèves d'un enseignant se calcule en cinq requêtes
+(`progression.lignesEnseignant`), quel que soit leur nombre : environ 0,1 s pour mille élèves.
 
 ### Administration — `/admin`
 

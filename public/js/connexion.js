@@ -40,19 +40,56 @@
   };
 
   /* ------------------------------- connexion ------------------------------ */
+  /* Une porte par espace : /connexion/eleve, /parent, /enseignant, /admin.
+     Le serveur refuse un compte qui ne se présente pas à la porte de son rôle. */
+  const ESPACES = {
+    eleve: { nom: 'Espace élève', titre: 'Connexion élève', inscription: 'eleve',
+             demo: ['yasmine@cashevent.education', 'eleve1234'] },
+    parent: { nom: 'Espace parent', titre: 'Connexion parent', inscription: 'parent',
+              demo: ['parent@cashevent.education', 'parent1234'] },
+    enseignant: { nom: 'Espace enseignant', titre: 'Connexion enseignant', inscription: 'enseignant', demo: null },
+    admin: { nom: 'Administration', titre: 'Connexion administrateur', inscription: null,
+             demo: ['admin@cashevent.education', 'admin1234'] }
+  };
+
   const formConnexion = $('#formConnexion');
   if (formConnexion) {
+    const espace = (location.pathname.match(/^\/connexion\/(\w+)$/) || [])[1];
+    const e = ESPACES[espace];
+    $('#choixEspace').hidden = !!e;
+    $('#blocConnexion').hidden = !e;
+
+    if (e) {
+      document.title = e.titre + ' — Cashevent School';
+      formConnexion.espace.value = espace;
+      $('#etiquetteEspace').textContent = e.nom;
+      $('#titreConnexion').textContent = e.titre;
+      /* L'administration ne s'ouvre pas par inscription : ses comptes sont créés en interne. */
+      const lien = $('#lienInscription');
+      if (e.inscription) lien.querySelector('a').href = '/inscription?role=' + e.inscription;
+      else lien.hidden = true;
+
+      const demo = $('#demo');
+      /* Pas de compte de démonstration enseignant : aucun n'est créé par le jeu de données. */
+      if (e.demo) {
+        demo.hidden = false;
+        demo.querySelector('.lignes').innerHTML =
+          `<button type="button" data-demo="${e.demo.join('|')}">Remplir avec ${e.demo[0]}</button>`;
+      }
+    }
+
     /* Ceinture et bretelles : la soumission native ne doit jamais recharger la page. */
-    formConnexion.addEventListener('submit', e => {
-      e.preventDefault();
+    formConnexion.addEventListener('submit', ev => {
+      ev.preventDefault();
       envoyer(formConnexion, '/auth/connexion');
     });
-    $$('[data-demo]').forEach(b => b.addEventListener('click', () => {
+    formConnexion.closest('.carte').addEventListener('click', ev => {
+      const b = ev.target.closest('[data-demo]'); if (!b) return;
       const [mail, mdp] = b.dataset.demo.split('|');
       formConnexion.email.value = mail;
       formConnexion.motDePasse.value = mdp;
       envoyer(formConnexion, '/auth/connexion');
-    }));
+    });
   }
 
   /* ------------------------------ inscription ----------------------------- */
@@ -78,6 +115,10 @@
       $$('#choixRole label').forEach(l => l.classList.toggle('actif', l.querySelector('input').checked));
     };
     const choix = $('#choixRole');
+    /* Venu depuis la page de connexion d'un espace : le rôle est déjà choisi. */
+    const voulu = choix && ['eleve', 'parent', 'enseignant'].includes(params.get('role')) &&
+      choix.querySelector(`input[name=role][value="${params.get('role')}"]`);
+    if (voulu) voulu.checked = true;
     if (choix) { choix.addEventListener('change', majRole); majRole(); }
 
     /* Les matières servent deux fois : cases à cocher pour l'enseignant,

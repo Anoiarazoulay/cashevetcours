@@ -1,4 +1,6 @@
 /* Catalogue, fiche chapitre, TP téléchargeable et moteur de QCM */
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const config = require('../config');
 const { tous, un, executer, transaction } = require('../db');
@@ -29,7 +31,32 @@ routeur.get('/catalogue/public', async (_req, res) => {
                (SELECT COUNT(*) FROM questions) AS questions,
                (SELECT COUNT(*) FROM seances WHERE video_url IS NOT NULL) AS videos`)
   ]);
-  res.json({ matieres, affiches, chiffres });
+
+  /* Le programme, chapitre par chapitre : la vitrine montre ce qu'on révise vraiment. */
+  const programme = await tous(`
+    SELECT c.matiere_id, c.numero, c.titre, c.duree,
+           (SELECT COUNT(*) FROM seances s WHERE s.chapitre_id = c.id) AS seances,
+           (SELECT GROUP_CONCAT(n.libelle ORDER BY n.ordre SEPARATOR '||')
+              FROM notions n WHERE n.chapitre_id = c.id) AS notions
+      FROM chapitres c
+     WHERE c.publie = 1
+     ORDER BY c.matiere_id, c.numero`);
+
+  /* Les affiches ne sont pas versionnées : une installation qui ne les a pas
+     encore téléchargées (npm run contenu) ne doit pas afficher d'images cassées. */
+  const existe = img => {
+    if (!img) return false;
+    const f = path.join(config.racinePublique, img);
+    return f.startsWith(config.racinePublique) && fs.existsSync(f);
+  };
+  for (const m of matieres) if (!existe(m.image)) m.image = null;
+
+  res.json({
+    matieres, chiffres,
+    affiches: affiches.filter(a => existe(a.image)),
+    programme: programme.map(c => ({
+      ...c, notions: c.notions ? c.notions.split('||') : [] }))
+  });
 });
 
 /* GET /api/catalogue */

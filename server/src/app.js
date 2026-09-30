@@ -114,7 +114,9 @@ const PAGES = {
 };
 app.get(Object.keys(PAGES), (req, res, suite) => {
   const roles = PAGES[req.path];
-  if (!req.utilisateur) return res.redirect('/connexion?suite=' + encodeURIComponent(req.path));
+  /* Chaque espace a sa propre porte d'entrée : on renvoie vers la bonne. */
+  if (!req.utilisateur)
+    return res.redirect('/connexion/' + roles[0] + '?suite=' + encodeURIComponent(req.path));
   if (!roles.includes(req.utilisateur.role)) return res.redirect('/');
   suite();
 });
@@ -128,7 +130,7 @@ app.get('/', (req, res) => {
 });
 
 /* Un visiteur déjà connecté n'a rien à faire sur la vitrine ni sur les formulaires */
-app.get(['/accueil', '/connexion', '/inscription'], (req, res, suite) => {
+app.get(['/accueil', '/connexion', '/connexion/:espace', '/inscription'], (req, res, suite) => {
   if (req.utilisateur && !req.query.suite) return res.redirect('/');
   suite();
 });
@@ -197,8 +199,14 @@ app.get(/^\/([\w-]+)\.html$/, (req, res, suite) => {
 });
 
 /* Les pages sont servies sans extension, avec le jeton de version et le nonce. */
-app.get(/^\/([\w-]+)$/, (req, res, suite) => {
-  const fichier = path.join(config.racinePublique, req.params[0] + '.html');
+app.get(/^\/([\w-]+)$/, (req, res, suite) => servirPage(req.params[0], res, suite));
+
+/* Une page de connexion par espace : le même fichier, qui lit l'espace dans l'adresse. */
+app.get(/^\/connexion\/(eleve|parent|enseignant|admin)$/, (req, res, suite) =>
+  servirPage('connexion', res, suite));
+
+function servirPage(nom, res, suite) {
+  const fichier = path.join(config.racinePublique, nom + '.html');
   if (!fichier.startsWith(config.racinePublique) || !fs.existsSync(fichier)) return suite();
   const html = fs.readFileSync(fichier, 'utf8')
     .replace(/(\/(?:css|js)\/[a-z-]+\.(?:css|js))\?v=[\w.]+/g, '$1?v=' + versionAssets())
@@ -207,7 +215,7 @@ app.get(/^\/([\w-]+)$/, (req, res, suite) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
   res.send(html);
-});
+}
 
 /* Les fichiers portant un jeton de version ne changent jamais sous cette adresse :
    on peut les garder un an. Les autres sont revalidés à chaque visite. */

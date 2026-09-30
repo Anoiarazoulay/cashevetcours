@@ -288,3 +288,68 @@ textarea.champ{height:auto;padding:10px 12px;line-height:1.5;resize:vertical}
 .modale-corps .tuiles{padding-left:0;padding-right:0;margin-top:14px}
 .etiquette.encours{background:rgba(76,141,255,.16);color:#9db6ff}
 .ligne-tp .chiffre{border:0;background:none;padding:0;font-size:13px;font-weight:600;color:var(--text-2);text-align:left}
+
+/* ============ Enseignant : suivre cent à mille élèves sans s'y perdre ============ */
+/* La classe d'un coup d'œil : des groupes cliquables plutôt qu'une longue liste. */
+.segments-prof{display:flex;flex-direction:column;gap:4px;margin-top:10px}
+.segment-prof{display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px 12px;width:100%;
+  padding:10px 12px;border-radius:10px;text-align:left;color:inherit;transition:.15s}
+.segment-prof:hover{background:#26262a}
+.segment-prof .lib{font-size:14px;color:var(--text-2)}
+.segment-prof b{font-size:16px;font-variant-numeric:tabular-nums}
+.segment-prof .jauge{grid-column:1 / -1}
+.histo-prof{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:end;margin-top:12px}
+.barre-histo{display:flex;flex-direction:column;align-items:center;gap:6px}
+.barre-histo b{font-size:14px;font-variant-numeric:tabular-nums}
+.barre-histo .col{display:flex;align-items:flex-end;width:100%;height:110px;border-radius:8px;
+  background:#1f1f23;overflow:hidden}
+.barre-histo .col i{display:block;width:100%;background:var(--brand);border-radius:8px 8px 0 0}
+.barre-histo small{font-size:12px;color:var(--text-3)}
+.pilule.mini.blanc{color:#111}
+
+/* Mes élèves : recherche, filtres, file de suivis, pagination. */
+.outils-eleves #rechercheEleve{max-width:300px}
+.outils-eleves select.champ{width:auto;max-width:240px}
+.outils-eleves .pilule{margin-left:auto}
+.etats-eleves{margin-bottom:14px}
+.etats-eleves .compte,.choix-dest .compte{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;
+  padding:1px 7px;border-radius:999px;background:#2c2c31;color:var(--text-2)}
+.etats-eleves button.active .compte{background:#e4e4e4;color:#111}
+.avance-mois{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px;padding:12px 16px;
+  border-radius:12px;border:1px solid var(--line-2);background:var(--card)}
+.avance-mois .txt{flex:1;min-width:220px;display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--text-2)}
+.avance-mois .txt b{color:#fff;font-variant-numeric:tabular-nums}
+.pagination-prof{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px;
+  font-size:13.5px;color:var(--text-3);font-variant-numeric:tabular-nums}
+.pagination-prof .pilule[disabled]{opacity:.4;cursor:default}
+
+/* Tournée : les dossiers s'enchaînent, le suivi passe avant le détail des chapitres. */
+.tournee-tete{display:flex;flex-direction:column;gap:8px;margin:0 40px 18px 0;font-size:13px;color:var(--text-3)}
+.tournee-tete b{color:#fff}
+.suggere{font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  margin-left:6px;padding:1px 6px;border-radius:4px;background:rgba(205,92,180,.2);color:#E9A6DA;vertical-align:1px}
+.choix-statut:has(kbd) label{padding-right:30px}
+.choix-statut kbd{position:absolute;top:10px;right:10px;font:600 11px var(--font);color:var(--text-3);
+  border:1px solid var(--line-2);border-radius:4px;padding:0 5px}
+.actions-suivi{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.actions-suivi .raccourcis{font-size:12px;color:var(--text-3)}
+
+/* TP : viser un groupe, ou choisir parmi une liste filtrable. */
+.destinataires{max-height:none;overflow:visible}
+.choix-dest{display:flex;flex-direction:column}
+#choixEleves[hidden],.liste-dest label[hidden]{display:none}
+#choixEleves{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.actions-dest{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0}
+.actions-dest small{color:var(--text-3);font-size:12.5px}
+.liste-dest{max-height:240px;overflow-y:auto}
+.liste-dest label small{color:#E9A6DA;font-size:11.5px}
+
+@media (max-width:720px){
+  .outils-eleves #rechercheEleve,.outils-eleves select.champ{max-width:none;width:100%}
+  .outils-eleves .pilule{margin-left:0}
+  .etats-eleves{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}
+  .etats-eleves button{flex:none}
+  .avance-mois .pilule{width:100%;justify-content:center}
+  .actions-suivi .raccourcis{display:none}
+  .choix-statut kbd{display:none}
+}

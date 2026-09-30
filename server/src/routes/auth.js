@@ -178,6 +178,22 @@ routeur.post('/connexion', async (req, res) => {
     return res.status(403).json({ erreur: 'Ce compte est désactivé. Contactez l’administration.' });
   }
 
+  /* Chaque espace a sa porte : un compte ne s'ouvre que depuis la page de son rôle. */
+  const ESPACES = { eleve: 'élève', parent: 'parent', enseignant: 'enseignant', admin: 'administration' };
+  const espace = String(req.body.espace || '');
+  if (!ESPACES[espace]) return res.status(400).json({ erreur: 'Choisissez votre espace de connexion.' });
+  if (u.role !== espace) {
+    await journal.enregistrer(req, {
+      categorie: 'auth', action: 'Connexion refusée', cible: email, succes: false,
+      details: `Compte ${u.role} sur l’espace ${espace}`, acteur: u
+    });
+    return res.status(403).json({
+      erreur: `Ce compte n’est pas un compte ${espace === 'admin' ? 'administrateur' : ESPACES[espace]}. Connectez-vous depuis l’espace ${
+        ESPACES[u.role] || u.role}.`,
+      espace: u.role
+    });
+  }
+
   await executer('UPDATE utilisateurs SET derniere_connexion = NOW() WHERE id = ?', [u.id]);
   poserCookie(res, signer(u));
   await journal.enregistrer(req, { categorie: 'auth', action: 'Connexion', cible: email, acteur: u });

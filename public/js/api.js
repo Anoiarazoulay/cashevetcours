@@ -13,7 +13,10 @@ window.API = (() => {
       throw new Error('Serveur injoignable. Vérifiez que l’application est démarrée.');
     }
     if (r.status === 401 && !location.pathname.startsWith('/connexion')) {
-      location.href = '/connexion?suite=' + encodeURIComponent(location.pathname);
+      /* Session expirée : retour à la porte de l'espace où l'on se trouvait. */
+      const porte = { '/espace-parent': 'parent', '/espace-enseignant': 'enseignant', '/admin': 'admin' };
+      location.href = '/connexion/' + (porte[location.pathname] || 'eleve') +
+        '?suite=' + encodeURIComponent(location.pathname);
       throw new Error('Session expirée.');
     }
     let donnees = null;

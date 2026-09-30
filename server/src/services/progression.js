@@ -34,6 +34,73 @@ const lignes = eleveId => tous(`
    WHERE c.publie = 1
    ORDER BY m.ordre, c.numero`, [eleveId, eleveId, eleveId]);
 
+/* Les mêmes lignes, pour tous les élèves d'un enseignant référent d'un coup,
+   et seulement dans les matières où chacun l'a désigné. Cinq requêtes au
+   total, quel que soit le nombre d'élèves : à mille élèves, la version une
+   requête par élève prenait plusieurs secondes.                             */
+async function lignesEnseignant(enseignantId) {
+  const portee = `JOIN chapitres c ON c.id = x.chapitre_id
+    JOIN referents r ON r.eleve_id = x.eleve_id AND r.matiere_id = c.matiere_id
+                    AND r.enseignant_id = ?`;
+  const [chapitres, refs, progres, vues, qcm] = await Promise.all([
+    tous(`
+      SELECT c.id, c.numero, c.titre, c.duree, c.difficulte,
+             m.id AS matiere_id, m.code AS matiere_code, m.nom AS matiere_nom,
+             m.court AS matiere_court, m.teinte, m.ordre AS matiere_ordre,
+             (SELECT COUNT(*) FROM seances s WHERE s.chapitre_id = c.id) AS nb_seances
+        FROM chapitres c
+        JOIN matieres m ON m.id = c.matiere_id
+       WHERE c.publie = 1
+         AND c.matiere_id IN (SELECT matiere_id FROM referents WHERE enseignant_id = ?)
+       ORDER BY m.ordre, c.numero`, [enseignantId]),
+    tous('SELECT eleve_id, matiere_id FROM referents WHERE enseignant_id = ?', [enseignantId]),
+    tous(`SELECT x.eleve_id, x.chapitre_id, x.resume_lu, x.tp_consulte, x.termine, x.maj
+            FROM progression x ${portee}`, [enseignantId]),
+    tous(`SELECT x.eleve_id, s.chapitre_id, COUNT(*) AS n
+            FROM seances_vues x JOIN seances s ON s.id = x.seance_id
+            JOIN chapitres c ON c.id = s.chapitre_id
+            JOIN referents r ON r.eleve_id = x.eleve_id AND r.matiere_id = c.matiere_id
+                            AND r.enseignant_id = ?
+           GROUP BY x.eleve_id, s.chapitre_id`, [enseignantId]),
+    tous(`SELECT a.eleve_id, a.chapitre_id, a.score, a.justes, a.total, a.terminee_le
+            FROM tentatives_qcm a
+            JOIN (SELECT x.eleve_id, x.chapitre_id, MAX(x.id) AS dernier
+                    FROM tentatives_qcm x ${portee}
+                   WHERE x.terminee = 1
+                   GROUP BY x.eleve_id, x.chapitre_id) b ON b.dernier = a.id`, [enseignantId])
+  ]);
+
+  const cle = (e, c) => e + ':' + c;
+  const P_ = new Map(progres.map(p => [cle(p.eleve_id, p.chapitre_id), p]));
+  const V_ = new Map(vues.map(v => [cle(v.eleve_id, v.chapitre_id), Number(v.n)]));
+  const Q_ = new Map(qcm.map(q => [cle(q.eleve_id, q.chapitre_id), q]));
+  const parMatiere = new Map();
+  for (const c of chapitres) {
+    if (!parMatiere.has(c.matiere_id)) parMatiere.set(c.matiere_id, []);
+    parMatiere.get(c.matiere_id).push(c);
+  }
+
+  const resultat = new Map();
+  for (const r of refs) {
+    if (!resultat.has(r.eleve_id)) resultat.set(r.eleve_id, []);
+    const ls = resultat.get(r.eleve_id);
+    for (const c of parMatiere.get(r.matiere_id) || []) {
+      const k = cle(r.eleve_id, c.id), p = P_.get(k), q = Q_.get(k);
+      ls.push({
+        ...c,
+        seances_vues: V_.get(k) || 0,
+        resume_lu: p ? p.resume_lu : 0,
+        tp_consulte: p ? p.tp_consulte : 0,
+        termine: p ? p.termine : 0,
+        maj: p ? p.maj : null,
+        score: q ? q.score : null, justes: q ? q.justes : null,
+        qcm_total: q ? q.total : null, terminee_le: q ? q.terminee_le : null
+      });
+    }
+  }
+  return resultat;
+}
+
 /* Avancement d'un chapitre, entre 0 et 1 */
 const avancement = l => Math.min(1,
   P.seances * (l.nb_seances ? l.seances_vues / l.nb_seances : 0) +
@@ -239,6 +306,6 @@ const journaliser = eleveId => require('../db').executer(
    ON DUPLICATE KEY UPDATE actions = actions + 1`, [eleveId]);
 
 module.exports = {
-  lignes, avancement, estTermine, aRevoir, resume,
+  lignes, lignesEnseignant, avancement, estTermine, aRevoir, resume,
   etat, statistiques, parMatiere, rythme, projection, alertes, tableauDeBord, journaliser
 };

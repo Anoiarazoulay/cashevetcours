@@ -201,12 +201,11 @@ async function eleves(enseignantId, mois) {
       WHERE r.enseignant_id = ?
       ORDER BY m.ordre, u.nom`, [mois, enseignantId]);
 
-  /* Un élève suivi dans deux matières ne fait calculer sa progression qu'une fois. */
-  const cache = new Map();
+  /* Toute la progression en une fois : le coût ne dépend plus du nombre d'élèves. */
+  const lignes = await prog.lignesEnseignant(enseignantId);
   const liste = [];
   for (const r of refs) {
-    if (!cache.has(r.eleve_id)) cache.set(r.eleve_id, await prog.lignes(r.eleve_id));
-    const d = await dossier(r.eleve_id, r.matiere_id, cache.get(r.eleve_id), { detail: false });
+    const d = await dossier(r.eleve_id, r.matiere_id, lignes.get(r.eleve_id) || [], { detail: false });
     liste.push({
       eleve: { id: r.eleve_id, nom: r.nom, filiere: r.filiere },
       matiere: { id: r.matiere_id, nom: r.matiere, teinte: r.teinte },

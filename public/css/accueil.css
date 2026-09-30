@@ -282,13 +282,13 @@ body.page-nf{background:#000;color:#fff}
 /* « hidden » perdait face au display des jalons : même piège qu'aux étapes. */
 .jalons li[hidden]{display:none}
 .nf-legende{display:block;font-size:13px;color:#b3b3b3;margin-bottom:8px}
-.nf-matieres{display:flex;flex-wrap:wrap;gap:8px}
-.nf-matieres label{position:relative;display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 12px;
+.nf-choix-matieres{display:flex;flex-wrap:wrap;gap:8px}
+.nf-choix-matieres label{position:relative;display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 12px;
   border-radius:4px;border:1px solid #454545;font-size:13.5px;cursor:pointer;transition:.15s}
-.nf-matieres label:hover{border-color:#777}
-.nf-matieres label.actif{border-color:#fff;background:#1f1f1f}
-.nf-matieres input{position:absolute;opacity:0;pointer-events:none}
-.nf-matieres .pt,.nf-prof .pt{width:8px;height:8px;border-radius:50%;flex:none}
+.nf-choix-matieres label:hover{border-color:#777}
+.nf-choix-matieres label.actif{border-color:#fff;background:#1f1f1f}
+.nf-choix-matieres input{position:absolute;opacity:0;pointer-events:none}
+.nf-choix-matieres .pt,.nf-prof .pt{width:8px;height:8px;border-radius:50%;flex:none}
 
 .nf-intro{font-size:14px;color:#b3b3b3;line-height:1.55;margin-bottom:16px}
 .nf-intro b{color:#fff}
@@ -312,3 +312,112 @@ body.page-nf{background:#000;color:#fff}
 }
 /* Dans une rangée à deux boutons, le bouton principal gardait une hauteur écrasée. */
 .rangee-boutons .nf-soumettre{min-height:48px}
+
+/* Connexion : une porte par espace (élève, parent, enseignant, administration). */
+.nf-intro{margin:-14px 0 18px;color:#b3b3b3;font-size:15px}
+.nf-espaces{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.nf-espaces a{display:flex;flex-direction:column;gap:4px;padding:16px;border-radius:6px;
+  border:1px solid #454545;background:rgba(22,22,22,.7);transition:.15s}
+.nf-espaces a:hover,.nf-espaces a:focus-visible{border-color:#fff;background:#1f1f1f}
+.nf-espaces b{font-size:16px}
+.nf-espaces small{font-size:12.5px;color:#8c8c8c;line-height:1.35}
+.nf-espace{display:inline-block;margin-bottom:10px;padding:3px 10px;border-radius:999px;font-size:12px;
+  font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--nf-rouge);color:#fff}
+.nf-bas.petit{margin-top:10px;font-size:13.5px}
+.nf-bas.petit a{color:#b3b3b3}
+@media (max-width:380px){ .nf-espaces{grid-template-columns:1fr} }
+.nf-auth .nf-erreur{margin-bottom:14px}
+
+/* ======================= Accueil enrichi ======================= */
+/* En-tête : liens discrets à côté des boutons. */
+.nf-lien{font-size:14.5px;color:#d2d2d2;padding:0 6px;transition:color .15s}
+.nf-lien:hover{color:#fff}
+.nf-actions .nf-bouton.fantome{height:36px}
+
+/* Chiffres clés sous le bandeau. */
+.nf-chiffres{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--nf-gris);
+  border-bottom:8px solid var(--nf-gris)}
+.nf-chiffres div{background:#000;padding:30px 16px;text-align:center;display:flex;flex-direction:column;gap:6px}
+.nf-chiffres b{font-size:clamp(30px,4vw,48px);font-weight:800;letter-spacing:-.02em;color:var(--nf-rouge);
+  font-variant-numeric:tabular-nums;line-height:1}
+.nf-chiffres span{font-size:14px;color:#b3b3b3}
+
+/* Titres de section centrés. */
+.nf-etapes h2,.nf-espaces-accueil h2{font-size:clamp(26px,3.4vw,42px);font-weight:800;letter-spacing:-.02em;
+  text-align:center;margin-bottom:10px}
+.sous-titre{text-align:center;color:#b3b3b3;font-size:17px;line-height:1.5;max-width:640px;margin:0 auto 34px}
+
+/* Comment ça marche : quatre étapes. */
+.nf-etapes{max-width:1100px;margin:0 auto}
+.nf-etapes ol{list-style:none;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;counter-reset:none}
+.nf-etapes li{background:#141416;border:1px solid #2a2a2e;border-radius:12px;padding:22px 20px}
+.nf-etapes .num{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;margin-bottom:14px;
+  background:var(--nf-rouge);font-weight:800;font-size:16px}
+.nf-etapes b{display:block;font-size:18px;margin-bottom:8px}
+.nf-etapes p{font-size:14.5px;color:#b3b3b3;line-height:1.55}
+
+/* Liste à puces dans une section duo. */
+.nf-points{list-style:none;margin-top:18px;display:flex;flex-direction:column;gap:10px}
+.nf-points li{position:relative;padding-left:28px;font-size:16px;color:#d2d2d2;line-height:1.45}
+.nf-points li::before{content:"✓";position:absolute;left:0;top:0;width:20px;height:20px;border-radius:50%;
+  display:grid;place-items:center;font-size:12px;font-weight:800;background:rgba(63,208,138,.18);color:#6fe0ac}
+
+/* Maquette du tableau de bord enseignant. */
+.demo-prof{width:100%;max-width:380px;background:#141416;border:1px solid #34343a;border-radius:12px;
+  padding:18px;box-shadow:0 24px 50px rgba(0,0,0,.6)}
+.demo-prof .titre{font-size:15px;font-weight:700;margin-bottom:12px}
+.demo-prof .seg{display:grid;grid-template-columns:1fr auto;gap:6px 10px;padding:9px 0;border-bottom:1px solid #26262a}
+.demo-prof .seg span{font-size:13px;color:#d2d2d2}
+.demo-prof .seg b{font-size:14px;font-variant-numeric:tabular-nums}
+.demo-prof .seg i{grid-column:1/-1;height:5px;border-radius:3px;background:linear-gradient(90deg,var(--c) var(--p),#2c2c31 0)}
+.demo-prof .bouton{margin-top:14px;height:38px;border-radius:6px;background:#fff;color:#111;font-size:13.5px;
+  font-weight:700;display:grid;place-items:center}
+
+/* Programme détaillé : onglets de matières, puis chapitres. */
+.nf-programme{margin-top:34px;text-align:left;scroll-margin-top:20px}
+.nf-programme[hidden]{display:none}
+.onglets-mat{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:18px;scrollbar-width:thin}
+.onglets-mat button{flex:none;height:38px;padding:0 15px;border-radius:999px;border:1px solid #454545;
+  font-size:14px;color:#d2d2d2;display:inline-flex;align-items:center;gap:8px;transition:.15s}
+.onglets-mat button i{width:9px;height:9px;border-radius:50%;background:var(--c1)}
+.onglets-mat button:hover{border-color:#fff;color:#fff}
+.onglets-mat button.actif{background:#fff;color:#111;border-color:#fff;font-weight:600}
+.liste-chap{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.liste-chap li{display:flex;gap:14px;background:#141416;border:1px solid #2a2a2e;border-radius:10px;padding:16px}
+.liste-chap .num{flex:none;width:34px;height:34px;border-radius:8px;display:grid;place-items:center;
+  font-weight:800;background:var(--c1,#333)}
+.liste-chap .corps{min-width:0}
+.liste-chap b{display:block;font-size:15.5px;line-height:1.3}
+.liste-chap small{display:block;font-size:12.5px;color:#8c8c8c;margin-top:4px;line-height:1.4}
+.liste-chap .notions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.liste-chap .notions span{font-size:12px;padding:3px 9px;border-radius:5px;background:#26262a;color:#d2d2d2}
+
+/* Un espace pour chacun. */
+.nf-espaces-accueil{max-width:1100px;margin:0 auto}
+.nf-espaces-accueil .cartes{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.nf-espaces-accueil article{background:#141416;border:1px solid #2a2a2e;border-radius:12px;padding:26px 24px;
+  display:flex;flex-direction:column}
+.nf-espaces-accueil h3{font-size:22px;margin-bottom:14px}
+.nf-espaces-accueil ul{list-style:none;display:flex;flex-direction:column;gap:9px;margin-bottom:22px;flex:1}
+.nf-espaces-accueil li{position:relative;padding-left:18px;font-size:14.5px;color:#d2d2d2;line-height:1.45}
+.nf-espaces-accueil li::before{content:"";position:absolute;left:0;top:8px;width:7px;height:7px;border-radius:50%;
+  background:var(--nf-rouge)}
+.nf-espaces-accueil .actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+
+@media (max-width:980px){
+  .nf-etapes ol{grid-template-columns:1fr 1fr}
+  .nf-espaces-accueil .cartes{grid-template-columns:1fr}
+  .liste-chap{grid-template-columns:1fr}
+  .nf-actions .nf-lien{display:none}
+}
+@media (max-width:620px){
+  .nf-chiffres{grid-template-columns:1fr 1fr}
+  .nf-etapes ol{grid-template-columns:1fr}
+  .nf-actions .nf-bouton.fantome{display:none}
+}
+/* Huit matières : deux rangées de quatre, plutôt que six puis deux. */
+#programme .nf-grille{grid-template-columns:repeat(4,1fr)}
+@media (max-width:620px){ #programme .nf-grille{grid-template-columns:1fr 1fr} }
+/* Le nom de la matière doit rester lisible sur n'importe quelle miniature. */
+#programme .nf-mat.photo::before{background:linear-gradient(0deg,rgba(3,5,10,.97) 0%,rgba(3,5,10,.86) 34%,
+  rgba(3,5,10,.25) 72%,rgba(3,5,10,.1) 100%)}

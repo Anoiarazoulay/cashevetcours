@@ -107,7 +107,7 @@ window.UI = (() => {
       document.addEventListener('keydown', e => { if (e.key === 'Escape') basculer(false); });
     }
     $('#deconnexion').addEventListener('click', async () => {
-      await API.post('/auth/deconnexion'); location.href = '/connexion';
+      await API.post('/auth/deconnexion'); location.href = '/connexion/' + utilisateur.role;
     });
 
     const auScroll = () => $('#header').classList.toggle('solid', window.scrollY > 40);

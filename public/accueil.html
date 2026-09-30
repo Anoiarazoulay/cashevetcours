@@ -32,9 +32,12 @@
 
   <div class="nf-tete">
     <a href="/" class="brand"><b>CASHEVENT</b><em>School</em></a>
-    <div class="nf-actions">
+    <nav class="nf-actions" aria-label="Navigation principale">
+      <a class="nf-lien" href="#programme">Programme</a>
+      <a class="nf-lien" href="#espaces">Élèves, parents, enseignants</a>
+      <a class="nf-bouton fantome" href="/inscription">Créer un compte</a>
       <a class="nf-bouton" href="/connexion">S’identifier</a>
-    </div>
+    </nav>
   </div>
 
   <div class="dedans">
@@ -54,6 +57,35 @@
   </div>
 </header>
 
+<section class="nf-chiffres" aria-label="Le programme en chiffres">
+  <div><b data-chiffre="matieres">8</b><span>matières</span></div>
+  <div><b data-chiffre="chapitres">48</b><span>chapitres du programme</span></div>
+  <div><b data-chiffre="videos">192</b><span>cours en vidéo</span></div>
+  <div><b data-chiffre="questions">144</b><span>questions de QCM corrigées</span></div>
+</section>
+
+<section class="nf-section">
+  <div class="nf-etapes">
+    <h2>Comment ça marche</h2>
+    <p class="sous-titre">Un chapitre se travaille toujours de la même façon. On sait ce qu’on a fait,
+      et ce qu’il reste à faire.</p>
+    <ol>
+      <li><span class="num">1</span><b>Regarder le cours</b>
+        <p>Le chapitre est découpé en séances courtes, chacune rattachée à un cours filmé. On reprend
+        exactement là où on s’est arrêté.</p></li>
+      <li><span class="num">2</span><b>Relire le résumé</b>
+        <p>L’essentiel du chapitre tient sur une page : définitions, propriétés, méthodes et pièges
+        classiques.</p></li>
+      <li><span class="num">3</span><b>Passer le QCM</b>
+        <p>Chaque réponse est corrigée et expliquée. Le bilan désigne les notions fragiles et les
+        exercices à refaire.</p></li>
+      <li><span class="num">4</span><b>Faire le TP</b>
+        <p>Un sujet à imprimer, avec son corrigé détaillé, pour s’entraîner loin de l’écran comme le
+        jour de l’examen.</p></li>
+    </ol>
+  </div>
+</section>
+
 <section class="nf-section">
   <div class="nf-duo">
     <div class="texte">
@@ -64,7 +96,7 @@
     </div>
     <div class="visuel">
       <div class="demo-carte">
-        <img src="/img/chapitres/1.jpg" alt="">
+        <img src="/img/chapitres/1.jpg" alt="" data-facultative>
         <span class="n">Chapitre 1 · Mathématiques</span>
         <span class="t">Les nombres complexes</span>
         <span class="b"><i></i></span>
@@ -141,10 +173,86 @@
 </section>
 
 <section class="nf-section">
+  <div class="nf-duo">
+    <div class="texte">
+      <h2>Un professeur suit toute sa classe, même mille élèves.</h2>
+      <p>L’élève désigne son professeur avec un code, matière par matière. Le professeur voit d’un
+      coup d’œil qui avance, qui décroche et qui n’a pas commencé. Il ouvre les dossiers les uns après
+      les autres et envoie à chacun un message sur ce qu’il doit reprendre.</p>
+      <ul class="nf-points">
+        <li>Les élèves à regarder en priorité, repérés à partir des QCM et de l’activité</li>
+        <li>Les notions qui bloquent le plus de monde dans la classe</li>
+        <li>L’envoi de TP à tous, aux élèves en difficulté ou à une sélection</li>
+      </ul>
+    </div>
+    <div class="visuel">
+      <div class="demo-prof">
+        <p class="titre">La classe d’un coup d’œil</p>
+        <div class="seg"><span>Suivi à faire ce mois-ci</span><b>312</b><i style="--p:62%;--c:#f5a524"></i></div>
+        <div class="seg"><span>Signalés par l’analyse</span><b>86</b><i style="--p:17%;--c:#CD5CB4"></i></div>
+        <div class="seg"><span>Sans activité depuis 2 semaines</span><b>41</b><i style="--p:8%;--c:#9db6ff"></i></div>
+        <div class="seg"><span>Suivi fait</span><b>188</b><i style="--p:38%;--c:#3fd08a"></i></div>
+        <div class="bouton">Lancer la tournée · 312 dossiers</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="nf-section" id="programme">
   <div class="nf-matieres">
-    <h2>Huit matières, quarante-huit chapitres.</h2>
+    <h2>Le programme complet, chapitre par chapitre.</h2>
     <p id="compteMatieres">Programme de 2ᵉ année Baccalauréat — Sciences.</p>
     <div class="nf-grille" id="matieres"></div>
+
+    <div class="nf-programme" id="programmeDetail" hidden>
+      <div class="onglets-mat" id="ongletsMatieres" role="tablist" aria-label="Choisir une matière"></div>
+      <ol class="liste-chap" id="listeChapitres"></ol>
+    </div>
+  </div>
+</section>
+
+<section class="nf-section" id="espaces">
+  <div class="nf-espaces-accueil">
+    <h2>Un espace pour chacun.</h2>
+    <p class="sous-titre">Chacun a sa page de connexion et ne voit que ce qui le concerne.</p>
+    <div class="cartes">
+      <article>
+        <h3>Élève</h3>
+        <ul>
+          <li>Les cours, résumés, QCM et TP de chaque chapitre</li>
+          <li>Sa progression, matière par matière</li>
+          <li>Les messages et TP envoyés par ses professeurs</li>
+        </ul>
+        <div class="actions">
+          <a class="nf-bouton" href="/inscription?role=eleve">Créer un compte</a>
+          <a class="nf-lien" href="/connexion/eleve">Se connecter</a>
+        </div>
+      </article>
+      <article>
+        <h3>Parent</h3>
+        <ul>
+          <li>La progression de son enfant, lisible en dix secondes</li>
+          <li>Les chapitres à revoir et le rythme de la semaine</li>
+          <li>Plusieurs enfants suivis depuis un seul compte</li>
+        </ul>
+        <div class="actions">
+          <a class="nf-bouton" href="/inscription?role=parent">Créer un compte</a>
+          <a class="nf-lien" href="/connexion/parent">Se connecter</a>
+        </div>
+      </article>
+      <article>
+        <h3>Enseignant</h3>
+        <ul>
+          <li>Un code à donner à ses élèves pour qu’ils le choisissent</li>
+          <li>Le suivi de toute sa classe, de dix à mille élèves</li>
+          <li>Un suivi mensuel rémunéré, élève par élève</li>
+        </ul>
+        <div class="actions">
+          <a class="nf-bouton" href="/inscription?role=enseignant">Créer un compte</a>
+          <a class="nf-lien" href="/connexion/enseignant">Se connecter</a>
+        </div>
+      </article>
+    </div>
   </div>
 </section>
 
@@ -174,6 +282,21 @@
     </details>
 
     <details>
+      <summary>Quel programme est couvert ?</summary>
+      <div class="reponse"><p>Le programme de 2ᵉ année Baccalauréat, filière Sciences : mathématiques,
+      physique, chimie, SVT, histoire, géographie, philosophie et œuvres au programme. Le détail des
+      chapitres est affiché plus haut sur cette page.</p></div>
+    </details>
+
+    <details>
+      <summary>Je suis enseignant : comment suivre mes élèves ?</summary>
+      <div class="reponse"><p>Créez votre compte enseignant en indiquant les matières que vous
+      enseignez. Vous recevez un code à six caractères : vos élèves le saisissent pour vous désigner
+      comme professeur. Votre tableau de bord regroupe alors toute votre classe, avec les élèves à
+      regarder en priorité. Vous ne voyez que vos élèves, et seulement dans votre matière.</p></div>
+    </details>
+
+    <details>
       <summary>Puis-je travailler hors connexion ?</summary>
       <div class="reponse"><p>Les TP se téléchargent en un fichier prêt à imprimer, énoncé et
       corrigé compris. Les vidéos et les QCM nécessitent une connexion.</p></div>
@@ -182,8 +305,8 @@
     <details>
       <summary>Comment créer un compte ?</summary>
       <div class="reponse"><p>Saisissez votre adresse e-mail ci-dessous. L’inscription prend moins
-      d’une minute, en tant qu’élève ou en tant que parent. Un parent peut rattacher le compte de
-      son enfant dès l’inscription.</p></div>
+      d’une minute, en tant qu’élève, parent ou enseignant. Un parent peut rattacher le compte de
+      son enfant dès l’inscription, et un élève peut désigner ses professeurs avec leur code.</p></div>
     </details>
 
     <div class="nf-relance">

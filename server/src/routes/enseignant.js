@@ -8,6 +8,7 @@
    L'enseignant ne modifie pas le catalogue : il supervise, il relance, il
    envoie des TP. Le contenu reste l'affaire de l'administration.              */
 const express = require('express');
+const config = require('../config');
 const { tous, un, executer, transaction } = require('../db');
 const { requiert } = require('../middleware/auth');
 const suivi = require('../services/suivi');
@@ -72,8 +73,25 @@ routeur.get('/tableau-bord', route(async (req, res) => {
     .slice(0, 8)
     .map(sansIds);
 
+  /* La classe d'un coup d'œil : à cent élèves ou plus, on ne lit plus une
+     liste, on regarde des effectifs, puis on ouvre le bon segment. */
+  const compter = f => liste.filter(f).length;
+  const repartition = {
+    segments: {
+      afaire: compter(r => !r.suivi),
+      signales: compter(r => r.besoinAide),
+      signalesAFaire: compter(r => r.besoinAide && !r.suivi),
+      inactifs: compter(r => r.joursInactif !== null && r.joursInactif >= config.inactiviteJours),
+      pasCommence: compter(r => r.joursInactif === null),
+      faits: compter(r => r.suivi)
+    },
+    avancement: [[0, 25], [25, 50], [50, 75], [75, 101]].map(([de, a]) => ({
+      de, a: Math.min(a, 100), eleves: compter(r => r.avancement >= de && r.avancement < a) })),
+    statuts: Object.fromEntries(suivi.STATUTS.map(s => [s, compter(r => r.suivi && r.suivi.statut === s)]))
+  };
+
   res.json({
-    mois, profil, remuneration, parMatiere, priorites,
+    mois, profil, remuneration, parMatiere, priorites, repartition,
     notionsDifficiles: await suivi.notionsDifficiles(liste),
     totaux: { eleves: new Set(liste.map(r => r.eleve.id)).size, suivis: liste.length }
   });
@@ -85,7 +103,7 @@ routeur.get('/tableau-bord', route(async (req, res) => {
 routeur.get('/eleves', route(async (req, res) => {
   const mois = await suivi.moisCourant();
   const liste = await suivi.eleves(req.utilisateur.id, mois);
-  res.json({ mois, eleves: liste.map(sansIds) });
+  res.json({ mois, inactiviteJours: config.inactiviteJours, eleves: liste.map(sansIds) });
 }));
 
 /* GET /api/enseignant/eleves/:eleveId/matieres/:matiereId — ouvre le dossier.
@@ -106,7 +124,8 @@ routeur.get('/eleves/:eleveId/matieres/:matiereId', route(async (req, res) => {
            WHERE enseignant_id = ? AND eleve_id = ? AND matiere_id = ?
            ORDER BY mois DESC LIMIT 6`, [req.utilisateur.id, eleveId, matiereId])
   ]);
-  res.json({ eleve, matiere, depuis: lien.depuis, dossier: sansIds(d), suivi: duMois, historique });
+  res.json({ eleve, matiere, depuis: lien.depuis, dossier: sansIds(d), suivi: duMois, historique,
+    inactiviteJours: config.inactiviteJours });
 }));
 
 /* POST /api/enseignant/eleves/:eleveId/matieres/:matiereId/suivi */
