@@ -215,14 +215,31 @@ const ENUMS = [
    "ENUM('eleve','parent','enseignant','admin','anonyme') NOT NULL DEFAULT 'anonyme'", 'enseignant']
 ];
 
-/* Les tables attendues qui n'existent pas dans la base. */
+/* Les colonnes qu'une instruction CREATE TABLE déclare. */
+const colonnesDe = sql => [...sql.matchAll(/^\s*([a-z_]+)\s+(?:INT|BIGINT|SMALLINT|TINYINT|VARCHAR|CHAR|TEXT|MEDIUMBLOB|JSON|ENUM|DATE|DATETIME)/gim)]
+  .map(m => m[1].toLowerCase());
+
+/* Les tables attendues qui n'existent pas, et celles qui existent sans les
+   colonnes attendues — une table homonyme laissée par une autre application,
+   par exemple. */
 async function manquantes() {
   const noms = TABLES.map(([nom]) => nom);
-  const presentes = (await tous(
-    `SELECT TABLE_NAME AS t FROM information_schema.TABLES
-      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN (${noms.map(() => '?').join(',')})`, noms))
-    .map(r => r.t.toLowerCase());
-  return noms.filter(n => !presentes.includes(n));
+  const lignes = await tous(
+    `SELECT TABLE_NAME AS t, COLUMN_NAME AS c FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN (${noms.map(() => '?').join(',')})`, noms);
+  const presentes = new Map();
+  for (const l of lignes) {
+    const t = l.t.toLowerCase();
+    if (!presentes.has(t)) presentes.set(t, new Set());
+    presentes.get(t).add(l.c.toLowerCase());
+  }
+  const absentes = [], incompletes = [];
+  for (const [nom, sql] of TABLES) {
+    if (!presentes.has(nom)) { absentes.push(nom); continue; }
+    const manque = colonnesDe(sql).filter(c => !presentes.get(nom).has(c));
+    if (manque.length) incompletes.push(nom + ' (sans ' + manque.join(', ') + ')');
+  }
+  return [...absentes, ...incompletes];
 }
 
 async function appliquer({ silencieux = false } = {}) {
