@@ -156,6 +156,53 @@ const TABLES = [
        REFERENCES utilisateurs(id) ON DELETE CASCADE,
      CONSTRAINT fk_ens_mat_matiere FOREIGN KEY (matiere_id)
        REFERENCES matieres(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
+
+  /* Les classes d'un enseignant : des groupes qu'il compose lui-même parmi les
+     élèves qui l'ont désigné (« Terminale D », « Groupe du samedi »…). Une
+     classe peut être rattachée à une matière ; sinon elle les couvre toutes. */
+  ['classes', `CREATE TABLE IF NOT EXISTS classes (
+     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+     enseignant_id INT UNSIGNED NOT NULL,
+     matiere_id    INT UNSIGNED NULL,
+     nom VARCHAR(80) NOT NULL,
+     couleur CHAR(7) NOT NULL DEFAULT '#4c8dff',
+     cree_le DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     UNIQUE KEY uq_classes_nom (enseignant_id, nom),
+     CONSTRAINT fk_classes_enseignant FOREIGN KEY (enseignant_id)
+       REFERENCES utilisateurs(id) ON DELETE CASCADE,
+     CONSTRAINT fk_classes_matiere FOREIGN KEY (matiere_id)
+       REFERENCES matieres(id) ON DELETE SET NULL
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
+
+  ['classe_eleves', `CREATE TABLE IF NOT EXISTS classe_eleves (
+     classe_id INT UNSIGNED NOT NULL,
+     eleve_id  INT UNSIGNED NOT NULL,
+     ajoute_le DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     PRIMARY KEY (classe_id, eleve_id),
+     KEY idx_classe_eleves_eleve (eleve_id),
+     CONSTRAINT fk_classe_eleves_classe FOREIGN KEY (classe_id)
+       REFERENCES classes(id) ON DELETE CASCADE,
+     CONSTRAINT fk_classe_eleves_eleve FOREIGN KEY (eleve_id)
+       REFERENCES utilisateurs(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
+
+  /* Carnet de l'enseignant : ses notes personnelles sur un élève dans une
+     matière. L'élève ne les voit jamais, l'administration non plus. */
+  ['notes_enseignant', `CREATE TABLE IF NOT EXISTS notes_enseignant (
+     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+     enseignant_id INT UNSIGNED NOT NULL,
+     eleve_id      INT UNSIGNED NOT NULL,
+     matiere_id    INT UNSIGNED NOT NULL,
+     texte VARCHAR(1000) NOT NULL,
+     cree_le DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     KEY idx_notes_dossier (enseignant_id, eleve_id, matiere_id, cree_le),
+     CONSTRAINT fk_notes_enseignant FOREIGN KEY (enseignant_id)
+       REFERENCES utilisateurs(id) ON DELETE CASCADE,
+     CONSTRAINT fk_notes_eleve FOREIGN KEY (eleve_id)
+       REFERENCES utilisateurs(id) ON DELETE CASCADE,
+     CONSTRAINT fk_notes_matiere FOREIGN KEY (matiere_id)
+       REFERENCES matieres(id) ON DELETE CASCADE
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`]
 ];
 

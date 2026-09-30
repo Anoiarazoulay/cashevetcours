@@ -6,11 +6,13 @@
    autres matières.
 
    L'enseignant ne modifie pas le catalogue : il supervise, il relance, il
-   envoie des TP. Le contenu reste l'affaire de l'administration.              */
+   envoie des TP, il compose ses classes et tient son carnet. Le contenu reste
+   l'affaire de l'administration.                                             */
 const express = require('express');
 const config = require('../config');
 const { tous, un, executer, transaction } = require('../db');
 const { requiert } = require('../middleware/auth');
+const prog = require('../services/progression');
 const suivi = require('../services/suivi');
 const journal = require('../services/journal');
 const { envoyerFichier } = require('../services/fichiers');
@@ -20,6 +22,7 @@ routeur.use(requiert('enseignant'));
 
 const entier = v => Number.isInteger(Number(v)) && Number(v) > 0 ? Number(v) : null;
 const texte = (v, max) => String(v == null ? '' : v).trim().slice(0, max);
+const listeIds = v => [...new Set((Array.isArray(v) ? v : []).map(entier).filter(Boolean))];
 
 /* Les erreurs métier portent leur code HTTP ; les autres remontent au gestionnaire. */
 const route = fn => async (req, res) => {
@@ -32,7 +35,6 @@ const route = fn => async (req, res) => {
 
 /* Identifiants de chapitres utiles au calcul, inutiles à l'écran. */
 const sansIds = ({ revoirIds, ...r }) => r;
-const moyenne = t => t.length ? Math.round(t.reduce((a, b) => a + b, 0) / t.length) : null;
 
 const referent = (enseignantId, eleveId, matiereId) => un(
   'SELECT depuis FROM referents WHERE enseignant_id = ? AND eleve_id = ? AND matiere_id = ?',
@@ -40,29 +42,45 @@ const referent = (enseignantId, eleveId, matiereId) => un(
 
 const REFUS_ELEVE = 'Cet élève ne vous a pas désigné dans cette matière.';
 
+/* Une ligne d'élève accompagnée de ses classes. */
+const avecClasses = (appart, r) => ({ ...sansIds(r), classes: appart.get(r.eleve.id) || [] });
+
+/* Les classes avec leurs chiffres, calculés sur les lignes déjà en mémoire. */
+async function classesAvecStats(enseignantId, liste) {
+  const [classes, appart] = await Promise.all([
+    suivi.classes(enseignantId), suivi.appartenances(enseignantId)
+  ]);
+  const membresDe = new Map();
+  for (const [eleve, ids] of appart) for (const id of ids) {
+    if (!membresDe.has(id)) membresDe.set(id, new Set());
+    membresDe.get(id).add(eleve);
+  }
+  return {
+    appart,
+    classes: classes.map(k => ({
+      ...k,
+      stats: suivi.statsGroupe(
+        suivi.lignesClasse(liste, { matiere_id: k.matiere ? k.matiere.id : null }, membresDe.get(k.id) || new Set()))
+    }))
+  };
+}
+
 /* ----------------------------- tableau de bord ---------------------------- */
 
 /* GET /api/enseignant/tableau-bord */
 routeur.get('/tableau-bord', route(async (req, res) => {
   const id = req.utilisateur.id;
   const mois = await suivi.moisCourant();
-  const [profil, liste, remuneration] = await Promise.all([
-    suivi.profil(id), suivi.eleves(id, mois), suivi.remuneration(id, mois)
+  const lignes = await prog.lignesEnseignant(id);
+  const [profil, liste, remuneration, semaines, indicateurs] = await Promise.all([
+    suivi.profil(id), suivi.eleves(id, mois, lignes), suivi.remuneration(id, mois),
+    suivi.activiteHebdo({ enseignantId: id }), suivi.indicateurs(id, mois)
   ]);
+  const { classes, appart } = await classesAvecStats(id, liste);
 
-  const parMatiere = profil.matieres.map(m => {
-    const rows = liste.filter(r => r.matiere.id === m.id);
-    return {
-      ...m,
-      eleves: rows.length,
-      avancement: moyenne(rows.map(r => r.avancement)) || 0,
-      moyenne: moyenne(rows.map(r => r.moyenne).filter(n => n !== null)),
-      chapitresTermines: rows.reduce((s, r) => s + r.termines, 0),
-      qcmFaits: rows.reduce((s, r) => s + r.qcmFaits, 0),
-      aSuivre: rows.filter(r => r.besoinAide).length,
-      suivisFaits: rows.filter(r => r.suivi).length
-    };
-  });
+  const parMatiere = profil.matieres.map(m => ({
+    ...m, ...suivi.statsGroupe(liste.filter(r => r.matiere.id === m.id))
+  }));
 
   /* L'assistant prépare, l'enseignant intervient : d'abord ceux qui ont des
      chapitres ratés, puis ceux qui ont décroché depuis le plus longtemps. */
@@ -71,11 +89,13 @@ routeur.get('/tableau-bord', route(async (req, res) => {
     .sort((a, b) => (b.aRevoir - a.aRevoir) ||
       ((b.joursInactif ?? 1e9) - (a.joursInactif ?? 1e9)))
     .slice(0, 8)
-    .map(sansIds);
+    .map(r => avecClasses(appart, r));
 
   /* La classe d'un coup d'œil : à cent élèves ou plus, on ne lit plus une
      liste, on regarde des effectifs, puis on ouvre le bon segment. */
   const compter = f => liste.filter(f).length;
+  const tranches = (valeur, bornes) => bornes.map(([de, a]) => ({
+    de, a: Math.min(a, 100), eleves: compter(r => valeur(r) !== null && valeur(r) >= de && valeur(r) < a) }));
   const repartition = {
     segments: {
       afaire: compter(r => !r.suivi),
@@ -85,47 +105,94 @@ routeur.get('/tableau-bord', route(async (req, res) => {
       pasCommence: compter(r => r.joursInactif === null),
       faits: compter(r => r.suivi)
     },
-    avancement: [[0, 25], [25, 50], [50, 75], [75, 101]].map(([de, a]) => ({
-      de, a: Math.min(a, 100), eleves: compter(r => r.avancement >= de && r.avancement < a) })),
+    avancement: tranches(r => r.avancement, [[0, 25], [25, 50], [50, 75], [75, 101]]),
+    moyennes: tranches(r => r.moyenne, [[0, 40], [40, 60], [60, 80], [80, 101]]),
+    sansQcm: compter(r => r.moyenne === null),
     statuts: Object.fromEntries(suivi.STATUTS.map(s => [s, compter(r => r.suivi && r.suivi.statut === s)]))
   };
 
+  /* Les élèves qui tirent la classe, et ceux qui ont commencé puis lâché. */
+  const palmares = {
+    tetes: [...liste].filter(r => r.avancement > 0)
+      .sort((a, b) => (b.avancement - a.avancement) || ((b.moyenne ?? -1) - (a.moyenne ?? -1)))
+      .slice(0, 5).map(r => avecClasses(appart, r)),
+    decrochages: [...liste].filter(r => r.avancement > 0 && r.joursInactif !== null &&
+        r.joursInactif >= config.inactiviteJours)
+      .sort((a, b) => (b.joursInactif - a.joursInactif) || (b.avancement - a.avancement))
+      .slice(0, 5).map(r => avecClasses(appart, r))
+  };
+
+  const global = suivi.statsGroupe(liste);
   res.json({
-    mois, profil, remuneration, parMatiere, priorites, repartition,
+    mois, profil, remuneration, parMatiere, priorites, repartition, palmares, semaines, indicateurs,
+    classes, carte: suivi.carteChapitres(lignes),
     notionsDifficiles: await suivi.notionsDifficiles(liste),
-    totaux: { eleves: new Set(liste.map(r => r.eleve.id)).size, suivis: liste.length }
+    inactiviteJours: config.inactiviteJours,
+    totaux: { eleves: global.eleves, suivis: liste.length, actifs7: global.actifs7,
+              qcmFaits: global.qcmFaits, chapitresTermines: global.chapitresTermines }
   });
 }));
 
 /* --------------------------------- élèves --------------------------------- */
 
-/* GET /api/enseignant/eleves — une ligne par élève et par matière */
+/* GET /api/enseignant/eleves — une ligne par élève et par matière, avec ses classes */
 routeur.get('/eleves', route(async (req, res) => {
+  const id = req.utilisateur.id;
   const mois = await suivi.moisCourant();
-  const liste = await suivi.eleves(req.utilisateur.id, mois);
-  res.json({ mois, inactiviteJours: config.inactiviteJours, eleves: liste.map(sansIds) });
+  const [liste, classes, appart] = await Promise.all([
+    suivi.eleves(id, mois), suivi.classes(id), suivi.appartenances(id)
+  ]);
+  res.json({ mois, inactiviteJours: config.inactiviteJours, classes,
+    eleves: liste.map(r => avecClasses(appart, r)) });
 }));
 
 /* GET /api/enseignant/eleves/:eleveId/matieres/:matiereId — ouvre le dossier.
-   L'ouverture est consignée : c'est elle qui autorise le suivi du mois. */
+   L'ouverture est consignée : c'est elle qui autorise le suivi du mois.
+   Le dossier réunit tout ce qui concerne l'élève dans la matière : chapitres,
+   courbe des QCM, activité hebdomadaire, chronologie, TP reçus, messages lus,
+   place dans le groupe, classes, carnet de l'enseignant.                     */
 routeur.get('/eleves/:eleveId/matieres/:matiereId', route(async (req, res) => {
+  const id = req.utilisateur.id;
   const eleveId = entier(req.params.eleveId), matiereId = entier(req.params.matiereId);
-  const lien = eleveId && matiereId && await referent(req.utilisateur.id, eleveId, matiereId);
+  const lien = eleveId && matiereId && await referent(id, eleveId, matiereId);
   if (!lien) return res.status(403).json({ erreur: REFUS_ELEVE });
 
-  await suivi.consigner(req.utilisateur.id, eleveId, matiereId);
-  const [eleve, matiere, d, duMois, historique] = await Promise.all([
-    un('SELECT id, nom, filiere FROM utilisateurs WHERE id = ?', [eleveId]),
-    un('SELECT id, nom, teinte FROM matieres WHERE id = ?', [matiereId]),
-    suivi.dossier(eleveId, matiereId),
-    suivi.suiviDuMois(req.utilisateur.id, eleveId, matiereId),
-    tous(`SELECT mois, statut, commentaire, COALESCE(maj_le, cree_le) AS le
-            FROM suivis
-           WHERE enseignant_id = ? AND eleve_id = ? AND matiere_id = ?
-           ORDER BY mois DESC LIMIT 6`, [req.utilisateur.id, eleveId, matiereId])
-  ]);
-  res.json({ eleve, matiere, depuis: lien.depuis, dossier: sansIds(d), suivi: duMois, historique,
-    inactiviteJours: config.inactiviteJours });
+  await suivi.consigner(id, eleveId, matiereId);
+  const mois = await suivi.moisCourant();
+  const [eleve, matiere, d, duMois, historique, tentatives, chrono, semaines, tp, notes, classes, appart, liste] =
+    await Promise.all([
+      un('SELECT id, nom, filiere FROM utilisateurs WHERE id = ?', [eleveId]),
+      un('SELECT id, nom, teinte FROM matieres WHERE id = ?', [matiereId]),
+      suivi.dossier(eleveId, matiereId),
+      suivi.suiviDuMois(id, eleveId, matiereId),
+      tous(`SELECT id, mois, statut, commentaire, COALESCE(maj_le, cree_le) AS le, lu_le
+              FROM suivis
+             WHERE enseignant_id = ? AND eleve_id = ? AND matiere_id = ?
+             ORDER BY mois DESC LIMIT 6`, [id, eleveId, matiereId]),
+      suivi.tentativesEleve(eleveId, matiereId),
+      suivi.chronologie(id, eleveId, matiereId),
+      suivi.activiteHebdo({ enseignantId: id, eleveId, matiereId }),
+      suivi.tpEleve(id, eleveId, matiereId),
+      suivi.notes(id, eleveId, matiereId),
+      suivi.classes(id),
+      suivi.appartenances(id),
+      suivi.eleves(id, mois)
+    ]);
+
+  /* La place de l'élève parmi les élèves de l'enseignant dans cette matière. */
+  const pairs = liste.filter(r => r.matiere.id === matiereId);
+  const groupe = suivi.statsGroupe(pairs);
+  const classement = [...pairs].sort((a, b) => (b.avancement - a.avancement) || ((b.moyenne ?? -1) - (a.moyenne ?? -1)));
+  const rang = classement.findIndex(r => r.eleve.id === eleveId) + 1;
+
+  res.json({
+    eleve, matiere, depuis: lien.depuis, dossier: sansIds(d), suivi: duMois, historique,
+    tentatives, chronologie: chrono, semaines, tp, notes,
+    groupe: { ...groupe, rang: rang || null },
+    classes: classes.filter(k => !k.matiere || k.matiere.id === matiereId),
+    classesEleve: appart.get(eleveId) || [],
+    inactiviteJours: config.inactiviteJours
+  });
 }));
 
 /* POST /api/enseignant/eleves/:eleveId/matieres/:matiereId/suivi */
@@ -144,6 +211,83 @@ routeur.post('/eleves/:eleveId/matieres/:matiereId/suivi', route(async (req, res
     categorie: 'apprentissage', action: 'Suivi pédagogique',
     cible: noms.nom + ' · ' + noms.matiere, details: s.statut });
   res.json({ suivi: s });
+}));
+
+/* ------------------------------ carnet (notes) ---------------------------- */
+
+/* POST /api/enseignant/eleves/:eleveId/matieres/:matiereId/notes — { texte } */
+routeur.post('/eleves/:eleveId/matieres/:matiereId/notes', route(async (req, res) => {
+  const eleveId = entier(req.params.eleveId), matiereId = entier(req.params.matiereId);
+  if (!(eleveId && matiereId && await referent(req.utilisateur.id, eleveId, matiereId)))
+    return res.status(403).json({ erreur: REFUS_ELEVE });
+  const note = await suivi.ajouterNote(req.utilisateur.id, eleveId, matiereId, req.body.texte);
+  res.status(201).json({ note });
+}));
+
+/* DELETE /api/enseignant/notes/:id */
+routeur.delete('/notes/:id', route(async (req, res) => {
+  const r = await suivi.supprimerNote(req.utilisateur.id, entier(req.params.id));
+  if (!r.affectedRows) return res.status(404).json({ erreur: 'Note introuvable.' });
+  res.json({ supprime: true });
+}));
+
+/* --------------------------------- classes -------------------------------- */
+
+/* GET /api/enseignant/classes — les classes et leurs chiffres */
+routeur.get('/classes', route(async (req, res) => {
+  const id = req.utilisateur.id;
+  const liste = await suivi.eleves(id, await suivi.moisCourant());
+  const { classes } = await classesAvecStats(id, liste);
+  res.json({ classes, couleurs: suivi.COULEURS });
+}));
+
+/* POST /api/enseignant/classes — { nom, matiereId?, couleur?, eleves? } */
+routeur.post('/classes', route(async (req, res) => {
+  const id = req.utilisateur.id;
+  const classeId = await suivi.creerClasse(id, {
+    nom: req.body.nom, matiereId: entier(req.body.matiereId), couleur: String(req.body.couleur || '') });
+  const classe = await suivi.classeDe(id, classeId);
+  const ajoutes = await suivi.ajouterEleves(id, classe, listeIds(req.body.eleves));
+  await journal.enregistrer(req, { categorie: 'apprentissage', action: 'Classe créée',
+    cible: classe.nom, details: ajoutes + ' élève(s)' });
+  res.status(201).json({ classe: { id: classe.id, nom: classe.nom, couleur: classe.couleur,
+    matiereId: classe.matiere_id, ajoutes } });
+}));
+
+/* PATCH /api/enseignant/classes/:id — { nom?, couleur?, matiereId? } */
+routeur.patch('/classes/:id', route(async (req, res) => {
+  const id = req.utilisateur.id, classeId = entier(req.params.id);
+  const classe = classeId && await suivi.classeDe(id, classeId);
+  if (!classe) return res.status(404).json({ erreur: 'Classe introuvable.' });
+  const b = req.body || {};
+  await suivi.modifierClasse(id, classeId, {
+    nom: b.nom, couleur: b.couleur,
+    matiereId: 'matiereId' in b ? entier(b.matiereId) : undefined });
+  res.json({ classe: await suivi.classeDe(id, classeId) });
+}));
+
+/* DELETE /api/enseignant/classes/:id — la classe seulement, jamais les élèves */
+routeur.delete('/classes/:id', route(async (req, res) => {
+  const r = await suivi.supprimerClasse(req.utilisateur.id, entier(req.params.id));
+  if (!r.affectedRows) return res.status(404).json({ erreur: 'Classe introuvable.' });
+  res.json({ supprime: true });
+}));
+
+/* POST /api/enseignant/classes/:id/eleves — { eleves: [ids] } ajoute */
+routeur.post('/classes/:id/eleves', route(async (req, res) => {
+  const id = req.utilisateur.id;
+  const classe = await suivi.classeDe(id, entier(req.params.id));
+  if (!classe) return res.status(404).json({ erreur: 'Classe introuvable.' });
+  const ajoutes = await suivi.ajouterEleves(id, classe, listeIds(req.body.eleves));
+  res.json({ ajoutes });
+}));
+
+/* DELETE /api/enseignant/classes/:id/eleves/:eleveId */
+routeur.delete('/classes/:id/eleves/:eleveId', route(async (req, res) => {
+  const classe = await suivi.classeDe(req.utilisateur.id, entier(req.params.id));
+  if (!classe) return res.status(404).json({ erreur: 'Classe introuvable.' });
+  await suivi.retirerEleve(classe.id, entier(req.params.eleveId));
+  res.json({ retire: true });
 }));
 
 /* ----------------------------------- TP ----------------------------------- */
@@ -176,7 +320,7 @@ routeur.get('/tp', route(async (req, res) => {
     ...e, destinataires: Number(e.destinataires), telecharges: Number(e.telecharges) })) });
 }));
 
-/* POST /api/enseignant/tp — { matiereId, titre, consigne, echeance, fichier, eleves? } */
+/* POST /api/enseignant/tp — { matiereId, titre, consigne, echeance, fichier, eleves?, classeId? } */
 routeur.post('/tp', route(async (req, res) => {
   const id = req.utilisateur.id;
   const matiereId = entier(req.body.matiereId);
@@ -200,20 +344,29 @@ routeur.post('/tp', route(async (req, res) => {
   if (!contenu.length) return res.status(400).json({ erreur: 'Le fichier est vide.' });
   if (contenu.length > TAILLE_MAX) return res.status(413).json({ erreur: 'Le fichier dépasse 5 Mo.' });
 
-  const nomFichier = texte(f.nom, 200).replace(/[\\/:*?"<>| -]+/g, '_') || 'tp.' + TYPES[type];
+  const nomFichier = texte(f.nom, 200).replace(/[\\/:*?"<>| -]+/g, '_') || 'tp.' + TYPES[type];
   const echeance = /^\d{4}-\d{2}-\d{2}$/.test(String(req.body.echeance || '')) ? req.body.echeance : null;
 
-  /* Les destinataires sont toujours pris parmi ses propres élèves de la matière. */
+  /* Les destinataires sont toujours pris parmi ses propres élèves de la matière :
+     tous, une classe, ou une sélection. */
   const siens = (await tous(
     'SELECT eleve_id FROM referents WHERE enseignant_id = ? AND matiere_id = ?', [id, matiereId]))
     .map(r => r.eleve_id);
   let destinataires = siens;
-  if (Array.isArray(req.body.eleves) && req.body.eleves.length) {
+  const classeId = entier(req.body.classeId);
+  if (classeId) {
+    const classe = await suivi.classeDe(id, classeId);
+    if (!classe) return res.status(404).json({ erreur: 'Classe introuvable.' });
+    const m = await suivi.membres(classeId);
+    destinataires = siens.filter(e => m.has(e));
+  } else if (Array.isArray(req.body.eleves) && req.body.eleves.length) {
     const choisis = new Set(req.body.eleves.map(entier));
     destinataires = siens.filter(e => choisis.has(e));
   }
   if (!destinataires.length)
-    return res.status(400).json({ erreur: 'Aucun de vos élèves ne vous a encore désigné dans cette matière.' });
+    return res.status(400).json({ erreur: classeId
+      ? 'Aucun élève de cette classe ne vous a désigné dans cette matière.'
+      : 'Aucun de vos élèves ne vous a encore désigné dans cette matière.' });
 
   const envoiId = await transaction(async cx => {
     const [r] = await cx.query(
@@ -264,8 +417,7 @@ routeur.get('/profil', route(async (req, res) => {
 /* PUT /api/enseignant/profil/matieres — { matieres: [ids] } */
 routeur.put('/profil/matieres', route(async (req, res) => {
   const id = req.utilisateur.id;
-  const ids = [...new Set((Array.isArray(req.body.matieres) ? req.body.matieres : [])
-    .map(entier).filter(Boolean))];
+  const ids = listeIds(req.body.matieres);
   if (!ids.length) return res.status(400).json({ erreur: 'Choisissez au moins une matière.' });
 
   const valides = await tous(`SELECT id FROM matieres WHERE id IN (${ids.map(() => '?').join(',')})`, ids);

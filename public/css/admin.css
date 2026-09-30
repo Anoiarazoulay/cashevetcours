@@ -17,7 +17,8 @@
 #vue{padding:0 var(--page-x) 70px}
 #vue .tuiles{padding:0 0 22px}
 #vue .panneau{background:var(--card);border:1px solid var(--line-2);border-radius:12px;padding:20px 22px}
-.colonnes-admin{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+/* minmax(0,1fr) : une ligne d'élève au texte long ne doit pas élargir sa colonne. */
+.colonnes-admin{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
 
 .barre-outils{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:0 0 18px}
 .barre-outils .champ{max-width:260px}
@@ -344,6 +345,108 @@ textarea.champ{height:auto;padding:10px 12px;line-height:1.5;resize:vertical}
 .liste-dest{max-height:240px;overflow-y:auto}
 .liste-dest label small{color:#E9A6DA;font-size:11.5px}
 
+/* ============ Enseignant : statistiques, classes, dossier complet ============ */
+.espace-bas{margin-bottom:20px}
+.centre-txt{text-align:center;margin-top:8px}
+.deux-graphes{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+.deux-graphes .titre-bloc{margin-bottom:0}
+.segment-prof.statique{cursor:default}
+.segment-prof.statique:hover{background:none}
+.sous-histo{display:grid;gap:10px;margin-top:8px;text-align:center;font-size:12px;color:var(--text-3)}
+.sous-histo b{color:var(--text-2);font-variant-numeric:tabular-nums}
+.palmares{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
+@media (min-width:1500px){.palmares{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.palmares .titre-bloc{margin-bottom:6px}
+/* Dans une demi-colonne, la ligne d'élève se passe de sa jauge et de son état de suivi. */
+.palmares .ligne-eleve .jauge,.palmares .ligne-eleve .statut-suivi{display:none}
+.palmares .ligne-eleve .chiffre{min-width:44px}
+/* Classe ouverte : la liste des élèves prend deux tiers, l'ajout un tiers. */
+.colonnes-classe{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+.liste-dest label{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13.5px}
+.mini-stats.large{grid-template-columns:repeat(4,1fr)}
+
+/* Pastilles de classe, partout où un élève apparaît. */
+.chip-classe{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:700;
+  color:var(--c,#9db6ff);background:color-mix(in srgb,var(--c,#9db6ff) 18%,transparent);vertical-align:1px}
+
+/* Cartes de classe. */
+.grille-classes{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.grille-classes.serree{grid-template-columns:1fr}
+.carte-classe{position:relative;border:1px solid var(--line-2);border-radius:12px;padding:14px 16px 14px 18px;
+  background:var(--card-2);overflow:hidden}
+.carte-classe::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--c,#4c8dff)}
+.carte-classe .tete{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}
+.carte-classe .tete b{font-size:15px}
+.carte-classe .tete small{color:var(--text-3);font-size:12.5px;display:flex;align-items:center;gap:6px}
+.carte-classe .mini-stats{margin-bottom:12px}
+.carte-classe .mini-stats dd small{font-size:11px;color:var(--text-3)}
+.actions-ligne.gauche{justify-content:flex-start}
+.choix-couleur{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.choix-couleur label{position:relative;cursor:pointer}
+.choix-couleur input{position:absolute;opacity:0;pointer-events:none}
+.choix-couleur i{display:block;width:26px;height:26px;border-radius:50%;border:2px solid transparent;transition:.15s}
+.choix-couleur input:checked + i{border-color:#fff;transform:scale(1.15)}
+.ligne-form .champ-libelle{margin-top:10px}
+.liste-dest.haute{max-height:360px}
+.liste-dest label small{color:var(--text-3);margin-left:auto;font-size:11.5px}
+.vide-etat.compact{padding:20px 0}
+.mini-select{display:inline-block;width:auto;height:32px;padding:0 8px;margin-left:8px;font-size:13px}
+.choix-dest label{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.choix-matieres label{--c:#fff}
+.choix-matieres label.actif{border-color:var(--c)}
+.titre-courant b{font-size:16px}
+
+/* Carte des chapitres : un tableau serré, lisible dans une colonne. */
+.tableau-mini table{min-width:520px}
+.tableau-mini th,.tableau-mini td{padding:8px 10px;font-size:13px;white-space:nowrap}
+.tableau-mini td:first-child{white-space:normal;min-width:150px}
+.tableau-mini td b{font-size:13px}
+.tableau-mini td small{display:inline;margin-left:6px}
+.tableau-mini .jauge{width:52px}
+
+/* Dossier d'un élève. */
+.modale-corps.large{max-width:900px}
+.colonnes-dossier{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+.colonnes-dossier .panneau{padding:16px 18px}
+.colonnes-dossier .panneau h2{font-size:15px}
+.colonnes-dossier .panneau .sous{margin-bottom:10px}
+.ligne-compare{display:grid;grid-template-columns:110px 1fr 46px;align-items:center;gap:10px;padding:8px 0;
+  border-bottom:1px solid var(--line)}
+.ligne-compare:last-child{border-bottom:0}
+.ligne-compare .lib{font-size:13px;color:var(--text-2)}
+.paire{display:flex;flex-direction:column;gap:4px}
+.paire > div{display:grid;grid-template-columns:48px 1fr 46px;align-items:center;gap:8px;font-size:12px}
+.paire small{color:var(--text-3)}
+.paire b{font-variant-numeric:tabular-nums;text-align:right;font-size:12.5px}
+.ecart{font-size:12.5px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;color:var(--text-3)}
+.ecart.plus{color:#6fe0ac}
+.ecart.moins{color:#E9A6DA}
+.chrono{display:flex;flex-direction:column;gap:2px;max-height:320px;overflow-y:auto;padding-right:4px}
+.chrono .evt{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px;
+  color:var(--text-2);line-height:1.4}
+.chrono .evt:last-child{border-bottom:0}
+.chrono .evt i{flex:none;width:9px;height:9px;border-radius:50%;margin-top:5px;background:#8c8c8c}
+.chrono .evt-seance i{background:#9db6ff}
+.chrono .evt-qcm i{background:var(--brand)}
+.chrono .evt-termine i{background:var(--ok)}
+.chrono .evt-tp i{background:var(--warn)}
+.chrono .evt-lu i{background:#c0a8ff}
+.chrono .evt small{display:block;color:var(--text-3);font-size:11.5px}
+.chrono .evt b{color:#fff;font-weight:600}
+.note-prof{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;margin-top:8px;border-radius:10px;
+  background:var(--card-2);border:1px solid var(--line-2)}
+.note-prof > div{flex:1;min-width:0}
+.note-prof p{font-size:13.5px;line-height:1.5;color:var(--text);white-space:pre-wrap;overflow-wrap:anywhere}
+.note-prof small{display:block;color:var(--text-3);font-size:11.5px;margin-top:4px}
+.note-prof .pilule.mini{width:28px;padding:0;justify-content:center;flex:none}
+#formNote textarea{width:100%}
+.ligne-remu .etiquette{margin:0}
+.modale-corps .colonnes-dossier .histo-prof{margin-top:6px}
+.modale-corps h2 sup{font-size:10px}
+
+@media (max-width:900px){
+  .colonnes-dossier{grid-template-columns:1fr}
+}
 @media (max-width:720px){
   .outils-eleves #rechercheEleve,.outils-eleves select.champ{max-width:none;width:100%}
   .outils-eleves .pilule{margin-left:0}
@@ -352,4 +455,10 @@ textarea.champ{height:auto;padding:10px 12px;line-height:1.5;resize:vertical}
   .avance-mois .pilule{width:100%;justify-content:center}
   .actions-suivi .raccourcis{display:none}
   .choix-statut kbd{display:none}
+  .deux-graphes,.palmares,.grille-classes,.colonnes-classe{grid-template-columns:1fr}
+  .histo-prof small{font-size:10.5px}
+  .sous-histo{font-size:10.5px;gap:4px}
+  .ligne-compare{grid-template-columns:1fr;gap:6px}
+  .ecart{text-align:left}
+  .barre-outils .titre-courant{flex-basis:100%}
 }

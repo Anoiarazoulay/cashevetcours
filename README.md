@@ -163,21 +163,40 @@ l'inactivité, formulée comme une relance. Un parent ne voit que les élèves q
 
 ### Enseignant référent — `/espace-enseignant`
 
-Pensé pour suivre de cent à mille élèves :
+Pensé pour suivre de cent à mille élèves, et pour gérer tout ce qui concerne un élève dans
+la matière où il a désigné l'enseignant :
 
-- **Tableau de bord** — la classe d'un coup d'œil : suivis à faire, élèves signalés, inactifs,
-  pas encore commencés, suivis faits (chaque groupe s'ouvre d'un clic dans « Mes élèves »), et la
-  répartition de la progression par tranche de 25 %.
-- **Mes élèves** — recherche par nom, filtres par matière, filière et état (avec effectifs), tri
-  par priorité, progression, moyenne ou inactivité, pagination par 50, export tableur (CSV).
+- **Tableau de bord** — huit tuiles (élèves suivis, suivis du mois, rémunération, priorités,
+  actifs sur 7 jours, QCM passés, messages lus, TP téléchargés), la classe d'un coup d'œil
+  (chaque segment s'ouvre dans « Mes élèves »), la répartition de la progression et des
+  moyennes aux QCM, les suivis du mois par état, l'activité des huit dernières semaines
+  (élèves actifs, QCM passés, moyenne), les élèves à suivre en priorité, un palmarès
+  (en tête / décrochages), les chiffres par matière, les classes, la **carte des chapitres**
+  (commencé, terminé, moyenne, à revoir, chapitre par chapitre), les notions difficiles et
+  l'historique des rémunérations.
+- **Mes élèves** — recherche par nom, filtres par matière, filière, classe et état (avec
+  effectifs), tri par priorité, progression, moyenne ou inactivité, pagination par 50, export
+  tableur (CSV, avec les classes).
+- **Mes classes** — l'enseignant compose ses groupes parmi les élèves qui l'ont désigné : une
+  classe de lycée, un groupe de soutien, une matière. Chaque classe a ses chiffres, sa tournée
+  de suivis, son export et l'envoi de TP à tout le groupe. Un élève se place aussi dans une
+  classe depuis son dossier.
+- **Dossier d'un élève** — tout ce qui le concerne dans la matière : les raisons de le regarder,
+  ses chiffres, le suivi du mois, sa place par rapport au groupe (progression, moyenne, rang),
+  l'activité des huit dernières semaines, la courbe de tous ses QCM, les notions à retravailler,
+  les chapitres, les TP reçus (téléchargés ou non), la chronologie de ses derniers gestes,
+  le **carnet** de l'enseignant (notes personnelles, invisibles pour l'élève et l'administration),
+  ses classes, et les suivis passés avec leur état de lecture.
 - **Tournée** — enchaîne les dossiers de la sélection sans suivi : l'enseignant lit le dossier,
   choisit l'état (touches 1, 2, 3), relit le message proposé à partir des chapitres ratés et de
   l'inactivité, puis Ctrl + Entrée enregistre et ouvre l'élève suivant. Rien n'est coché d'avance :
   chaque suivi exige toujours l'ouverture du dossier dans le mois.
-- **TP** — envoi à tous ses élèves de la matière, aux seuls élèves signalés, ou à une sélection filtrable.
+- **TP** — envoi à tous ses élèves de la matière, aux seuls élèves signalés, à une classe, ou à
+  une sélection filtrable ; taux de téléchargement par envoi.
 
 La progression de tous les élèves d'un enseignant se calcule en cinq requêtes
-(`progression.lignesEnseignant`), quel que soit leur nombre : environ 0,1 s pour mille élèves.
+(`progression.lignesEnseignant`), quel que soit leur nombre : le tableau de bord complet
+répond en 0,2 s pour mille élèves, le dossier d'un élève en 0,1 s.
 
 ### Administration — `/admin`
 
@@ -209,11 +228,13 @@ server/
     middleware/auth.js      JWT en cookie httpOnly, contrôle des rôles
     services/catalogue.js   lecture du catalogue, génération du document de TP
     services/progression.js avancement, statistiques, alertes, projection
+    services/suivi.js       enseignants référents : suivis, classes, carnet, statistiques
     outils/verification.js  contrôle avant mise en production
-    routes/                 auth · catalogue · progression · parent · admin
+    routes/                 auth · catalogue · progression · parent · admin · enseignant · professeurs
   db/
     schema.sql              18 tables
-    migrations.js           colonnes ajoutées après coup, relançable sans risque
+    migrations.js           tables et colonnes ajoutées après coup (enseignants, classes,
+                            carnet…), appliquées au démarrage, relançables sans risque
     init.js                 création de la base + schéma + peuplement
     seed.js                 import du catalogue et comptes de démonstration
     donnees/                source rédactionnelle : 8 matières, 48 chapitres, 144 questions
@@ -325,6 +346,17 @@ l'administration : `npm run verif` bloque si l'un d'eux est encore public en pro
 | GET/POST/PATCH/DELETE | `/api/admin/matieres` · `/chapitres` | admin | catalogue |
 | PUT | `/api/admin/chapitres/:id/questions` | admin | questionnaire |
 | GET | `/api/admin/eleves/:id/tableau-bord` | admin | suivi d'un élève |
+| GET | `/api/enseignant/tableau-bord` | enseignant | statistiques complètes, classes, carte des chapitres |
+| GET | `/api/enseignant/eleves` | enseignant | une ligne par élève et par matière, avec ses classes |
+| GET | `/api/enseignant/eleves/:id/matieres/:m` | enseignant | dossier complet (ouverture consignée) |
+| POST | `/api/enseignant/eleves/:id/matieres/:m/suivi` | enseignant | enregistrer le suivi du mois |
+| POST/DELETE | `/api/enseignant/eleves/:id/matieres/:m/notes` · `/notes/:id` | enseignant | carnet |
+| GET/POST/PATCH/DELETE | `/api/enseignant/classes` | enseignant | classes et leurs chiffres |
+| POST/DELETE | `/api/enseignant/classes/:id/eleves` | enseignant | composer une classe |
+| GET/POST/DELETE | `/api/enseignant/tp` | enseignant | TP envoyés (à tous, une classe, une sélection) |
+| GET/PUT | `/api/enseignant/profil` · `/profil/matieres` | enseignant | code et matières enseignées |
+| GET | `/api/professeurs/code/:code` | — | retrouver un enseignant par son code |
+| GET/PUT | `/api/professeurs/mes` | élève | désigner ses professeurs référents |
 | GET | `/api/catalogue/populaires` | connecté | classement des chapitres les plus travaillés |
 | POST | `/api/contact` | — | déposer un message depuis le formulaire public |
 | GET/PATCH/DELETE | `/api/contact/messages` | admin | lire et traiter les messages reçus |
