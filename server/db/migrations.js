@@ -215,13 +215,29 @@ const ENUMS = [
    "ENUM('eleve','parent','enseignant','admin','anonyme') NOT NULL DEFAULT 'anonyme'", 'enseignant']
 ];
 
+/* Les tables attendues qui n'existent pas dans la base. */
+async function manquantes() {
+  const noms = TABLES.map(([nom]) => nom);
+  const presentes = (await tous(
+    `SELECT TABLE_NAME AS t FROM information_schema.TABLES
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN (${noms.map(() => '?').join(',')})`, noms))
+    .map(r => r.t.toLowerCase());
+  return noms.filter(n => !presentes.includes(n));
+}
+
 async function appliquer({ silencieux = false } = {}) {
+  /* Une table qui refuse de se créer ne doit pas empêcher les autres, ni le
+     démarrage : on le dit dans le journal, et /api/sante le répète. */
   for (const [nom, sql] of TABLES) {
     const avant = await tous('SELECT COUNT(*) AS n FROM information_schema.TABLES ' +
       'WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?', [nom]);
     if (avant[0].n) continue;
-    await executer(sql);
-    if (!silencieux) console.log('· table créée : ' + nom);
+    try {
+      await executer(sql);
+      if (!silencieux) console.log('· table créée : ' + nom);
+    } catch (e) {
+      console.error('✗ table « ' + nom + ' » impossible à créer : ' + e.message);
+    }
   }
 
   const existantes = await tous(
@@ -249,4 +265,4 @@ async function appliquer({ silencieux = false } = {}) {
   return ajoutees;
 }
 
-module.exports = { appliquer, COLONNES };
+module.exports = { appliquer, manquantes, COLONNES };

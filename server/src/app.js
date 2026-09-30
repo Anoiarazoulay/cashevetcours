@@ -93,10 +93,16 @@ api.use('/admin', require('./routes/admin'));
 api.use('/enseignant', require('./routes/enseignant'));
 api.use('/professeurs', require('./routes/professeurs'));
 api.use('/contact', require('./routes/contact'));
-api.get('/sante', (_req, res) => res.json({
-  ok: true, version: require('../../package.json').version,
-  environnement: config.env, heure: new Date().toISOString()
-}));
+/* La santé dit aussi si une table attendue manque : sur un hébergement sans
+   terminal, c'est le seul moyen de voir qu'une migration n'est pas passée. */
+api.get('/sante', async (_req, res) => {
+  let tables = null;
+  try { tables = await require('../db/migrations').manquantes(); } catch (e) { tables = ['(base injoignable : ' + e.message + ')']; }
+  res.json({
+    ok: !tables || !tables.length, version: require('../../package.json').version,
+    environnement: config.env, heure: new Date().toISOString(), tablesManquantes: tables
+  });
+});
 api.use((_req, res) => res.status(404).json({ erreur: 'Route inconnue.' }));
 app.use('/api', api);
 
