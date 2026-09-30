@@ -24,7 +24,17 @@ const COLONNES = [
   ['utilisateurs', 'filiere', 'VARCHAR(80) NULL'],
   ['utilisateurs', 'ville', 'VARCHAR(120) NULL'],
   ['utilisateurs', 'code_postal', 'VARCHAR(20) NULL'],
-  ['utilisateurs', 'pays', 'VARCHAR(80) NULL']
+  ['utilisateurs', 'pays', 'VARCHAR(80) NULL'],
+
+  /* Une base en ligne avait déjà une table « classes » d'une version antérieure,
+     sans ces deux colonnes : « CREATE TABLE IF NOT EXISTS » ne l'a pas touchée. */
+  ['classes', 'matiere_id', 'INT UNSIGNED NULL'],
+  ['classes', 'couleur', "CHAR(7) NOT NULL DEFAULT '#4c8dff'"]
+];
+
+/* [table, nom de l'index, définition] — ajoutés s'ils manquent. */
+const INDEX = [
+  ['classes', 'uq_classes_nom', 'UNIQUE KEY uq_classes_nom (enseignant_id, nom)']
 ];
 
 /* Tables ajoutées après la première version. « CREATE TABLE IF NOT EXISTS »
@@ -278,6 +288,21 @@ async function appliquer({ silencieux = false } = {}) {
     ajoutees++;
     if (!silencieux) console.log('· colonne ajoutée : ' + table + '.' + colonne);
   }
+
+  const indexPresents = await tous(
+    `SELECT TABLE_NAME AS t, INDEX_NAME AS i FROM information_schema.STATISTICS
+      WHERE TABLE_SCHEMA = DATABASE()`);
+  for (const [table, nom, definition] of INDEX) {
+    if (indexPresents.some(x => x.t === table && x.i === nom)) continue;
+    try {
+      await executer(`ALTER TABLE \`${table}\` ADD ${definition}`);
+      ajoutees++;
+      if (!silencieux) console.log('· index ajouté : ' + table + '.' + nom);
+    } catch (e) {
+      console.error('✗ index « ' + nom + ' » impossible à ajouter : ' + e.message);
+    }
+  }
+
   if (!silencieux && !ajoutees) console.log('· schéma déjà à jour');
   return ajoutees;
 }
