@@ -10,9 +10,13 @@ const idValide = v => Number.isInteger(Number(v)) && Number(v) > 0;
 
 const chapitreExiste = id => un('SELECT id FROM chapitres WHERE id = ? AND publie = 1', [id]);
 
-/* GET /api/progression — état complet, format attendu par l'interface */
+/* GET /api/progression — état complet, format attendu par l'interface, avec
+   le métier visé pour que les chapitres qui comptent s'illuminent. */
 routeur.get('/', requiert('eleve'), async (req, res) => {
-  res.json(await prog.etat(req.utilisateur.id));
+  const [etat, metier] = await Promise.all([
+    prog.etat(req.utilisateur.id), require('../services/projet').duEleve(req.utilisateur.id)
+  ]);
+  res.json({ ...etat, metier });
 });
 
 /* GET /api/progression/stats */

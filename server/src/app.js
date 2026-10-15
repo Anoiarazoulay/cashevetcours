@@ -92,6 +92,7 @@ api.use('/parent', require('./routes/parent'));
 api.use('/admin', require('./routes/admin'));
 api.use('/enseignant', require('./routes/enseignant'));
 api.use('/professeurs', require('./routes/professeurs'));
+api.use('/', require('./routes/projet'));
 api.use('/contact', require('./routes/contact'));
 /* La santé dit aussi si une table attendue manque : sur un hébergement sans
    terminal, c'est le seul moyen de voir qu'une migration n'est pas passée. */

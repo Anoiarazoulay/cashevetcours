@@ -282,6 +282,31 @@ async function alertes(eleveId, ls, stats) {
   return a;
 }
 
+/* Les parcours de rattrapage, racontés au parent : un en cours, c'est une
+   lacune prise en main ; un validé, c'est une lacune comblée. */
+function alertesParcours(parcours) {
+  const a = [];
+  const enCours = parcours.filter(p => p.etat === 'en_cours');
+  const recents = parcours.filter(p => p.etat === 'valide' && p.termineLe &&
+    Date.now() - new Date(p.termineLe) < 14 * 864e5);
+  for (const p of recents.slice(0, 2)) {
+    a.push({
+      ton: 'bien', icone: '🎯', titre: `Lacune comblée sur « ${p.chapitre.titre} »`,
+      texte: `Votre enfant a revu ${p.total} prérequis des classes antérieures, puis a repassé le QCM : ` +
+        `${p.scoreInitial === null ? '' : 'de ' + p.scoreInitial + ' % à '}${p.scoreFinal} %. Il travaille sur les bonnes choses.`
+    });
+  }
+  for (const p of enCours.slice(0, 2)) {
+    a.push({
+      ton: 'info', icone: '🧭', titre: `Parcours de rattrapage en cours : « ${p.chapitre.titre} »`,
+      texte: `${p.validees} prérequis validé${p.validees > 1 ? 's' : ''} sur ${p.total}. ` +
+        (p.pretPourQCM ? 'Il ne reste qu’à refaire le QCM du chapitre.'
+          : 'Chaque fiche se lit en cinq minutes et se termine par trois questions.')
+    });
+  }
+  return a;
+}
+
 /* --------------------------- tableau de bord complet ----------------------- */
 async function tableauDeBord(eleveId) {
   const eleve = await un(
@@ -290,12 +315,16 @@ async function tableauDeBord(eleveId) {
   if (!eleve) return null;
   const ls = await lignes(eleveId);
   const stats = await statistiques(eleveId, ls);
-  const [alertesListe, proj, jours] = await Promise.all([
-    alertes(eleveId, ls, stats), projection(eleveId, stats), rythme(eleveId)
+  /* Chargés ici pour éviter une dépendance circulaire : ces deux services
+     s'appuient sur la progression. */
+  const projet = require('./projet'), rattrapage = require('./rattrapage');
+  const [alertesListe, proj, jours, metier, parcours] = await Promise.all([
+    alertes(eleveId, ls, stats), projection(eleveId, stats), rythme(eleveId),
+    projet.progression(eleveId, ls), rattrapage.liste(eleveId)
   ]);
   return {
-    eleve, stats, alertes: alertesListe, projection: proj,
-    matieres: parMatiere(ls), rythme: jours,
+    eleve, stats, alertes: [...alertesParcours(parcours), ...alertesListe], projection: proj,
+    matieres: parMatiere(ls), rythme: jours, metier, parcours,
     objectifHebdo: config.objectifHebdo, poids: P, seuilARevoir: config.seuilARevoir
   };
 }

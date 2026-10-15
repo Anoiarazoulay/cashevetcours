@@ -29,7 +29,12 @@ const COLONNES = [
   /* Une base en ligne avait déjà une table « classes » d'une version antérieure,
      sans ces deux colonnes : « CREATE TABLE IF NOT EXISTS » ne l'a pas touchée. */
   ['classes', 'matiere_id', 'INT UNSIGNED NULL'],
-  ['classes', 'couleur', "CHAR(7) NOT NULL DEFAULT '#4c8dff'"]
+  ['classes', 'couleur', "CHAR(7) NOT NULL DEFAULT '#4c8dff'"],
+
+  /* Le projet de l'élève : le métier qu'il vise, et s'il veut que le programme
+     s'illumine en fonction de lui. */
+  ['utilisateurs', 'metier_id', 'INT UNSIGNED NULL'],
+  ['utilisateurs', 'metier_actif', 'TINYINT(1) NOT NULL DEFAULT 0']
 ];
 
 /* [table, nom de l'index, définition] — ajoutés s'ils manquent. */
@@ -195,6 +200,93 @@ const TABLES = [
        REFERENCES classes(id) ON DELETE CASCADE,
      CONSTRAINT fk_classe_eleves_eleve FOREIGN KEY (eleve_id)
        REFERENCES utilisateurs(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
+
+  /* ------------------------------ projet de l'élève ----------------------- */
+  /* Les métiers que l'élève peut viser, et les chapitres qui comptent pour
+     chacun (poids 1 utile, 2 important, 3 essentiel). */
+  ['metiers', `CREATE TABLE IF NOT EXISTS metiers (
+     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+     code VARCHAR(40) NOT NULL,
+     nom VARCHAR(80) NOT NULL,
+     famille VARCHAR(60) NOT NULL DEFAULT '',
+     glyphe VARCHAR(8) NOT NULL DEFAULT '',
+     description VARCHAR(400) NOT NULL DEFAULT '',
+     ordre SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+     UNIQUE KEY uq_metiers_code (code)
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
+
+  ['metier_chapitres', `CREATE TABLE IF NOT EXISTS metier_chapitres (
+     metier_id   INT UNSIGNED NOT NULL,
+     chapitre_id INT UNSIGNED NOT NULL,
+     poids TINYINT UNSIGNED NOT NULL DEFAULT 2,
+     raison VARCHAR(200) NULL,
+     PRIMARY KEY (metier_id, chapitre_id),
+     KEY idx_metier_chapitres_chapitre (chapitre_id),
+     CONSTRAINT fk_mc_metier FOREIGN KEY (metier_id) REFERENCES metiers(id) ON DELETE CASCADE,
+     CONSTRAINT fk_mc_chapitre FOREIGN KEY (chapitre_id) REFERENCES chapitres(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
+
+  /* ------------------------------ rattrapage ------------------------------ */
+  /* Les prérequis d'un chapitre : ce qu'il faut maîtriser des classes
+     antérieures pour l'aborder. Chaque fiche a sa mini-évaluation. */
+  ['prerequis', `CREATE TABLE IF NOT EXISTS prerequis (
+     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+     chapitre_id INT UNSIGNED NOT NULL,
+     ordre SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+     niveau VARCHAR(40) NOT NULL,
+     titre VARCHAR(200) NOT NULL,
+     pourquoi VARCHAR(500) NOT NULL DEFAULT '',
+     points JSON NOT NULL,
+     exemple TEXT NULL,
+     pieges JSON NULL,
+     source ENUM('redaction','ia') NOT NULL DEFAULT 'redaction',
+     KEY idx_prerequis_chapitre (chapitre_id, ordre),
+     CONSTRAINT fk_prerequis_chapitre FOREIGN KEY (chapitre_id) REFERENCES chapitres(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
+
+  ['prerequis_questions', `CREATE TABLE IF NOT EXISTS prerequis_questions (
+     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+     prerequis_id INT UNSIGNED NOT NULL,
+     ordre SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+     enonce TEXT NOT NULL,
+     options JSON NOT NULL,
+     correcte TINYINT UNSIGNED NOT NULL,
+     explication TEXT NOT NULL,
+     KEY idx_prerequis_questions (prerequis_id, ordre),
+     CONSTRAINT fk_pq_prerequis FOREIGN KEY (prerequis_id) REFERENCES prerequis(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
+
+  /* Un parcours de rattrapage : une lacune détectée sur un chapitre, les
+     prérequis à revoir, puis une nouvelle évaluation qui le valide. */
+  ['parcours', `CREATE TABLE IF NOT EXISTS parcours (
+     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+     eleve_id    INT UNSIGNED NOT NULL,
+     chapitre_id INT UNSIGNED NOT NULL,
+     declencheur ENUM('qcm','demande') NOT NULL DEFAULT 'qcm',
+     score_initial TINYINT UNSIGNED NULL,
+     score_final   TINYINT UNSIGNED NULL,
+     etat ENUM('en_cours','valide','abandonne') NOT NULL DEFAULT 'en_cours',
+     cree_le DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     maj_le  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+     termine_le DATETIME NULL,
+     KEY idx_parcours_eleve (eleve_id, etat, cree_le),
+     KEY idx_parcours_chapitre (chapitre_id),
+     CONSTRAINT fk_parcours_eleve FOREIGN KEY (eleve_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
+     CONSTRAINT fk_parcours_chapitre FOREIGN KEY (chapitre_id) REFERENCES chapitres(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
+
+  ['parcours_etapes', `CREATE TABLE IF NOT EXISTS parcours_etapes (
+     parcours_id  INT UNSIGNED NOT NULL,
+     prerequis_id INT UNSIGNED NOT NULL,
+     ordre SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+     etat ENUM('a_faire','a_revoir','valide') NOT NULL DEFAULT 'a_faire',
+     score TINYINT UNSIGNED NULL,
+     essais SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+     fait_le DATETIME NULL,
+     PRIMARY KEY (parcours_id, prerequis_id),
+     CONSTRAINT fk_pe_parcours FOREIGN KEY (parcours_id) REFERENCES parcours(id) ON DELETE CASCADE,
+     CONSTRAINT fk_pe_prerequis FOREIGN KEY (prerequis_id) REFERENCES prerequis(id) ON DELETE CASCADE
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
 
   /* Carnet de l'enseignant : ses notes personnelles sur un élève dans une

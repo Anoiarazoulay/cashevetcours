@@ -95,6 +95,38 @@
       ? `${actifs} jour${actifs > 1 ? 's' : ''} de travail sur les 14 derniers.`
       : 'Aucune session sur les 14 derniers jours.';
 
+    /* Son projet : le métier visé et les chapitres qui y mènent. */
+    const echapper = t => String(t == null ? '' : t)
+      .replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const m = tb.metier;
+    $('#projet').innerHTML = m ? `
+      <div class="projet-ligne">
+        <span class="g">${echapper(m.metier.glyphe)}</span>
+        <div class="txt"><b>${echapper(m.metier.nom)}</b>
+          <small>${m.actif ? 'Votre enfant a activé ce projet : les chapitres qui comptent sont mis en avant dans son espace.'
+            : 'Choisi mais en pause pour l’instant.'}</small>
+          <div class="barre espace"><i style="width:${m.avancement}%;background:#ffd166"></i></div>
+          <small>${m.termines}/${m.total} chapitres terminés · ${m.essentielsTermines}/${m.essentiels} essentiels${
+            m.moyenne === null ? '' : ' · moyenne ' + m.moyenne + ' % aux QCM'}${
+            m.prochain ? ' · prochain : « ' + echapper(m.prochain.titre) + ' »' : ''}</small></div>
+      </div>
+      <div class="liste-cibles">${m.chapitres.filter(c => c.poids === 3).slice(0, 6).map(c => `
+        <div class="ligne-chap"><span class="pt" style="background:${echapper(c.matiere.teinte)}"></span>
+          <span class="nom"><b>${echapper(c.titre)}</b><small>${echapper(c.matiere.nom)} · ${echapper(c.raison)}</small></span>
+          <span class="score${c.aRevoir ? ' faible' : ''}">${c.termine ? '✓' : c.avancement + ' %'}</span></div>`).join('')}</div>`
+      : '<p class="sous">Aucun métier choisi pour l’instant. Votre enfant peut le faire depuis son espace : les chapitres utiles à ce métier seront alors mis en avant.</p>';
+
+    /* Les parcours de rattrapage : la réponse à « travaille-t-il sur les bonnes choses ? ». */
+    const ETAT = { en_cours: ['En cours', 'var(--warn)'], valide: ['Lacune comblée', 'var(--ok)'], abandonne: ['Abandonné', 'var(--text-3)'] };
+    $('#parcours').innerHTML = tb.parcours.length ? tb.parcours.slice(0, 8).map(p => `
+      <div class="ligne-chap"><span class="pt" style="background:${echapper(p.chapitre.matiere.teinte)}"></span>
+        <span class="nom"><b>${echapper(p.chapitre.titre)}</b>
+          <small>${echapper(p.chapitre.matiere.nom)} · ${p.validees}/${p.total} prérequis des classes antérieures validés${
+            p.scoreInitial !== null ? ' · ' + p.scoreInitial + ' % au départ' : ''}${
+            p.scoreFinal !== null ? ' → ' + p.scoreFinal + ' % après rattrapage' : ''}</small></span>
+        <span class="score" style="color:${ETAT[p.etat][1]}">${ETAT[p.etat][0]}</span></div>`).join('')
+      : '<p class="sous">Aucune lacune détectée pour l’instant. Dès qu’un QCM passe sous 60 %, un parcours de rattrapage est proposé : les prérequis des classes antérieures, puis une nouvelle évaluation.</p>';
+
     $('#revoirDetail').innerHTML = s.revoir.length
       ? s.revoir.map(c => `<div class="ligne-chap"><span class="pt" style="background:${c.matiere.teinte}"></span>
           <span class="nom"><b>${c.titre}</b><small>${c.matiere.nom} · chapitre ${c.numero}</small></span>

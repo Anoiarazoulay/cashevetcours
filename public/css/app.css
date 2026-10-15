@@ -239,3 +239,14 @@ input[type=color].champ{padding:4px;cursor:pointer}
   .chap.rang .numero{font-size:96px; -webkit-text-stroke-width:2.5px; margin-right:-10px}
   .chap.rang .t{font-size:14px}
 }
+
+/* Le projet de l'élève, dans « Ma progression » et l'espace parent. */
+.projet-ligne{display:flex;gap:14px;align-items:flex-start;padding:12px 14px;border-radius:10px;margin-bottom:8px;
+  background:linear-gradient(135deg,rgba(255,209,102,.14),rgba(205,92,180,.08));border:1px solid rgba(255,209,102,.35)}
+.projet-ligne .g{font-size:30px;line-height:1;flex:none}
+.projet-ligne .txt{flex:1;min-width:0}
+.projet-ligne .txt b{display:block;font-size:16px;margin-bottom:2px}
+.projet-ligne .txt small{display:block;color:var(--text-2);font-size:12.5px;line-height:1.5}
+.projet-ligne .barre{margin:8px 0 6px;max-width:300px;background:#2c2c31}
+.liste-cibles .ligne-chap .nom small{display:block;line-height:1.4;white-space:normal}
+.ligne-chap .pilule.mini{height:32px;padding:0 12px;font-size:13px;flex:none}

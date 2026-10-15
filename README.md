@@ -148,6 +148,28 @@ la liste mise de côté et les prochaines étapes suggérées.
 programme parcouru, moyenne, série de jours travaillés, date prévisionnelle d'arrivée,
 progression matière par matière et chapitres à reprendre.
 
+### Le projet de l'élève : futur métier et parcours de rattrapage
+
+Deux chaînes complètes, de l'élève au parent :
+
+- **Choix du futur métier.** Quatorze métiers (astronaute, médecin, ingénieur, avocat…), chacun
+  rattaché aux chapitres qui comptent pour lui avec un poids (essentiel, important, utile) et une
+  raison. Activé, le métier *illumine* le programme : les cartes des chapitres visés portent un
+  badge doré, les autres s'estompent, une rangée « Pour devenir … » ouvre l'accueil, et la fiche
+  du chapitre dit pourquoi il compte. Désactivé, tout redevient normal ; le choix reste enregistré.
+  Le parent voit le projet et l'avancement sur ses chapitres essentiels.
+- **Parcours de rattrapage.** Lacune détectée (QCM sous 60 %, ou l'élève qui le demande depuis la
+  fiche du chapitre) → les **prérequis des classes antérieures** (collège, tronc commun, 1ʳᵉ année
+  Bac) : une fiche par prérequis, cinq minutes de lecture (pourquoi, points à retenir, exemple,
+  pièges) et une mini-évaluation de trois questions, validée à deux bonnes réponses → quand tout est
+  validé, l'élève **refait le QCM du chapitre** : au-dessus du seuil, la lacune est comblée. Le
+  parent reçoit l'alerte (« Lacune comblée sur … : de 33 % à 100 % »), l'enseignant référent voit
+  les parcours de sa matière dans le dossier de l'élève.
+
+Le contenu vit dans `server/db/donnees/metiers.js` et `server/db/donnees/prerequis.js` :
+14 métiers, 194 rattachements, **96 fiches de prérequis et 288 questions** couvrant les 48
+chapitres. Il s'applique au démarrage du serveur (`server/db/projet.js`), donc aussi en ligne.
+
 ### Parent — `/espace-parent`
 
 Le parent choisit l'enfant à consulter (le plus actif est proposé en premier), puis voit :
@@ -229,15 +251,18 @@ server/
     services/catalogue.js   lecture du catalogue, génération du document de TP
     services/progression.js avancement, statistiques, alertes, projection
     services/suivi.js       enseignants référents : suivis, classes, carnet, statistiques
+    services/projet.js      futur métier de l'élève et progression sur ses chapitres
+    services/rattrapage.js  parcours de rattrapage : prérequis, mini-évaluations, validation
     outils/verification.js  contrôle avant mise en production
-    routes/                 auth · catalogue · progression · parent · admin · enseignant · professeurs
+    routes/                 auth · catalogue · progression · parent · admin · enseignant · professeurs · projet
   db/
     schema.sql              18 tables
     migrations.js           tables et colonnes ajoutées après coup (enseignants, classes,
                             carnet…), appliquées au démarrage, relançables sans risque
     init.js                 création de la base + schéma + peuplement
     seed.js                 import du catalogue et comptes de démonstration
-    donnees/                source rédactionnelle : 8 matières, 48 chapitres, 144 questions
+    donnees/                source rédactionnelle : 8 matières, 48 chapitres, 144 questions,
+                            14 métiers, 96 fiches de prérequis (288 questions)
 public/
   accueil.html              vitrine publique (hero, sections, matières, FAQ)
   connexion.html            « S'identifier »
@@ -356,6 +381,12 @@ l'administration : `npm run verif` bloque si l'un d'eux est encore public en pro
 | GET/POST/DELETE | `/api/enseignant/tp` | enseignant | TP envoyés (à tous, une classe, une sélection) |
 | GET/PUT | `/api/enseignant/profil` · `/profil/matieres` | enseignant | code et matières enseignées |
 | GET | `/api/professeurs/code/:code` | — | retrouver un enseignant par son code |
+| GET/PUT | `/api/metiers` · `/metiers/mien` | élève | les métiers, choisir et activer le sien |
+| GET | `/api/metiers/mien/progression` | élève | avancement sur les chapitres du métier |
+| GET | `/api/rattrapage` · `/rattrapage/:id` | élève | mes parcours, le détail d'un parcours |
+| GET/POST | `/api/rattrapage/chapitre/:id` | élève | prérequis d'un chapitre, lancer un parcours |
+| GET/POST | `/api/rattrapage/:id/etapes/:prerequisId` | élève | lire une fiche, répondre à sa mini-évaluation |
+| POST | `/api/rattrapage/:id/abandonner` | élève | abandonner un parcours |
 | GET/PUT | `/api/professeurs/mes` | élève | désigner ses professeurs référents |
 | GET | `/api/catalogue/populaires` | connecté | classement des chapitres les plus travaillés |
 | POST | `/api/contact` | — | déposer un message depuis le formulaire public |

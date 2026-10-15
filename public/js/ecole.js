@@ -45,6 +45,20 @@
     .then(r => { TRAVAUX = r; if (page === 'accueil') rendre(); })
     .catch(() => { });
 
+  /* Les parcours de rattrapage de l'élève : lacunes prises en main, en cours ou comblées. */
+  let PARCOURS = [];
+  const chargerParcours = async () => {
+    if (lectureSeule) return;
+    try { PARCOURS = (await API.get('/rattrapage')).parcours; } catch (e) { PARCOURS = []; }
+  };
+  chargerParcours().then(() => rendre());
+  const parcoursDe = id => PARCOURS.find(p => p.chapitre.id === Number(id) && p.etat === 'en_cours')
+    || PARCOURS.find(p => p.chapitre.id === Number(id));
+
+  /* Le projet de l'élève : son futur métier, actif ou non. */
+  const metier = () => S.metier && S.metier.actif ? S.metier : null;
+  const cible = id => { const m = metier(); return m ? m.chapitres[id] || null : null; };
+
   document.addEventListener('click', async e => {
     /* Le téléchargement suit le lien ; on met simplement la carte à jour. */
     const tp = e.target.closest('[data-tp-prof]');
@@ -93,9 +107,12 @@
     const badge = termine(c.id) ? '<span class="etat fini">Terminé</span>'
       : aRevoir(c.id) ? '<span class="etat revoir">À revoir</span>'
         : p > 0 ? '<span class="etat">En cours</span>' : '';
-    return `<button class="chap${c.image ? ' avec-image' : ''}" style="${styleMat(c.matiere)}" data-chap="${c.id}">
+    /* Le métier activé illumine les chapitres qui comptent pour lui et estompe les autres. */
+    const t = cible(c.id);
+    const classeProjet = t ? ` cible poids-${t.poids}` : metier() ? ' hors-cible' : '';
+    return `<button class="chap${c.image ? ' avec-image' : ''}${classeProjet}" style="${styleMat(c.matiere)}" data-chap="${c.id}">
       ${c.image ? `<img class="affiche" src="${c.image}" alt="" loading="lazy">` : ''}
-      ${badge}<span class="g" aria-hidden="true">${c.matiere.glyphe}</span>
+      ${badge}${t ? `<span class="cible-badge" title="${txt(t.raison)}">★ ${t.libelle}</span>` : ''}<span class="g" aria-hidden="true">${c.matiere.glyphe}</span>
       <span class="n">Chapitre ${c.n}</span>
       <span class="mat">${avecMatiere ? c.matiere.court : c.duree + ' min'}</span>
       <span class="t">${c.titre}</span>
@@ -134,6 +151,23 @@
     return cache.get(id);
   };
 
+  /* Le bouton du parcours de rattrapage, selon où en est l'élève sur ce chapitre. */
+  const boutonRattrapage = c => {
+    const p = parcoursDe(c.id);
+    const classe = p && p.etat === 'valide' ? ' valide' : '';
+    const [titre, sous] = !p
+      ? ['Parcours de rattrapage', 'Des lacunes ? Revoyez les prérequis des classes antérieures, puis refaites le QCM.']
+      : p.etat === 'en_cours'
+        ? [`Parcours en cours · ${p.validees}/${p.total} prérequis`, p.pretPourQCM ? 'Tout est validé : il reste à refaire le QCM du chapitre.' : 'Continuez : chaque fiche se lit en cinq minutes.']
+        : p.etat === 'valide'
+          ? ['Lacune comblée', `Parcours validé${p.scoreFinal !== null ? ' avec ' + p.scoreFinal + ' % au QCM' : ''}. Relancez-en un si besoin.`]
+          : ['Parcours de rattrapage', 'Le dernier a été abandonné. Vous pouvez en relancer un.'];
+    return `<button class="gros-bouton rattrapage${classe}" data-rattrapage>
+      <span class="ico">${p && p.etat === 'valide' ? '✓' : '🧭'}</span>
+      <span><b>${titre}</b><small>${sous}</small></span>
+    </button>`;
+  };
+
   const fiche = c => {
     const e = etat(c.id), p = pc(c.id), m = c.matiere;
     const q = e.qcm;
@@ -141,6 +175,7 @@
       ? `<div class="score-ligne${q.pc < 60 ? ' faible' : ''}">Dernier score : <b>${q.pc} %</b> · ${
           new Date(q.date).toLocaleDateString('fr-FR')}</div>` : '';
     const desactive = lectureSeule ? ' disabled' : '';
+    const t = cible(c.id);
 
     return `<div class="sheet" style="${styleMat(m)}">
   <button class="close" aria-label="Fermer" data-fermer>${ICO.croix}</button>
@@ -169,6 +204,8 @@
           <span>${c.duree} min de vidéo</span><span>·</span><span>${c.seances.length} séances</span>
           <span class="puce diff">${c.difficulte}</span><span class="puce">Coef. ${m.coef}</span>
         </div>
+        ${t ? `<div class="cible-ligne"><span>${metier().glyphe}</span>
+          <span><b>★ ${t.libelle} pour devenir ${txt(metier().nom.toLowerCase())}</b> — ${txt(t.raison)}</span></div>` : ''}
         <p class="accroche">${c.accroche || ''}</p>
 
         <div class="bloc">
@@ -200,6 +237,8 @@
           <span><b>QCM assisté par IA</b><small>${c.nbQuestions} questions corrigées et expliquées</small>${note}</span>
           <span class="rep">2</span>
         </button>
+
+        ${lectureSeule ? '' : boutonRattrapage(c)}
 
         <button class="gros-bouton exos" data-exos>
           <span class="ico">✎</span>
@@ -256,11 +295,33 @@
 
   bg.addEventListener('click', async e => {
     if (e.target === bg || e.target.closest('[data-fermer]')) return fermer();
+
+    /* La fenêtre des métiers n'a pas de chapitre courant. */
+    const choixMetier = e.target.closest('[data-metier-choix]');
+    if (choixMetier) return choisirMetier(Number(choixMetier.dataset.metierChoix));
+
     if (!courant) return;
     const c = courant;
     const agir = async fn => { try { await fn(); } catch (err) { message(err.message); } };
 
     if (e.target.closest('[data-tp]')) return telechargerTP(c);
+
+    /* Parcours de rattrapage : la liste des étapes, une fiche, ses réponses. */
+    if (e.target.closest('[data-rattrapage]') || e.target.closest('[data-retour-parcours]')) return ouvrirParcours(c);
+    if (e.target.closest('[data-lancer-parcours]')) return agir(async () => {
+      const r = await API.post('/rattrapage/chapitre/' + c.id);
+      await chargerParcours();
+      message('Parcours lancé : ' + r.parcours.total + ' prérequis à revoir');
+      ouvrirParcours(c);
+    });
+    const et = e.target.closest('[data-etape]');
+    if (et) return ouvrirEtape(c, Number(et.dataset.parcours), Number(et.dataset.etape));
+    if (e.target.closest('[data-abandonner-parcours]')) return agir(async () => {
+      const p = parcoursDe(c.id);
+      if (!p || !confirm('Abandonner ce parcours ? Vous pourrez en relancer un plus tard.')) return;
+      await API.post('/rattrapage/' + p.id + '/abandonner');
+      await chargerParcours(); message('Parcours abandonné'); rafraichir();
+    });
 
     /* Les exercices se consultent aussi en lecture seule : un parent doit
        pouvoir regarder ce que son enfant travaille. */
@@ -427,6 +488,240 @@
     bg.scrollTop = 0;
   };
 
+  /* ----------------------------- futur métier ----------------------------- */
+  /* L'élève choisit le métier qu'il vise ; activé, il illumine le programme. */
+  const enTeteSheet = (glyphe, sous, titre) => `
+    <button class="close" aria-label="Fermer" data-fermer>${ICO.croix}</button>
+    <div class="lecteur court">
+      <span class="g" aria-hidden="true">${glyphe}</span>
+      <div class="habillage"><div class="num">${sous}</div><h2>${titre}</h2></div>
+    </div>`;
+
+  const ouvrirMetiers = async () => {
+    finQCM(); courant = null;
+    bg.classList.add('open'); document.body.style.overflow = 'hidden';
+    bg.innerHTML = '<div class="sheet"><div class="chargement"><span class="rond"></span><p>Chargement…</p></div></div>';
+    let metiers;
+    try { ({ metiers } = await API.get('/metiers')); }
+    catch (e) { bg.innerHTML = `<div class="sheet"><div class="vide-etat"><b>Métiers indisponibles</b>${txt(e.message)}</div></div>`; return; }
+    const actuel = S.metier ? S.metier.id : null;
+    bg.innerHTML = `<div class="sheet" style="--c1:#8a5a00;--c2:#CD5CB4">
+      ${enTeteSheet('★', 'Mon projet', 'Quel est ton futur métier ?')}
+      <div class="metiers-vue">
+        <p class="accroche">Choisis le métier dont tu rêves. Les chapitres qui comptent pour y arriver
+          s’illuminent dans toutes les matières, avec la raison. Tu peux désactiver ou changer à tout moment.</p>
+        <div class="metiers-grille">${metiers.map(m => `
+          <button class="carte-metier${m.id === actuel ? ' on' : ''}" data-metier-choix="${m.id}">
+            <span class="g" aria-hidden="true">${txt(m.glyphe)}</span>
+            <b>${txt(m.nom)}</b>
+            <small>${txt(m.description)}</small>
+            <span class="n">${m.chapitres} chapitres · ${m.essentiels} essentiel${m.essentiels > 1 ? 's' : ''}${m.id === actuel ? ' · ton choix actuel' : ''}</span>
+          </button>`).join('')}</div>
+      </div>
+    </div>`;
+    bg.scrollTop = 0;
+  };
+
+  const choisirMetier = async (metierId, actif = true) => {
+    try {
+      const r = await API.put('/metiers/mien', { metierId, actif });
+      S.metier = r.metier;
+      message(metierId ? (actif ? `${r.metier.nom} : le programme s’illumine` : 'Métier désactivé : affichage normal') : 'Métier retiré');
+    } catch (e) { return message(e.message); }
+    bg.classList.remove('open'); document.body.style.overflow = ''; courant = null;
+    rendre();
+  };
+
+  /* Le bandeau du projet, en tête de l'accueil. */
+  const sectionProjet = () => {
+    const m = S.metier;
+    if (!m) return `
+      <section class="projet vide">
+        <span class="glyphe" aria-hidden="true">★</span>
+        <div class="txt"><b>Quel est ton futur métier ?</b>
+          <small>Choisis-le et le programme s’illumine : les chapitres qui comptent pour y arriver sont mis en avant, matière par matière.</small></div>
+        <div class="actions"><button class="pilule or" data-choisir-metier>Choisir mon métier</button></div>
+      </section>`;
+    const ids = Object.keys(m.chapitres).map(Number);
+    const total = ids.length, faits = ids.filter(id => termine(id)).length;
+    const essentiels = ids.filter(id => m.chapitres[id].poids === 3);
+    const essentielsFaits = essentiels.filter(id => termine(id)).length;
+    const p = total ? Math.round(ids.reduce((s, id) => s + pc(id), 0) / total) : 0;
+    return `
+      <section class="projet${m.actif ? '' : ' inactif'}">
+        <span class="glyphe" aria-hidden="true">${txt(m.glyphe)}</span>
+        <div class="txt"><b>${m.actif ? 'Objectif : ' : 'Projet en pause : '}${txt(m.nom)}</b>
+          <small>${faits}/${total} chapitres terminés · ${essentielsFaits}/${essentiels.length} essentiels · ${p} % du parcours${
+            m.actif ? '' : ' · le programme s’affiche normalement'}</small>
+          <div class="barre"><i style="width:${p}%"></i></div></div>
+        <div class="actions">
+          <button class="pilule ${m.actif ? 'or' : 'blanc'}" data-metier-toggle>${m.actif ? '✓ Activé' : 'Activer'}</button>
+          <button class="pilule" data-choisir-metier>Changer</button>
+        </div>
+      </section>`;
+  };
+
+  /* ---------------------------- parcours de rattrapage -------------------- */
+  const NIVEAU = n => `<span class="niveau-badge">${txt(n)}</span>`;
+  const ETAT_ETAPE = { a_faire: 'À faire', a_revoir: 'À revoir', valide: 'Validé' };
+
+  const ouvrirParcours = async c => {
+    finQCM();
+    const sheet = bg.querySelector('.sheet');
+    const tete = enTeteSheet(c.matiere.glyphe, `${c.matiere.nom} · Chapitre ${c.n} · Rattrapage`, c.titre);
+    sheet.innerHTML = tete + '<div class="chargement"><span class="rond"></span><p>Chargement…</p></div>';
+    let d;
+    try { d = await API.get('/rattrapage/chapitre/' + c.id); }
+    catch (e) { sheet.innerHTML = tete + `<div class="vide-etat"><b>Parcours indisponible</b>${txt(e.message)}</div>`; return; }
+    const p = d.parcours;
+
+    const listePrerequis = `
+      <div class="prerequis-liste">${d.prerequis.map((x, i) => `
+        <div class="etape-ligne">
+          <span class="num">${i + 1}</span>
+          <span class="txt"><b>${txt(x.titre)}</b><small>${NIVEAU(x.niveau)}${txt(x.pourquoi)}</small></span>
+        </div>`).join('')}</div>`;
+
+    if (!p || p.etat !== 'en_cours') {
+      const banniere = p && p.etat === 'valide'
+        ? `<div class="conseil succes"><b>🎯 Lacune comblée</b>
+             <p>Parcours validé${p.scoreFinal !== null ? ` avec ${p.scoreFinal} % au QCM` : ''}${p.scoreInitial !== null ? `, contre ${p.scoreInitial} % au départ` : ''}.
+             Vous pouvez en relancer un à tout moment.</p></div>` : '';
+      sheet.innerHTML = tete + `<div class="parcours-vue">
+        <div class="exos-tete"><b><span class="ia">🧭</span> Parcours de rattrapage</b>
+          <span class="compteur">${d.prerequis.length} prérequis des classes antérieures</span></div>
+        ${banniere}
+        <p class="accroche">Avant de retravailler ce chapitre, Cashevent School vérifie ce qu’il faut maîtriser
+          des classes précédentes. Chaque fiche se lit en cinq minutes et se termine par trois questions.
+          Quand tout est validé, vous refaites le QCM du chapitre.</p>
+        ${d.prerequis.length ? listePrerequis : '<div class="vide-etat"><b>Aucune fiche pour ce chapitre</b>Les prérequis arrivent bientôt.</div>'}
+        <div class="rangee-boutons">
+          ${d.prerequis.length ? `<button class="pilule blanc" data-lancer-parcours>${p ? 'Relancer un parcours' : 'Lancer le parcours'}</button>` : ''}
+          <button class="pilule" data-retour-fiche>Retour au chapitre</button>
+        </div>
+      </div>`;
+      bg.scrollTop = 0;
+      return;
+    }
+
+    const pcEtapes = Math.round(p.validees / p.total * 100);
+    sheet.innerHTML = tete + `<div class="parcours-vue">
+      <div class="exos-tete"><b><span class="ia">🧭</span> Parcours de rattrapage</b>
+        <span class="compteur">${p.validees}/${p.total} prérequis validés${p.scoreInitial !== null ? ` · ${p.scoreInitial} % au QCM de départ` : ''}</span></div>
+      <div class="barre parcours-barre"><i style="width:${pcEtapes}%"></i></div>
+      ${p.pretPourQCM ? `<div class="conseil succes"><b>✓ Tous les prérequis sont validés</b>
+        <p>Il reste la nouvelle évaluation : refaites le QCM du chapitre. Au-dessus de ${p.seuil} %, la lacune est comblée.</p>
+        <button class="pilule blanc" data-qcm>Refaire le QCM du chapitre</button></div>`
+        : `<p class="accroche">Lisez chaque fiche puis répondez aux questions. Une étape est validée à partir de deux bonnes réponses sur trois.</p>`}
+      <div class="prerequis-liste">${p.etapes.map((x, i) => `
+        <button class="etape-ligne ${x.etat}" data-etape="${x.id}" data-parcours="${p.id}">
+          <span class="num">${x.etat === 'valide' ? ICO.check : i + 1}</span>
+          <span class="txt"><b>${txt(x.titre)}</b>
+            <small>${NIVEAU(x.niveau)}${ETAT_ETAPE[x.etat]}${x.score !== null && x.score !== undefined ? ' · ' + x.score + ' %' : ''}${x.essais > 1 ? ' · ' + x.essais + ' essais' : ''} · ${x.questions} questions</small></span>
+          <span class="pilule mini-pilule">${x.etat === 'valide' ? 'Relire' : x.etat === 'a_revoir' ? 'Revoir' : 'Lire la fiche'}</span>
+        </button>`).join('')}</div>
+      <div class="rangee-boutons">
+        <button class="pilule" data-retour-fiche>Retour au chapitre</button>
+        <button class="pilule fantome" data-abandonner-parcours>Abandonner le parcours</button>
+      </div>
+    </div>`;
+    bg.scrollTop = 0;
+  };
+
+  const ouvrirEtape = async (c, parcoursId, etapeId) => {
+    finQCM();
+    const sheet = bg.querySelector('.sheet');
+    const tete = enTeteSheet(c.matiere.glyphe, `${c.matiere.nom} · Chapitre ${c.n} · Rattrapage`, c.titre);
+    sheet.innerHTML = tete + '<div class="chargement"><span class="rond"></span><p>Chargement…</p></div>';
+    let d;
+    try { d = await API.get(`/rattrapage/${parcoursId}/etapes/${etapeId}`); }
+    catch (e) { sheet.innerHTML = tete + `<div class="vide-etat"><b>Fiche indisponible</b>${txt(e.message)}</div>`; return; }
+    const f = d.fiche, idx = d.parcours.etapes.findIndex(x => x.id === etapeId);
+    const choix = new Map();
+
+    sheet.innerHTML = tete + `<div class="parcours-vue fiche-prerequis">
+      <div class="exos-tete"><b><span class="ia">🧭</span> Prérequis ${idx + 1} sur ${d.parcours.total}</b>
+        <span class="compteur">${NIVEAU(f.niveau)}</span></div>
+      <h3 class="titre-fiche">${txt(f.titre)}</h3>
+      <p class="pourquoi">${txt(f.pourquoi)}</p>
+      <div class="bloc"><h3>À retenir</h3><ul>${f.points.map(x => `<li>${txt(x)}</li>`).join('')}</ul></div>
+      ${f.exemple ? `<div class="exemple"><b>Exemple</b>${txt(f.exemple)}</div>` : ''}
+      ${f.pieges.length ? `<div class="bloc pieges"><h3>Pièges fréquents</h3><ul>${f.pieges.map(x => `<li>${txt(x)}</li>`).join('')}</ul></div>` : ''}
+
+      <div class="mini-eval">
+        <h3>Mini-évaluation</h3>
+        <p class="sous">Répondez aux ${f.questions.length} questions, puis validez. Deux bonnes réponses valident l’étape.</p>
+        ${f.questions.map((q, i) => `
+          <div class="q" data-question="${q.id}">
+            <p>${i + 1}. ${txt(q.enonce)}</p>
+            <div class="reponses">${q.options.map((o, j) =>
+              `<button class="rep-btn" data-choix="${o.i}" data-question-choix="${q.id}"><span class="l">${'ABC'[j]}</span><span>${txt(o.texte)}</span></button>`).join('')}</div>
+            <div class="expli-etape" hidden></div>
+          </div>`).join('')}
+        <div class="rangee-boutons">
+          <button class="pilule blanc" data-valider-etape disabled>Valider mes réponses</button>
+          <button class="pilule" data-retour-parcours>Retour au parcours</button>
+        </div>
+        <div id="resultatEtape"></div>
+      </div>
+    </div>`;
+    bg.scrollTop = 0;
+
+    const valider = sheet.querySelector('[data-valider-etape]');
+    const clic = async e => {
+      const b = e.target.closest('[data-question-choix]');
+      if (b && !b.disabled) {
+        e.stopPropagation();
+        const qid = Number(b.dataset.questionChoix);
+        choix.set(qid, Number(b.dataset.choix));
+        $$(`[data-question-choix="${qid}"]`, sheet).forEach(x => x.classList.toggle('choisi', x === b));
+        valider.disabled = choix.size < f.questions.length;
+        return;
+      }
+      if (e.target.closest('[data-valider-etape]')) {
+        e.stopPropagation();
+        valider.disabled = true;
+        let r;
+        try {
+          r = await API.post(`/rattrapage/${parcoursId}/etapes/${etapeId}`,
+            { reponses: [...choix].map(([questionId, ch]) => ({ questionId, choix: ch })) });
+        } catch (err) { valider.disabled = false; return message(err.message); }
+        for (const corr of r.corrections) {
+          $$(`[data-question-choix="${corr.questionId}"]`, sheet).forEach(x => {
+            x.disabled = true;
+            const i = Number(x.dataset.choix);
+            if (i === corr.bonne) x.classList.add('juste');
+            else if (i === corr.choix) x.classList.add('faux');
+          });
+          const ex = sheet.querySelector(`[data-question="${corr.questionId}"] .expli-etape`);
+          ex.hidden = false;
+          ex.innerHTML = `<div class="expli"><b><span class="ia">✦</span> ${corr.correcte ? 'Bonne réponse' : 'Explication'}</b><p>${txt(corr.explication)}</p></div>`;
+        }
+        await chargerParcours();
+        const pr = r.parcours;
+        valider.closest('.rangee-boutons').hidden = true;
+        $('#resultatEtape', sheet).innerHTML = `
+          <div class="conseil ${r.valide ? 'succes' : ''}">
+            <b>${r.valide ? '✓ Étape validée' : 'Étape à revoir'} · ${r.justes}/${r.total}</b>
+            <p>${r.valide
+              ? (pr.pretPourQCM ? 'Tous les prérequis sont validés : place à la nouvelle évaluation, le QCM du chapitre.'
+                : `Encore ${pr.total - pr.validees} prérequis à valider.`)
+              : 'Relisez la fiche, en particulier les pièges, puis retentez : il faut deux bonnes réponses sur trois.'}</p>
+            <div class="rangee-boutons">
+              ${pr.pretPourQCM ? '<button class="pilule blanc" data-qcm>Refaire le QCM du chapitre</button>'
+                : r.valide && pr.prochaine ? `<button class="pilule blanc" data-etape="${pr.prochaine.id}" data-parcours="${pr.id}">Prérequis suivant</button>`
+                : !r.valide ? `<button class="pilule blanc" data-etape="${etapeId}" data-parcours="${pr.id}">Retenter cette fiche</button>` : ''}
+              <button class="pilule" data-retour-parcours>Retour au parcours</button>
+            </div>
+          </div>`;
+        $('#resultatEtape', sheet).scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        bg.removeEventListener('click', clic, true); qcmClic = null;
+      }
+    };
+    finQCM(); qcmClic = clic;
+    bg.addEventListener('click', clic, true);
+  };
+
   /* ---------------------------------- QCM --------------------------------- */
   const lancerQCM = async c => {
     let session;
@@ -483,6 +778,21 @@
       try { b = await API.post('/qcm/' + session.tentative + '/terminer'); }
       catch (e) { return message(e.message); }
       await resynchroniser();
+      await chargerParcours();
+
+      /* La lacune ouvre un parcours ; la réussite le valide. */
+      const p = b.parcours;
+      const carteParcours = b.parcoursValide
+        ? `<div class="conseil succes"><b>🎯 Lacune comblée</b>
+            <p>Vous aviez revu ${p.total} prérequis des classes antérieures ; ce QCM à ${b.score} % valide le parcours${
+              p.scoreInitial !== null ? ` (${p.scoreInitial} % au départ)` : ''}. Vos parents le verront dans leur espace.</p></div>`
+        : p && p.etat === 'en_cours'
+          ? `<div class="conseil rattrapage"><b>🧭 Parcours de rattrapage${b.parcoursNouveau ? ' proposé' : ' en cours'}</b>
+              <p>${b.parcoursNouveau
+                ? `Ce score signale une lacune. Avant de retenter, revoyez ${p.total} prérequis des classes antérieures : ${p.etapes.map(x => '« ' + txt(x.titre) + ' »').join(', ')}.`
+                : `${p.validees}/${p.total} prérequis validés. Continuez le parcours avant de retenter ce QCM.`}</p>
+              <button class="pilule blanc" data-parcours>${b.parcoursNouveau ? 'Commencer le parcours' : 'Continuer le parcours'}</button></div>`
+          : '';
 
       const couleur = b.score >= 80 ? 'var(--ok)' : b.score >= 60 ? 'var(--warn)' : 'var(--brand)';
       bg.querySelector('.sheet').innerHTML = enTete(c.titre, `${c.matiere.nom} · Chapitre ${c.n}`) + `
@@ -493,6 +803,7 @@
             <h3>${b.justes} bonne${b.justes > 1 ? 's' : ''} réponse${b.justes > 1 ? 's' : ''} sur ${b.total}</h3>
             <p>${b.appreciation}</p>
           </div>
+          ${carteParcours}
           <div class="conseil">
             <b><span class="ia">✦</span> Recommandations de l’assistant</b>
             <ul>${b.conseils.map(t => `<li>${t}</li>`).join('')}</ul>
@@ -511,6 +822,7 @@
       if (e.target.closest('[data-suite]')) { n++; return n < qs.length ? vue() : bilan(); }
       if (e.target.closest('[data-refaire]')) { finQCM(); return lancerQCM(c); }
       if (e.target.closest('[data-retour]')) { finQCM(); return rafraichir(); }
+      if (e.target.closest('[data-parcours]')) { e.stopPropagation(); finQCM(); return ouvrirParcours(c); }
     };
     finQCM(); qcmClic = clic;
     bg.addEventListener('click', clic, true);
@@ -518,6 +830,21 @@
   };
 
   /* ------------------------------ rendu des pages ------------------------- */
+  /* Une carte de parcours en cours : où il en est, et un bouton pour y retourner. */
+  const carteParcoursAccueil = p => `
+    <article class="carte-prof parcours">
+      <span class="etiquette-mat" style="--c1:${txt(p.chapitre.matiere.teinte)}">${txt(p.chapitre.matiere.nom)}</span>
+      <b>${txt(p.chapitre.titre)}</b>
+      <small>${p.validees}/${p.total} prérequis validés${p.scoreInitial !== null ? ' · ' + p.scoreInitial + ' % au QCM de départ' : ''}</small>
+      <span class="barre"><i style="width:${Math.round(p.validees / p.total * 100)}%"></i></span>
+      <button class="pilule${p.pretPourQCM ? ' blanc' : ''}" data-parcours-chap="${p.chapitre.id}">${p.pretPourQCM ? 'Refaire le QCM' : 'Continuer'}</button>
+    </article>`;
+
+  const ouvrirParcoursChapitre = async id => {
+    await ouvrir(id);
+    if (courant) ouvrirParcours(courant);
+  };
+
   const dernierChapitre = () => {
     const commences = CHAP.filter(c => etat(c.id).maj)
       .sort((a, b) => new Date(etat(b.id).maj) - new Date(etat(a.id).maj));
@@ -549,6 +876,21 @@
       </section>`;
 
     const rows = [];
+    /* Le projet d'abord : le métier visé, puis les chapitres qui y mènent. */
+    if (!lectureSeule) rows.push(sectionProjet());
+    const m = metier();
+    if (m) {
+      const vises = Object.keys(m.chapitres).map(Number).map(parId).filter(Boolean)
+        .sort((a, b) => (m.chapitres[b.id].poids - m.chapitres[a.id].poids) || (termine(a.id) - termine(b.id)));
+      if (vises.length) rows.push(rangee('metier', `Pour devenir ${txt(m.nom.toLowerCase())}`, vises.map(x => carte(x)),
+        `· ${vises.length} chapitres · ${vises.filter(x => m.chapitres[x.id].poids === 3).length} essentiels`));
+    }
+    const enCoursParcours = PARCOURS.filter(p => p.etat === 'en_cours');
+    if (enCoursParcours.length) rows.push(`
+      <section class="rowsec parcours-rangee">
+        <div class="rowhead"><h2>Mes parcours de rattrapage <span class="rowhead-sous">· ${enCoursParcours.length} en cours</span></h2></div>
+        <div class="profs-grille">${enCoursParcours.map(carteParcoursAccueil).join('')}</div>
+      </section>`);
     if (s.encours.length) rows.push(rangee('encours', 'Continuer mes chapitres', s.encours.slice(0, 12).map(x => carte(x))));
 
     /* Top 10 : l'ordre vient de l'activité réelle de tous les élèves. */
@@ -614,6 +956,10 @@
       ? `<h2 class="section-title petit">${titre}</h2><p class="subtitle">${sous}</p>
          <div class="chapgrid">${items.map(c => carte(c)).join('')}</div>` : '';
     let html = '';
+    const enCoursParcours = PARCOURS.filter(p => p.etat === 'en_cours');
+    if (enCoursParcours.length) html += `<h2 class="section-title petit">Parcours de rattrapage</h2>
+      <p class="subtitle">Les lacunes prises en main : revoyez les prérequis, puis refaites le QCM du chapitre.</p>
+      <div class="profs-grille grille-page">${enCoursParcours.map(carteParcoursAccueil).join('')}</div>`;
     html += bloc('À revoir en priorité', 'Chapitres dont le dernier score au QCM est inférieur à 60 %.', s.revoir);
     html += bloc('À terminer', 'Chapitres commencés qu’il reste à finir.', s.encours);
     html += bloc('Ma liste', 'Chapitres que vous avez mis de côté.', S.liste.map(parId).filter(Boolean));
@@ -653,6 +999,14 @@
       href: '/api/professeurs/travaux/' + t.id + '/fichier',
       action: () => setTimeout(() => { t.telecharge_le = new Date().toISOString(); rendre(); }, 800)
     }));
+    PARCOURS.filter(p => p.etat === 'en_cours').forEach(p => liste.push({
+      initiale: '🧭', teinte: p.chapitre.matiere.teinte,
+      titre: (p.pretPourQCM ? 'Prêt pour le QCM · ' : 'Rattrapage · ') + p.chapitre.titre,
+      texte: p.pretPourQCM ? 'Tous les prérequis sont validés : refaites le QCM du chapitre.'
+        : `${p.validees}/${p.total} prérequis validés. Continuez le parcours.`,
+      quand: p.chapitre.matiere.nom,
+      action: () => ouvrirParcoursChapitre(p.chapitre.id)
+    }));
     stats().revoir.forEach(c => liste.push({
       image: c.image, initiale: c.matiere.glyphe, teinte: c.matiere.teinte,
       titre: 'À revoir · ' + c.titre,
@@ -672,9 +1026,11 @@
   rendre();
 
   /* ------------------------------ interactions ---------------------------- */
-  /* Lien direct vers un chapitre (#chapitre-12) : utilisé par la cloche des autres pages. */
-  const ancre = location.hash.match(/^#chapitre-(\d+)$/);
-  if (ancre && parId(ancre[1])) ouvrir(Number(ancre[1]));
+  /* Lien direct vers un chapitre (#chapitre-12) ou un parcours (#rattrapage-12) :
+     utilisé par la cloche et les autres pages. #metier ouvre le choix du métier. */
+  const ancre = location.hash.match(/^#(chapitre|rattrapage)-(\d+)$/);
+  if (ancre && parId(ancre[2])) (ancre[1] === 'rattrapage' ? ouvrirParcoursChapitre : ouvrir)(Number(ancre[2]));
+  if (location.hash === '#metier' && !lectureSeule) ouvrirMetiers();
 
   const sb = $('#searchbar'), q = $('#q');
   if (sb) {
@@ -695,6 +1051,9 @@
   document.addEventListener('click', e => {
     const c = e.target.closest('[data-chap]'); if (c) return ouvrir(c.dataset.chap);
     const o = e.target.closest('[data-ouvrir]'); if (o) return ouvrir(o.dataset.ouvrir);
+    if (e.target.closest('[data-choisir-metier]')) return ouvrirMetiers();
+    if (e.target.closest('[data-metier-toggle]') && S.metier) return choisirMetier(S.metier.id, !S.metier.actif);
+    const pch = e.target.closest('[data-parcours-chap]'); if (pch) return ouvrirParcoursChapitre(Number(pch.dataset.parcoursChap));
     const t = e.target.closest('[data-track]');
     if (t) {
       const el = document.getElementById(t.dataset.track);

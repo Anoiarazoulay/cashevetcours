@@ -46,6 +46,7 @@ module.exports = async function amorcer() {
     await migrations.appliquer({ silencieux: true });
     /* Rattrape une base installée avant que le contenu ne soit versionné. */
     await require('./videos').appliquer();
+    await require('./projet').appliquer({ silencieux: true });
     return false;
   }
 
@@ -57,5 +58,6 @@ module.exports = async function amorcer() {
   /* Le pool doit rester ouvert : le serveur démarre juste après. */
   await require('./seed')({ fermer: false });
   await require('./videos').appliquer();
+  await require('./projet').appliquer();
   return true;
 };

@@ -159,7 +159,9 @@ routeur.get('/eleves/:eleveId/matieres/:matiereId', route(async (req, res) => {
 
   await suivi.consigner(id, eleveId, matiereId);
   const mois = await suivi.moisCourant();
-  const [eleve, matiere, d, duMois, historique, tentatives, chrono, semaines, tp, notes, classes, appart, liste] =
+  const rattrapage = require('../services/rattrapage');
+  const [eleve, matiere, d, duMois, historique, tentatives, chrono, semaines, tp, notes, classes, appart, liste,
+         metier, parcours] =
     await Promise.all([
       un('SELECT id, nom, filiere FROM utilisateurs WHERE id = ?', [eleveId]),
       un('SELECT id, nom, teinte FROM matieres WHERE id = ?', [matiereId]),
@@ -176,7 +178,11 @@ routeur.get('/eleves/:eleveId/matieres/:matiereId', route(async (req, res) => {
       suivi.notes(id, eleveId, matiereId),
       suivi.classes(id),
       suivi.appartenances(id),
-      suivi.eleves(id, mois)
+      suivi.eleves(id, mois),
+      /* Le projet de l'élève, s'il l'a activé : l'enseignant sait pourquoi tel chapitre compte pour lui. */
+      un(`SELECT m.nom, m.glyphe FROM utilisateurs u JOIN metiers m ON m.id = u.metier_id
+           WHERE u.id = ? AND u.metier_actif = 1`, [eleveId]),
+      rattrapage.liste(eleveId, { matiereId, limite: 10 })
     ]);
 
   /* La place de l'élève parmi les élèves de l'enseignant dans cette matière. */
@@ -187,7 +193,7 @@ routeur.get('/eleves/:eleveId/matieres/:matiereId', route(async (req, res) => {
 
   res.json({
     eleve, matiere, depuis: lien.depuis, dossier: sansIds(d), suivi: duMois, historique,
-    tentatives, chronologie: chrono, semaines, tp, notes,
+    tentatives, chronologie: chrono, semaines, tp, notes, metier, parcours,
     groupe: { ...groupe, rang: rang || null },
     classes: classes.filter(k => !k.matiere || k.matiere.id === matiereId),
     classesEleve: appart.get(eleveId) || [],

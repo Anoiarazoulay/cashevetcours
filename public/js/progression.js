@@ -105,6 +105,41 @@
         <span class="score faible">${c.score} %</span></div>`).join('')
     : '<p class="sous">Aucun chapitre sous la barre des 60 %. Rien à reprendre.</p>';
 
+  /* ------------------------------ mon projet ------------------------------ */
+  const echapper = t => String(t == null ? '' : t)
+    .replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const m = tb.metier;
+  $('#projet').innerHTML = m ? `
+    <div class="projet-ligne">
+      <span class="g">${echapper(m.metier.glyphe)}</span>
+      <div class="txt"><b>${echapper(m.metier.nom)}</b>
+        <small>${m.actif ? 'Activé : le programme s’illumine selon ce métier.' : 'En pause : le programme s’affiche normalement.'}</small>
+        <div class="barre espace"><i style="width:${m.avancement}%;background:#ffd166"></i></div>
+        <small>${m.termines}/${m.total} chapitres terminés · ${m.essentielsTermines}/${m.essentiels} essentiels · ${
+          m.moyenne === null ? 'aucun QCM' : 'moyenne ' + m.moyenne + ' % aux QCM'}${
+          m.prochain ? ' · prochain : « ' + echapper(m.prochain.titre) + ' »' : ''}</small></div>
+    </div>
+    <div class="liste-cibles">${m.chapitres.slice(0, 8).map(c => `
+      <div class="ligne-chap"><span class="pt" style="background:${echapper(c.matiere.teinte)}"></span>
+        <span class="nom"><b>${echapper(c.titre)}</b><small>${echapper(c.matiere.nom)} · ${echapper(c.libelle)} · ${echapper(c.raison)}</small></span>
+        <span class="score${c.aRevoir ? ' faible' : ''}">${c.termine ? '✓' : c.avancement + ' %'}</span></div>`).join('')}</div>
+    <p class="espace-haut"><a class="pilule" href="/ecole#metier">Changer de métier</a></p>`
+    : `<p class="sous">Aucun métier choisi pour l’instant.</p>
+       <p><a class="pilule blanc" href="/ecole#metier">Choisir mon futur métier</a></p>`;
+
+  /* -------------------------- parcours de rattrapage ------------------------ */
+  const ETAT = { en_cours: ['En cours', 'var(--warn)'], valide: ['Lacune comblée', 'var(--ok)'], abandonne: ['Abandonné', 'var(--text-3)'] };
+  $('#parcours').innerHTML = tb.parcours.length ? tb.parcours.slice(0, 8).map(p => `
+    <div class="ligne-chap"><span class="pt" style="background:${echapper(p.chapitre.matiere.teinte)}"></span>
+      <span class="nom"><b>${echapper(p.chapitre.titre)}</b>
+        <small>${echapper(p.chapitre.matiere.nom)} · ${p.validees}/${p.total} prérequis validés${
+          p.scoreInitial !== null ? ' · ' + p.scoreInitial + ' % au départ' : ''}${
+          p.scoreFinal !== null ? ' → ' + p.scoreFinal + ' %' : ''}</small></span>
+      ${p.etat === 'en_cours'
+        ? `<a class="pilule mini" href="/ecole#rattrapage-${p.chapitre.id}">${p.pretPourQCM ? 'Refaire le QCM' : 'Continuer'}</a>`
+        : `<span class="score" style="color:${ETAT[p.etat][1]}">${ETAT[p.etat][0]}</span>`}</div>`).join('')
+    : '<p class="sous">Aucun parcours pour l’instant. Un QCM sous 60 % en propose un, et vous pouvez en lancer un depuis la fiche d’un chapitre.</p>';
+
   /* Les pondérations viennent du serveur : le texte reste juste si elles changent. */
   const w = tb.poids;
   $('#formule').textContent =

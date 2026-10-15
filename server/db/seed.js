@@ -213,6 +213,9 @@ module.exports = async ({ reset = false, fermer = true } = {}) => {
     console.log('· progression de démonstration pour Yasmine (un mois de travail)');
   });
 
+  /* Métiers et fiches de prérequis : contenu versionné, posé après le catalogue. */
+  await require('./projet').appliquer();
+
   console.log('\nComptes de démonstration');
   console.log('  admin   admin@cashevent.education    / admin1234');
   console.log('  élève   yasmine@cashevent.education  / eleve1234');

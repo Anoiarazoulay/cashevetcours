@@ -9,6 +9,7 @@ const cat = require('../services/catalogue');
 const prog = require('../services/progression');
 const journal = require('../services/journal');
 const exos = require('../services/exercices');
+const rattrapage = require('../services/rattrapage');
 
 const routeur = express.Router();
 const idValide = v => Number.isInteger(Number(v)) && Number(v) > 0;
@@ -252,12 +253,21 @@ routeur.post('/qcm/:tentative/terminer', requiert('eleve'), async (req, res) => 
     conseils.push('Relis les ' + c.resume.formules.length + ' points de « ' +
       c.matiere.labelFormules.toLowerCase() + ' » : c’est ce qui fait la différence.');
 
+  /* La lacune détectée ouvre un parcours de rattrapage ; un QCM réussi valide
+     celui qui était en cours. Le premier passage seulement : on ne crée rien
+     en rejouant la clôture d'une tentative déjà terminée. */
+  const suite = t.terminee ? { parcours: null, nouveau: false, valide: false }
+    : await rattrapage.apresQCM(req.utilisateur.id, t.chapitre_id, score);
+  if (suite.nouveau) conseils.unshift('Un parcours de rattrapage est prêt : ' +
+    suite.parcours.total + ' prérequis des classes antérieures à revoir avant de retenter ce QCM.');
+
   res.json({
     score, justes, total: t.total,
     appreciation: score >= 80 ? 'Très bon niveau sur ce chapitre. Les notions clés sont acquises.'
       : score >= config.seuilARevoir ? 'Les bases sont là, mais quelques notions restent fragiles.'
         : 'Ce chapitre n’est pas encore acquis. Reprends la vidéo avant de refaire le QCM.',
-    conseils
+    conseils,
+    parcours: suite.parcours, parcoursNouveau: suite.nouveau, parcoursValide: suite.valide
   });
 });
 

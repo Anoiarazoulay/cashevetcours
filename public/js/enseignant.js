@@ -899,7 +899,8 @@
             vous suit depuis le ${dateFR(d.depuis)}</p>
           <h2 id="titreDossier">${echapper(d.eleve.nom)}</h2>
           <p class="sous">${d.eleve.filiere ? echapper(d.eleve.filiere) + ' · ' : ''}${
-            g.rang ? `${g.rang}<sup>e</sup> sur ${g.suivis} en ${echapper(d.matiere.nom)}` : ''}
+            g.rang ? `${g.rang}<sup>e</sup> sur ${g.suivis} en ${echapper(d.matiere.nom)}` : ''}${
+            d.metier ? ` · projet : ${echapper(d.metier.glyphe)} ${echapper(d.metier.nom)}` : ''}
             <span id="chipsDossier">${chipsClasses(d.classesEleve)}</span></p>
 
           ${x.besoinAide ? `<div class="alerte-prof"><b>Pourquoi le regarder</b>
@@ -992,6 +993,18 @@
               <td class="${c.aRevoir ? 'score-faible' : ''}">${c.score === null ? '—' : c.score + ' %'}</td>
             </tr>`).join('')}</tbody>
           </table></div>
+
+          ${d.parcours && d.parcours.length ? `
+          <div class="panneau espace-haut">
+            <h2>Parcours de rattrapage</h2>
+            <p class="sous">Les lacunes que l’élève a prises en main dans votre matière : prérequis des classes antérieures revus, puis QCM repassé.</p>
+            ${d.parcours.map(p => `<div class="ligne-remu">
+              <span>${echapper(p.chapitre.titre)}</span>
+              <small>${p.validees}/${p.total} prérequis${p.scoreInitial !== null ? ' · ' + p.scoreInitial + ' % au départ' : ''}${
+                p.scoreFinal !== null ? ' → ' + p.scoreFinal + ' %' : ''} · ${dateCourte(p.majLe)}</small>
+              <span class="etiquette ${p.etat === 'valide' ? 'ok' : p.etat === 'en_cours' ? 'encours' : 'muet'}">${
+                { en_cours: 'En cours', valide: 'Lacune comblée', abandonne: 'Abandonné' }[p.etat]}</span></div>`).join('')}
+          </div>` : ''}
 
           <div class="colonnes-dossier espace-haut">
             <div class="panneau">
