@@ -24,37 +24,30 @@
   <!-- Chiffres clés -->
   <section class="prog-chiffres" id="chiffres"></section>
 
+  <!-- Le projet, pleine largeur -->
+  <section class="prog-panneau prog-pleine" id="projet"></section>
+
+  <!-- Deux paires de panneaux, à la même hauteur -->
   <div class="prog-colonnes">
-    <div class="prog-col">
-      <section class="prog-panneau" id="projet"></section>
-      <section class="prog-panneau" id="rythme"></section>
-      <section class="prog-panneau" id="conseils"></section>
-    </div>
-    <div class="prog-col">
-      <section class="prog-panneau" id="parcours"></section>
-      <section class="prog-panneau" id="reprendre"></section>
-    </div>
+    <section class="prog-panneau" id="rythme"></section>
+    <section class="prog-panneau" id="conseils"></section>
+  </div>
+  <div class="prog-colonnes">
+    <section class="prog-panneau" id="parcours"></section>
+    <section class="prog-panneau" id="reprendre"></section>
   </div>
 
   <section class="prog-section" id="matieres"></section>
 
-  <div class="prog-colonnes">
-    <div class="prog-col">
-      <section class="prog-panneau" id="panneauProfs">
-        <div class="prog-tete"><h2>Mes professeurs référents</h2>
-          <p>Saisissez le code que votre professeur vous a donné. Il verra votre progression
-            <b>dans sa matière uniquement</b> — rien de vos autres matières, ni de vos coordonnées.</p></div>
-        <div id="mesProfs"><p class="sous">Chargement…</p></div>
-      </section>
-    </div>
-    <div class="prog-col">
-      <section class="prog-panneau prog-formule">
-        <div class="prog-tete"><h2>Comment ce pourcentage est calculé</h2></div>
-        <p class="sous derniere" id="formule">Chaque chapitre combine les séances vidéo visionnées, le résumé lu,
-          le QCM passé et le TP téléchargé.</p>
-      </section>
-    </div>
-  </div>
+  <section class="prog-panneau prog-pleine" id="panneauProfs">
+    <div class="prog-tete"><h2>Mes professeurs référents</h2>
+      <p>Saisissez le code que votre professeur vous a donné. Il verra votre progression
+        <b>dans sa matière uniquement</b> — rien de vos autres matières, ni de vos coordonnées.</p></div>
+    <div id="mesProfs" class="profs-grille"><p class="sous">Chargement…</p></div>
+  </section>
+
+  <p class="prog-note" id="formule">Chaque chapitre combine les séances vidéo visionnées, le résumé lu,
+    le QCM passé et le TP téléchargé.</p>
 
 </main>
 <script src="/js/pied.js?v=3"></script>
