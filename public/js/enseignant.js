@@ -1198,7 +1198,10 @@
             ${l} <span class="compte">${rows.filter(test).length}</span></label>`).join('')}
           ${ks.length ? `<label><input type="radio" name="dest" value="classe" ${classeChoisie ? 'checked' : ''}> Une classe
             <select class="champ mini-select" name="classeId">${ks.map(k =>
-              `<option value="${k.id}" ${k.id === classeChoisie ? 'selected' : ''}>${echapper(k.nom)} · ${k.effectif}</option>`).join('')}</select></label>` : ''}
+              `<option value="${k.id}" ${k.id === classeChoisie ? 'selected' : ''}>${echapper(k.nom)} · ${k.effectif}</option>`).join('')}</select></label>`
+            : `<label class="inactif"><input type="radio" name="dest" value="classe" disabled> Une classe
+              <small>— aucune classe${classes.length ? ' pour cette matière' : ''} pour l’instant ·
+              <a href="#classes" data-onglet-vers="classes">créer une classe</a></small></label>`}
           <label><input type="radio" name="dest" value="choisir"> Choisir un par un</label>
         </div>
         <div id="choixEleves" hidden>
@@ -1280,6 +1283,8 @@
     };
 
     gestionnaire = async e => {
+      const vers = e.target.closest('[data-onglet-vers]');
+      if (vers) { e.preventDefault(); return aller(vers.dataset.ongletVers); }
       const c = e.target.closest('[data-cocher]');
       if (c) {
         /* Seuls les élèves visibles : « Tout cocher » après une recherche vise le résultat. */
