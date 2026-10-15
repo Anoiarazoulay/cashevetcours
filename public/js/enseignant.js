@@ -609,10 +609,17 @@
 
     /* ------------------------- une classe ouverte ------------------------- */
     if (k) {
-      const membres = liste.eleves.filter(r => r.classes.includes(k.id) && (!k.matiere || r.matiere.id === k.matiere.id))
-        .sort(TRIS.priorite[1]);
+      /* Le dossier de la classe : ses chiffres, sa répartition, son activité,
+         sa carte des chapitres et ses membres, calculés côté serveur. */
+      attente();
+      let dossierClasse;
+      try { dossierClasse = await API.get('/enseignant/classes/' + k.id); }
+      catch (e) { classeOuverte = null; message(e.message); return rendreClasses(); }
+      const membres = dossierClasse.membres.sort(TRIS.priorite[1]);
+      const st = dossierClasse.stats, seg = dossierClasse.repartition.segments;
       const file = membres.filter(r => !r.suivi);
       const dansLaClasse = new Set(membres.map(r => r.eleve.id));
+      const semaineLib = s => dateCourte(s.debut + 'T00:00:00');
       /* Candidats : ses élèves de la matière (ou de toutes), un par élève, pas encore membres. */
       const candidats = [...new Map(liste.eleves
         .filter(r => !dansLaClasse.has(r.eleve.id) && (!k.matiere || r.matiere.id === k.matiere.id))
@@ -631,18 +638,74 @@
         </div>
 
         <div class="tuiles">
-          <div class="tuile"><div class="lab">Élèves</div><div class="val">${k.stats.eleves}</div>
-            <div class="sous">${k.stats.suivis} suivi(s) par matière</div></div>
-          <div class="tuile"><div class="lab">Progression</div><div class="val">${k.stats.avancement} %</div>
-            <div class="sous">${k.stats.chapitresTermines} chapitre(s) terminé(s)</div></div>
+          <div class="tuile"><div class="lab">Élèves</div><div class="val">${st.eleves}</div>
+            <div class="sous">${st.suivis} suivi(s) par matière</div></div>
+          <div class="tuile"><div class="lab">Progression</div><div class="val">${st.avancement} %</div>
+            <div class="sous">${st.chapitresTermines} chapitre(s) terminé(s)</div></div>
           <div class="tuile"><div class="lab">Moyenne QCM</div>
-            <div class="val">${k.stats.moyenne === null ? '—' : k.stats.moyenne + ' %'}</div>
-            <div class="sous">${k.stats.qcmFaits} QCM passé(s)</div></div>
-          <div class="tuile"><div class="lab">À suivre</div><div class="val">${k.stats.aSuivre}</div>
-            <div class="sous">${k.stats.inactifs} inactif(s) · ${k.stats.pasCommence} pas commencé</div></div>
+            <div class="val">${st.moyenne === null ? '—' : st.moyenne + ' %'}</div>
+            <div class="sous">${st.qcmFaits} QCM passé(s)</div></div>
+          <div class="tuile"><div class="lab">À suivre</div><div class="val">${st.aSuivre}</div>
+            <div class="sous">${st.inactifs} inactif(s) · ${st.pasCommence} pas commencé</div></div>
           <div class="tuile"><div class="lab">Suivis faits</div>
-            <div class="val">${k.stats.suivisFaits}<small> / ${k.stats.suivis}</small></div>
-            <div class="sous">${k.stats.actifs7} actif(s) ces 7 jours</div></div>
+            <div class="val">${st.suivisFaits}<small> / ${st.suivis}</small></div>
+            <div class="sous">${st.actifs7} actif(s) ces 7 jours</div></div>
+        </div>
+
+        <div class="colonnes-admin espace-bas">
+          <div class="panneau">
+            <h2>La classe d’un coup d’œil</h2>
+            <p class="sous">Un suivi par élève et par matière.</p>
+            <div class="segments-prof">
+              ${[['Suivi à faire ce mois-ci', seg.afaire, 'var(--warn)'], ['Signalés par l’analyse', seg.signales, 'var(--brand)'],
+                 ['Sans activité depuis 2 semaines', seg.inactifs, '#9db6ff'], ['Pas encore commencé', seg.pasCommence, '#8c8c8c'],
+                 ['Suivi fait', seg.faits, 'var(--ok)']].map(([l, n, c]) => `
+                <div class="segment-prof statique"><span class="lib">${l}</span><b>${n}</b>
+                  <span class="jauge large"><i style="width:${pc(n, st.suivis)}%;background:${c}"></i></span></div>`).join('')}
+            </div>
+            <div class="deux-graphes espace-haut">
+              <div><h3 class="titre-bloc">Progression</h3>
+                ${histogramme(dossierClasse.repartition.avancement.map(x => ({ valeur: x.eleves, libelle: `${x.de}–${x.a} %` })), { hauteur: 80 })}</div>
+              <div><h3 class="titre-bloc">Moyennes aux QCM</h3>
+                ${histogramme(dossierClasse.repartition.moyennes.map(x => ({ valeur: x.eleves, libelle: `${x.de}–${x.a} %`,
+                  couleur: x.de >= 60 ? 'var(--ok)' : x.de >= 40 ? 'var(--warn)' : 'var(--brand)' })), { hauteur: 80 })}
+                <p class="sous derniere centre-txt">${dossierClasse.repartition.sansQcm} sans aucun QCM passé</p></div>
+            </div>
+          </div>
+          <div class="panneau">
+            <h2>Activité des huit dernières semaines</h2>
+            <p class="sous">Élèves de la classe qui ont travaillé ${k.matiere ? 'la matière' : 'vos matières'} chaque semaine.</p>
+            ${histogramme(dossierClasse.semaines.map(s => ({ valeur: s.actifs, libelle: semaineLib(s),
+              titre: `Semaine du ${semaineLib(s)} : ${s.actifs} actif(s), ${s.qcm} QCM`, couleur: '#9db6ff' })), { hauteur: 100 })}
+            <div class="sous-histo" style="grid-template-columns:repeat(${dossierClasse.semaines.length},1fr)">
+              ${dossierClasse.semaines.map(s => `<div><b>${s.qcm}</b> QCM<br><small>${s.score === null ? '—' : s.score + ' %'}</small></div>`).join('')}
+            </div>
+            <h3 class="titre-bloc espace-haut">Notions difficiles</h3>
+            ${dossierClasse.notionsDifficiles.length ? dossierClasse.notionsDifficiles.slice(0, 5).map(n => `
+              <div class="notion-difficile">
+                <div class="tete">${pastille(n.matiere.teinte)}<b>${echapper(n.chapitre)}</b>
+                  <small>${echapper(n.matiere.nom)} · ${n.eleves} élève(s) sous 60 %</small></div>
+                ${n.notions.length ? `<div class="tags">${n.notions.map(x => `<span>${echapper(x)}</span>`).join('')}</div>` : ''}
+              </div>`).join('')
+              : '<p class="sous derniere">Aucun chapitre ne pose de difficulté particulière.</p>'}
+          </div>
+        </div>
+
+        <div class="panneau espace-bas">
+          <h2>Carte des chapitres de la classe</h2>
+          <p class="sous">Combien d’élèves de la classe ont commencé, terminé chaque chapitre, et leur moyenne au QCM.</p>
+          ${dossierClasse.carte.map(m => `
+            <h3 class="titre-bloc espace-haut">${pastille(m.matiere.teinte)}${echapper(m.matiere.nom)}</h3>
+            <div class="tableau-defile"><table class="tableau tableau-mini carte-classe">
+              <thead><tr><th>Chapitre</th><th>Commencé</th><th>Terminé</th><th>QCM</th><th>À revoir</th></tr></thead>
+              <tbody>${m.chapitres.map(c => `<tr>
+                <td><b>${c.numero}. ${echapper(c.titre)}</b></td>
+                <td><span class="jauge"><i style="width:${pc(c.commences, c.eleves)}%;background:#9db6ff"></i></span>${pc(c.commences, c.eleves)} %</td>
+                <td><span class="jauge"><i style="width:${pc(c.termines, c.eleves)}%;background:var(--ok)"></i></span>${pc(c.termines, c.eleves)} %</td>
+                <td class="${c.moyenne !== null && c.moyenne < 60 ? 'score-faible' : ''}">${c.moyenne === null ? '—' : c.moyenne + ' %'}<small>${c.qcm} passé(s)</small></td>
+                <td class="${c.aRevoir ? 'score-faible' : ''}">${c.aRevoir}</td>
+              </tr>`).join('')}</tbody>
+            </table></div>`).join('') || '<p class="sous derniere">Aucun chapitre : la classe est vide.</p>'}
         </div>
 
         <div id="formModif" hidden class="panneau espace-bas">
@@ -660,10 +723,13 @@
 
         <div class="colonnes-admin colonnes-classe">
           <div class="panneau">
-            <h2>Élèves de la classe</h2>
+            <h2>Élèves de la classe <span class="rowhead-sous">· ${membres.length}</span></h2>
             <p class="sous">${membres.length ? 'Triés par priorité : signalés sans suivi d’abord.' : 'Ajoutez des élèves depuis la liste de droite.'}</p>
-            ${membres.map(r => ligneEleve(r,
-              `<button class="pilule mini danger" data-retirer="${r.eleve.id}" title="Retirer de la classe">Retirer</button>`)).join('')}
+            <div id="membresClasse">${membres.slice(0, PAR_PAGE).map(r => ligneEleve(r,
+              `<button class="pilule mini danger" data-retirer="${r.eleve.id}" title="Retirer de la classe">Retirer</button>`)).join('')}</div>
+            ${membres.length > PAR_PAGE ? `<div class="pagination-prof">
+              <button class="pilule mini" data-plus-membres="${PAR_PAGE}">Afficher les ${Math.min(PAR_PAGE, membres.length - PAR_PAGE)} suivants</button>
+              <span>${Math.min(PAR_PAGE, membres.length)} sur ${membres.length}</span></div>` : ''}
           </div>
           <div class="panneau">
             <h2>Ajouter des élèves</h2>
@@ -706,6 +772,17 @@
         } catch (err) { message(err.message); }
       };
       gestionnaire = async e => {
+        const plus = e.target.closest('[data-plus-membres]');
+        if (plus) {
+          const debut = Number(plus.dataset.plusMembres), fin = Math.min(debut + PAR_PAGE, membres.length);
+          $('#membresClasse').insertAdjacentHTML('beforeend', membres.slice(debut, fin).map(r => ligneEleve(r,
+            `<button class="pilule mini danger" data-retirer="${r.eleve.id}" title="Retirer de la classe">Retirer</button>`)).join(''));
+          const bloc = plus.closest('.pagination-prof');
+          if (fin >= membres.length) bloc.remove();
+          else { plus.dataset.plusMembres = fin; plus.textContent = `Afficher les ${Math.min(PAR_PAGE, membres.length - fin)} suivants`;
+            bloc.querySelector('span').textContent = `${fin} sur ${membres.length}`; }
+          return;
+        }
         if (e.target.closest('[data-retour]')) { classeOuverte = null; return rendreClasses(); }
         if (e.target.closest('[data-modifier-classe]')) { $('#formModif').hidden = false; return $('#formClasseModif input[name=nom]').focus(); }
         if (e.target.closest('[data-annuler-modif]')) { $('#formModif').hidden = true; return; }
@@ -749,13 +826,19 @@
     }
 
     /* ------------------------- la liste des classes ----------------------- */
+    const filieres = [...new Set(liste.eleves.map(r => r.eleve.filiere || 'Sans filière'))];
     vue.innerHTML = `
       <div class="colonnes-admin classes-page">
         <div>
           <div class="panneau">
             <h2>Mes classes</h2>
             <p class="sous">Regroupez vos élèves comme vous les suivez : une classe de lycée, un groupe
-              de soutien, une matière. Chaque classe a ses chiffres, sa tournée de suivis, son export et ses TP.</p>
+              de soutien, une matière. Chaque classe a son dossier : chiffres, activité, carte des chapitres,
+              tournée de suivis, export et TP.</p>
+            ${liste.eleves.length ? `<div class="actions-ligne gauche espace-bas">
+              <button class="pilule mini blanc" data-regrouper-filiere>Regrouper mes élèves par filière</button>
+              <small class="sous derniere">${filieres.length} filière${filieres.length > 1 ? 's' : ''} parmi vos élèves : ${filieres.map(echapper).join(', ')}</small>
+            </div>` : ''}
             ${classes.length ? `<div class="grille-classes">${classes.map(x => carteClasse(x, { detail: true })).join('')}</div>`
               : `<div class="vide-etat compact"><b>Aucune classe pour l’instant</b>
                   Créez-en une à droite, puis ajoutez-y des élèves parmi ceux qui vous ont désigné.</div>`}
@@ -801,7 +884,18 @@
         message('Classe créée : ajoutez-y des élèves'); classeOuverte = r.classe.id; rendreClasses();
       } catch (err) { message(err.message); }
     };
-    gestionnaire = e => { ouvrirSegment(e) || ouvrirSiDossier(e); };
+    gestionnaire = async e => {
+      if (e.target.closest('[data-regrouper-filiere]')) {
+        if (!confirm('Créer une classe par filière et y placer tous vos élèves ? Les classes existantes du même nom sont complétées, rien n’est supprimé.')) return;
+        try {
+          const r = await API.post('/enseignant/classes/par-filiere');
+          message(`${r.classes} classe(s) · ${r.creees} créée(s) · ${r.ajoutes} élève(s) placé(s)`);
+          rendreClasses();
+        } catch (err) { message(err.message); }
+        return;
+      }
+      ouvrirSegment(e) || ouvrirSiDossier(e);
+    };
   }
 
   /* -------------------------- dossier d'un élève -------------------------- */

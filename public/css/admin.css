@@ -465,3 +465,5 @@ textarea.champ{height:auto;padding:10px 12px;line-height:1.5;resize:vertical}
 .choix-dest label.inactif{color:var(--text-3)}
 .choix-dest label.inactif small{font-size:12.5px}
 .choix-dest label.inactif a{color:#9db6ff;text-decoration:underline;text-underline-offset:3px}
+.carte-classe td b{white-space:normal}
+.actions-ligne.gauche .sous{margin:0}

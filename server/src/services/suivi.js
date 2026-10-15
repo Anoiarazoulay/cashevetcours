@@ -274,10 +274,12 @@ function carteChapitres(lignes) {
 /* L'activité semaine par semaine, dans les seules matières où l'enseignant a
    été désigné : séances vues et QCM terminés. Pour toute la classe, ou pour un
    élève dans une matière. Les semaines vides sont renvoyées à zéro. */
-async function activiteHebdo({ enseignantId, eleveId = null, matiereId = null }, nb = 8) {
+async function activiteHebdo({ enseignantId, eleveId = null, eleveIds = null, matiereId = null }, nb = 8) {
+  if (eleveIds && !eleveIds.length) eleveIds = [0];
   const portee = () => {
     const w = ['r.enseignant_id = ?'], p = [enseignantId];
     if (eleveId) { w.push('x.eleve_id = ?'); p.push(eleveId); }
+    if (eleveIds) { w.push('x.eleve_id IN (?)'); p.push(eleveIds); }
     if (matiereId) { w.push('c.matiere_id = ?'); p.push(matiereId); }
     return { w: w.join(' AND '), p };
   };
@@ -503,6 +505,44 @@ async function ajouterEleves(enseignantId, classe, eleveIds) {
 const retirerEleve = (classeId, eleveId) =>
   executer('DELETE FROM classe_eleves WHERE classe_id = ? AND eleve_id = ?', [classeId, eleveId]);
 
+/* Regroupe d'un coup tous les élèves par filière : une classe par filière
+   rencontrée, créée si elle manque, complétée sinon. Les élèves sans filière
+   vont dans « Sans filière ». */
+async function regrouperParFiliere(enseignantId) {
+  const rows = await tous(
+    `SELECT DISTINCT u.id, COALESCE(NULLIF(TRIM(u.filiere), ''), 'Sans filière') AS filiere
+       FROM referents r JOIN utilisateurs u ON u.id = r.eleve_id AND u.actif = 1
+      WHERE r.enseignant_id = ?`, [enseignantId]);
+  const parFiliere = new Map();
+  for (const r of rows) {
+    if (!parFiliere.has(r.filiere)) parFiliere.set(r.filiere, []);
+    parFiliere.get(r.filiere).push(r.id);
+  }
+  let creees = 0, ajoutes = 0;
+  const noms = [...parFiliere.keys()].sort((a, b) => a.localeCompare(b, 'fr'));
+  for (const [i, nom] of noms.entries()) {
+    let classe = await un('SELECT id, nom, couleur, matiere_id FROM classes WHERE enseignant_id = ? AND nom = ?',
+      [enseignantId, nom]);
+    if (!classe) {
+      const id = await creerClasse(enseignantId, { nom, matiereId: null, couleur: COULEURS[i % COULEURS.length] });
+      classe = await classeDe(enseignantId, id);
+      creees++;
+    }
+    ajoutes += await ajouterEleves(enseignantId, classe, parFiliere.get(nom));
+  }
+  return { classes: noms.length, creees, ajoutes };
+}
+
+/* La carte des chapitres restreinte aux membres d'une classe (et à sa matière). */
+function carteChapitresClasse(lignes, classe, membres) {
+  const sous = new Map();
+  for (const [eleveId, ls] of lignes) {
+    if (!membres.has(eleveId)) continue;
+    sous.set(eleveId, classe.matiere_id ? ls.filter(l => l.matiere_id === classe.matiere_id) : ls);
+  }
+  return carteChapitres(sous);
+}
+
 const membres = async classeId => new Set(
   (await tous('SELECT eleve_id FROM classe_eleves WHERE classe_id = ?', [classeId])).map(r => r.eleve_id));
 
@@ -603,6 +643,6 @@ module.exports = {
   tentativesEleve, chronologie, tpEleve,
   notes, ajouterNote, supprimerNote,
   classes, appartenances, classeDe, lignesClasse, creerClasse, modifierClasse, supprimerClasse,
-  ajouterEleves, retirerEleve, membres,
+  ajouterEleves, retirerEleve, membres, regrouperParFiliere, carteChapitresClasse,
   consigner, suiviDuMois, enregistrerSuivi
 };

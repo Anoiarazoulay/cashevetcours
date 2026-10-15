@@ -260,6 +260,53 @@ routeur.post('/classes', route(async (req, res) => {
     matiereId: classe.matiere_id, ajoutes } });
 }));
 
+/* POST /api/enseignant/classes/par-filiere — une classe par filière, d'un coup */
+routeur.post('/classes/par-filiere', route(async (req, res) => {
+  const r = await suivi.regrouperParFiliere(req.utilisateur.id);
+  await journal.enregistrer(req, { categorie: 'apprentissage', action: 'Classes par filière',
+    cible: r.classes + ' classe(s)', details: r.creees + ' créée(s), ' + r.ajoutes + ' élève(s) ajouté(s)' });
+  res.json(r);
+}));
+
+/* GET /api/enseignant/classes/:id — le dossier complet d'une classe */
+routeur.get('/classes/:id', route(async (req, res) => {
+  const id = req.utilisateur.id;
+  const classe = await suivi.classeDe(id, entier(req.params.id));
+  if (!classe) return res.status(404).json({ erreur: 'Classe introuvable.' });
+  const mois = await suivi.moisCourant();
+  const lignes = await prog.lignesEnseignant(id);
+  const [liste, membres, appart] = await Promise.all([
+    suivi.eleves(id, mois, lignes), suivi.membres(classe.id), suivi.appartenances(id)
+  ]);
+  const rows = suivi.lignesClasse(liste, classe, membres);
+  const semaines = await suivi.activiteHebdo({ enseignantId: id, eleveIds: [...membres], matiereId: classe.matiere_id });
+
+  const compter = f => rows.filter(f).length;
+  const tranches = (valeur, bornes) => bornes.map(([de, a]) => ({
+    de, a: Math.min(a, 100), eleves: compter(r => valeur(r) !== null && valeur(r) >= de && valeur(r) < a) }));
+  const m = classe.matiere_id ? await un('SELECT id, nom, teinte FROM matieres WHERE id = ?', [classe.matiere_id]) : null;
+
+  res.json({
+    mois,
+    classe: { id: classe.id, nom: classe.nom, couleur: classe.couleur, matiere: m, effectif: membres.size },
+    stats: suivi.statsGroupe(rows),
+    repartition: {
+      segments: {
+        afaire: compter(r => !r.suivi), signales: compter(r => r.besoinAide),
+        inactifs: compter(r => r.joursInactif !== null && r.joursInactif >= config.inactiviteJours),
+        pasCommence: compter(r => r.joursInactif === null), faits: compter(r => r.suivi)
+      },
+      avancement: tranches(r => r.avancement, [[0, 25], [25, 50], [50, 75], [75, 101]]),
+      moyennes: tranches(r => r.moyenne, [[0, 40], [40, 60], [60, 80], [80, 101]]),
+      sansQcm: compter(r => r.moyenne === null)
+    },
+    semaines,
+    carte: suivi.carteChapitresClasse(lignes, classe, membres),
+    notionsDifficiles: await suivi.notionsDifficiles(rows),
+    membres: rows.map(r => avecClasses(appart, r))
+  });
+}));
+
 /* PATCH /api/enseignant/classes/:id — { nom?, couleur?, matiereId? } */
 routeur.patch('/classes/:id', route(async (req, res) => {
   const id = req.utilisateur.id, classeId = entier(req.params.id);
