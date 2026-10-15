@@ -6,91 +6,61 @@
 <title>Ma progression — Cashevent School</title>
 <meta name="robots" content="noindex,nofollow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Anton&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Anton&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/style.css?v=3">
 <link rel="stylesheet" href="/css/ecole.css?v=3">
 <link rel="stylesheet" href="/css/app.css?v=3">
 <link rel="stylesheet" href="/css/pages.css?v=3">
+<link rel="stylesheet" href="/css/progression.css?v=1">
 <link rel="stylesheet" href="/css/mobile.css?v=3">
 </head>
-<body data-page="progression">
+<body data-page="progression" class="page-progression">
 
-<div class="parent-tete">
-  <div>
-    <h1>Ma progression</h1>
-    <p id="sousTitre">Où vous en êtes sur le programme, et ce qui vous attend.</p>
-  </div>
-  <div class="eleve">
-    <span class="av" id="eleveInit">?</span>
-    <span><b id="eleveNom">—</b><small id="eleveNiveau">Cashevent School</small></span>
-  </div>
-</div>
+<main class="prog">
 
-<div class="tuiles" id="tuiles"></div>
+  <!-- Bandeau : où j'en suis, en un regard -->
+  <section class="prog-hero" id="hero"></section>
 
-<div class="colonnes-parent">
-  <div>
-    <div class="panneau">
-      <h2>Votre rythme</h2>
-      <p class="sous" id="rythmeTexte"></p>
-      <div class="rythme" id="rythme"></div>
-      <div class="rythme-lab" id="rythmeLab"></div>
-      <div id="projection" class="espace-haut"></div>
+  <!-- Chiffres clés -->
+  <section class="prog-chiffres" id="chiffres"></section>
+
+  <div class="prog-colonnes">
+    <div class="prog-col">
+      <section class="prog-panneau" id="projet"></section>
+      <section class="prog-panneau" id="rythme"></section>
+      <section class="prog-panneau" id="conseils"></section>
     </div>
-
-    <div class="panneau espace-haut">
-      <h2>Ce que Cashevent School vous conseille</h2>
-      <p class="sous">Établi à partir de vos scores aux QCM et de vos chapitres en cours.</p>
-      <div id="alertes"></div>
+    <div class="prog-col">
+      <section class="prog-panneau" id="parcours"></section>
+      <section class="prog-panneau" id="reprendre"></section>
     </div>
   </div>
 
-  <div>
-    <div class="panneau">
-      <h2>Progression par matière</h2>
-      <p class="sous">Part du programme déjà travaillée dans chaque matière.</p>
-      <div id="parMatiere"></div>
-    </div>
+  <section class="prog-section" id="matieres"></section>
 
-    <div class="panneau espace-haut">
-      <h2>À reprendre</h2>
-      <p class="sous">Chapitres dont le dernier score est inférieur à 60 %.</p>
-      <div id="revoirDetail"></div>
-      <p class="espace-haut"><a class="pilule" href="/revisions">Ouvrir mes révisions</a></p>
+  <div class="prog-colonnes">
+    <div class="prog-col">
+      <section class="prog-panneau" id="panneauProfs">
+        <div class="prog-tete"><h2>Mes professeurs référents</h2>
+          <p>Saisissez le code que votre professeur vous a donné. Il verra votre progression
+            <b>dans sa matière uniquement</b> — rien de vos autres matières, ni de vos coordonnées.</p></div>
+        <div id="mesProfs"><p class="sous">Chargement…</p></div>
+      </section>
     </div>
-
-    <div class="panneau espace-haut">
-      <h2>Mon projet</h2>
-      <p class="sous">Le métier que vous visez, et les chapitres qui y mènent.</p>
-      <div id="projet"></div>
-    </div>
-
-    <div class="panneau espace-haut">
-      <h2>Parcours de rattrapage</h2>
-      <p class="sous">Une lacune détectée, les prérequis des classes antérieures revus, puis le QCM repassé.</p>
-      <div id="parcours"></div>
-    </div>
-
-    <div class="panneau espace-haut" id="panneauProfs">
-      <h2>Mes professeurs référents</h2>
-      <p class="sous">Saisissez le code que votre professeur vous a donné. Il verra votre progression
-        <b>dans sa matière uniquement</b> — rien de vos autres matières, ni de vos coordonnées.</p>
-      <div id="mesProfs"><p class="sous">Chargement…</p></div>
-    </div>
-
-    <div class="panneau espace-haut">
-      <h2>Comment ce pourcentage est calculé</h2>
-      <p class="sous derniere" id="formule">
-        Chaque chapitre combine les séances vidéo visionnées, le résumé lu, le QCM passé
-        et le TP téléchargé.
-      </p>
+    <div class="prog-col">
+      <section class="prog-panneau prog-formule">
+        <div class="prog-tete"><h2>Comment ce pourcentage est calculé</h2></div>
+        <p class="sous derniere" id="formule">Chaque chapitre combine les séances vidéo visionnées, le résumé lu,
+          le QCM passé et le TP téléchargé.</p>
+      </section>
     </div>
   </div>
-</div>
+
+</main>
 <script src="/js/pied.js?v=3"></script>
 
 <script src="/js/api.js?v=3"></script>
 <script src="/js/entete.js?v=3"></script>
-<script src="/js/progression.js?v=3"></script>
+<script src="/js/progression.js?v=4"></script>
 </body>
 </html>
