@@ -9,6 +9,7 @@ const prog = require('../services/progression');
 const journal = require('../services/journal');
 const suivi = require('../services/suivi');
 const exos = require('../services/exercices');
+const securite = require('../services/securite');
 
 const routeur = express.Router();
 routeur.use(requiert('admin'));
@@ -209,13 +210,15 @@ routeur.post('/utilisateurs', async (req, res) => {
   if (nom.length < 2) return res.status(400).json({ erreur: 'Indiquez un nom.' });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))
     return res.status(400).json({ erreur: 'Adresse e-mail invalide.' });
-  if (mdp.length < 8) return res.status(400).json({ erreur: 'Mot de passe : 8 caractères minimum.' });
+  const faible = securite.motDePasseFaible(mdp, { email, nom });
+  if (faible) return res.status(400).json({ erreur: faible });
   if (await un('SELECT id FROM utilisateurs WHERE email = ?', [email]))
     return res.status(409).json({ erreur: 'Cette adresse est déjà utilisée.' });
 
+  /* Un mot de passe posé par l'administration se change à la première connexion. */
   const r = await executer(
-    'INSERT INTO utilisateurs (nom, email, mot_de_passe, role, niveau) VALUES (?,?,?,?,?)',
-    [nom, email, bcrypt.hashSync(mdp, 10), role,
+    'INSERT INTO utilisateurs (nom, email, mot_de_passe, role, niveau, doit_changer_mdp) VALUES (?,?,?,?,?,1)',
+    [nom, email, bcrypt.hashSync(mdp, 12), role,
      role === 'eleve' ? texte(req.body.niveau, 80) || config.niveauParDefaut : null]);
   res.status(201).json({ id: r.insertId });
 });
@@ -235,10 +238,14 @@ routeur.patch('/utilisateurs/:id', async (req, res) => {
     champs.push('role = ?'); params.push(req.body.role);
   }
   if (req.body.motDePasse) {
-    if (String(req.body.motDePasse).length < 8)
-      return res.status(400).json({ erreur: 'Mot de passe : 8 caractères minimum.' });
-    champs.push('mot_de_passe = ?'); params.push(bcrypt.hashSync(String(req.body.motDePasse), 10));
+    const faible = securite.motDePasseFaible(String(req.body.motDePasse), { email: u.email, nom: u.nom });
+    if (faible) return res.status(400).json({ erreur: faible });
+    /* Nouveau mot de passe : les sessions ouvertes tombent, et il devra le changer. */
+    champs.push('mot_de_passe = ?'); params.push(bcrypt.hashSync(String(req.body.motDePasse), 12));
+    champs.push('session_version = session_version + 1', 'doit_changer_mdp = 1');
   }
+  /* Désactiver un compte ferme aussi ses sessions. */
+  if (req.body.actif !== undefined && !req.body.actif) champs.push('session_version = session_version + 1');
   if (!champs.length) return res.json({ ok: true });
   await executer('UPDATE utilisateurs SET ' + champs.join(', ') + ' WHERE id = ?', [...params, id]);
   res.json({ ok: true });

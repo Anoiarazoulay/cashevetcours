@@ -13,6 +13,8 @@
   pied();
   chargement(false);
 
+  const echapper = t => String(t == null ? '' : t)
+    .replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const jourFR = j => new Date(j + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
   const jourCourt = j => new Date(j + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric' });
 
@@ -25,8 +27,8 @@
     }
     $('#enfants').innerHTML = enfants.map((e, i) => `
       <button class="carte-enfant${i === 0 ? ' active' : ''}" data-enfant="${e.id}">
-        <span class="av">${e.nom[0].toUpperCase()}</span>
-        <span class="txt"><b>${e.nom}</b><small>${e.niveau || 'Élève'}</small></span>
+        <span class="av">${echapper((e.nom || '?')[0].toUpperCase())}</span>
+        <span class="txt"><b>${echapper(e.nom)}</b><small>${echapper(e.niveau || 'Élève')}</small></span>
         <span class="mini-stat"><b>${e.apercu.global} %</b><small>${e.apercu.faits}/${e.apercu.total} chapitres</small></span>
       </button>`).join('');
   };
@@ -37,7 +39,7 @@
     const couleur = s.global >= 70 ? 'var(--ok)' : s.global >= 40 ? 'var(--info)' : 'var(--warn)';
     const moyCouleur = s.moyenne === null ? 'var(--info)' : s.moyenne >= 70 ? 'var(--ok)' : 'var(--warn)';
 
-    $('#eleveInit').textContent = tb.eleve.nom[0].toUpperCase();
+    $('#eleveInit').textContent = (tb.eleve.nom || '?')[0].toUpperCase();
     $('#eleveNom').textContent = tb.eleve.nom;
     $('#eleveNiveau').textContent = tb.eleve.niveau || 'Cashevent School';
 
@@ -96,8 +98,6 @@
       : 'Aucune session sur les 14 derniers jours.';
 
     /* Son projet : le métier visé et les chapitres qui y mènent. */
-    const echapper = t => String(t == null ? '' : t)
-      .replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const m = tb.metier;
     $('#projet').innerHTML = m ? `
       <div class="projet-ligne">

@@ -9,7 +9,7 @@ const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const config = require('./config');
-const { attacher } = require('./middleware/auth');
+const { attacher, exigerNouveauMotDePasse, memeOrigine } = require('./middleware/auth');
 
 const app = express();
 const prod = config.env === 'production';
@@ -52,6 +52,11 @@ app.use(helmet({
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   hsts: prod ? { maxAge: 15552000, includeSubDomains: true } : false
 }));
+/* Le site n'utilise ni caméra, ni micro, ni géolocalisation : on le dit au navigateur. */
+app.use((_req, res, suite) => {
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()');
+  suite();
+});
 
 /* Les TP envoyés par les enseignants arrivent encodés en base64 : 5 Mo de
    fichier font un peu moins de 7 Mo de JSON. Cette route seule a droit à plus. */
@@ -82,8 +87,11 @@ const limiteApi = limite(15, 1000,
 /* --------------------------------- API ---------------------------------- */
 const api = express.Router();
 api.use(limiteApi);
+api.use(memeOrigine);
+api.use(exigerNouveauMotDePasse);
 api.post('/auth/connexion', limiteConnexion);
 api.post('/auth/inscription', limiteConnexion);
+api.patch('/auth/motdepasse', limiteConnexion);
 api.get('/professeurs/code/:code', limiteCode);
 api.use('/auth', require('./routes/auth'));
 api.use('/', require('./routes/catalogue'));
@@ -117,7 +125,8 @@ const PAGES = {
   '/progression': ['eleve', 'admin'],
   '/espace-parent': ['parent', 'admin'],
   '/espace-enseignant': ['enseignant'],
-  '/admin': ['admin']
+  '/admin': ['admin'],
+  '/mot-de-passe': ['eleve', 'parent', 'enseignant', 'admin']
 };
 app.get(Object.keys(PAGES), (req, res, suite) => {
   const roles = PAGES[req.path];

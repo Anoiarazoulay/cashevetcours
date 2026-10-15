@@ -34,7 +34,13 @@ const COLONNES = [
   /* Le projet de l'élève : le métier qu'il vise, et s'il veut que le programme
      s'illumine en fonction de lui. */
   ['utilisateurs', 'metier_id', 'INT UNSIGNED NULL'],
-  ['utilisateurs', 'metier_actif', 'TINYINT(1) NOT NULL DEFAULT 0']
+  ['utilisateurs', 'metier_actif', 'TINYINT(1) NOT NULL DEFAULT 0'],
+
+  /* Sécurité : un numéro de session porté par le jeton (changer de mot de
+     passe déconnecte partout), et l'obligation de changer un mot de passe
+     posé par quelqu'un d'autre (administration, démonstration). */
+  ['utilisateurs', 'session_version', 'INT UNSIGNED NOT NULL DEFAULT 1'],
+  ['utilisateurs', 'doit_changer_mdp', 'TINYINT(1) NOT NULL DEFAULT 0']
 ];
 
 /* [table, nom de l'index, définition] — ajoutés s'ils manquent. */

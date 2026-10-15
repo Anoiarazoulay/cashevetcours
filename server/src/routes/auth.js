@@ -6,6 +6,7 @@ const { tous, un, executer } = require('../db');
 const { signer, poserCookie, retirerCookie, requiert } = require('../middleware/auth');
 const journal = require('../services/journal');
 const suivi = require('../services/suivi');
+const securite = require('../services/securite');
 
 const routeur = express.Router();
 
@@ -30,7 +31,8 @@ const profil = async u => {
     telephone: u.telephone || null, dateNaissance: u.date_naissance || null,
     age: ageDepuis(u.date_naissance), etablissement: u.etablissement || null,
     filiere: u.filiere || null, ville: u.ville || null,
-    codePostal: u.code_postal || null, pays: u.pays || null
+    codePostal: u.code_postal || null, pays: u.pays || null,
+    doitChangerMotDePasse: !!u.doit_changer_mdp
   };
   if (u.role === 'parent') {
     const { tous } = require('../db');
@@ -53,8 +55,8 @@ routeur.post('/inscription', async (req, res) => {
 
   if (nom.length < 2) return res.status(400).json({ erreur: 'Indiquez votre nom complet.' });
   if (!EMAIL.test(email)) return res.status(400).json({ erreur: 'Cette adresse e-mail n’est pas valide.' });
-  if (motDePasse.length < 8)
-    return res.status(400).json({ erreur: 'Le mot de passe doit contenir au moins 8 caractères.' });
+  const faible = securite.motDePasseFaible(motDePasse, { email, nom });
+  if (faible) return res.status(400).json({ erreur: faible });
 
   /* ------------------------------ la fiche ------------------------------- */
   const dateNaissance = String(req.body.dateNaissance || '').trim();
@@ -101,7 +103,7 @@ routeur.post('/inscription', async (req, res) => {
        (nom, email, mot_de_passe, role, niveau, telephone, date_naissance,
         etablissement, filiere, ville, code_postal, pays)
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-    [nom, email, bcrypt.hashSync(motDePasse, 10), role,
+    [nom, email, bcrypt.hashSync(motDePasse, 12), role,
      role === 'eleve' ? config.niveauParDefaut : null,
      telephone, dateNaissance, etablissement, filiere, ville, codePostal, pays]);
 
@@ -158,11 +160,22 @@ routeur.post('/inscription', async (req, res) => {
 
 /* POST /api/auth/connexion */
 routeur.post('/connexion', async (req, res) => {
-  const email = String(req.body.email || '').trim().toLowerCase();
-  const motDePasse = String(req.body.motDePasse || '');
+  const email = String(req.body.email || '').trim().toLowerCase().slice(0, 190);
+  const motDePasse = String(req.body.motDePasse || '').slice(0, 200);
+
+  /* Trop d'échecs sur ce compte : on n'essaie même pas le mot de passe. */
+  const attente = securite.connexionBloquee(email);
+  if (attente) {
+    await journal.enregistrer(req, {
+      categorie: 'auth', action: 'Connexion refusée', cible: email, succes: false, details: 'Compte temporairement bloqué' });
+    return res.status(429).json({
+      erreur: `Trop de tentatives. Réessayez dans ${attente} minute${attente > 1 ? 's' : ''}.` });
+  }
 
   const u = await un('SELECT * FROM utilisateurs WHERE email = ?', [email]);
-  if (!u || !bcrypt.compareSync(motDePasse, u.mot_de_passe)) {
+  /* Le même temps de réponse, compte connu ou non : rien ne trahit l'adresse. */
+  if (!u || !bcrypt.compareSync(motDePasse, u ? u.mot_de_passe : securite.EMPREINTE_LEURRE)) {
+    securite.noterEchec(email);
     await journal.enregistrer(req, {
       categorie: 'auth', action: 'Connexion refusée', cible: email, succes: false,
       details: u ? 'Mot de passe incorrect' : 'Adresse inconnue',
@@ -170,6 +183,7 @@ routeur.post('/connexion', async (req, res) => {
     });
     return res.status(401).json({ erreur: 'Adresse e-mail ou mot de passe incorrect.' });
   }
+  securite.noterSucces(email);
   if (!u.actif) {
     await journal.enregistrer(req, {
       categorie: 'auth', action: 'Connexion refusée', cible: email, succes: false,
@@ -211,19 +225,25 @@ routeur.post('/deconnexion', async (req, res) => {
 /* GET /api/auth/moi */
 routeur.get('/moi', requiert(), async (req, res) => res.json({ utilisateur: await profil(req.utilisateur) }));
 
-/* PATCH /api/auth/motdepasse */
+/* PATCH /api/auth/motdepasse — { actuel, nouveau }. Les autres sessions du
+   compte sont fermées ; celle-ci reçoit un nouveau jeton. */
 routeur.patch('/motdepasse', requiert(), async (req, res) => {
-  const actuel = String(req.body.actuel || ''), nouveau = String(req.body.nouveau || '');
-  if (nouveau.length < 8)
-    return res.status(400).json({ erreur: 'Le nouveau mot de passe doit contenir au moins 8 caractères.' });
+  const actuel = String(req.body.actuel || '').slice(0, 200), nouveau = String(req.body.nouveau || '').slice(0, 200);
+  const faible = securite.motDePasseFaible(nouveau, { email: req.utilisateur.email, nom: req.utilisateur.nom });
+  if (faible) return res.status(400).json({ erreur: faible });
   const u = await un('SELECT mot_de_passe FROM utilisateurs WHERE id = ?', [req.utilisateur.id]);
   if (!bcrypt.compareSync(actuel, u.mot_de_passe))
     return res.status(401).json({ erreur: 'Le mot de passe actuel est incorrect.' });
-  await executer('UPDATE utilisateurs SET mot_de_passe = ? WHERE id = ?',
-    [bcrypt.hashSync(nouveau, 10), req.utilisateur.id]);
+  if (actuel === nouveau)
+    return res.status(400).json({ erreur: 'Choisissez un mot de passe différent de l’actuel.' });
+  await executer(
+    `UPDATE utilisateurs SET mot_de_passe = ?, doit_changer_mdp = 0, session_version = session_version + 1
+      WHERE id = ?`, [bcrypt.hashSync(nouveau, 12), req.utilisateur.id]);
+  const frais = await un('SELECT * FROM utilisateurs WHERE id = ?', [req.utilisateur.id]);
+  poserCookie(res, signer(frais));
   await journal.enregistrer(req, {
     categorie: 'compte', action: 'Mot de passe changé', cible: req.utilisateur.email });
-  res.json({ ok: true });
+  res.json({ ok: true, utilisateur: await profil(frais) });
 });
 
 module.exports = routeur;

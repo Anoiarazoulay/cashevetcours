@@ -286,7 +286,23 @@ exactement les mêmes chiffres.
 
 ### Sécurité
 
-- Mots de passe hachés avec bcrypt, session par jeton JWT dans un cookie `httpOnly`.
+- Mots de passe hachés avec bcrypt (coût 12), session par jeton JWT dans un cookie `httpOnly`,
+  `SameSite=Lax`, `Secure` en production.
+- **Politique de mots de passe** (`services/securite.js`) : huit caractères au moins, deux familles
+  de caractères, rien de trop courant, ni l'adresse e-mail ni le nom. Appliquée à l'inscription, au
+  changement et aux comptes créés par l'administration.
+- **Frein par compte** : cinq échecs de connexion en un quart d'heure bloquent le compte un quart
+  d'heure, en plus de la limite par adresse IP. Le message et le temps de réponse sont les mêmes
+  pour une adresse inconnue et un mauvais mot de passe.
+- **Sessions révocables** : le jeton porte un numéro de session ; changer de mot de passe, ou être
+  désactivé, ferme toutes les autres sessions du compte.
+- **Mot de passe à changer** : un mot de passe posé par quelqu'un d'autre (administration, compte
+  de démonstration encore public en production) doit être remplacé à la connexion suivante ; tout
+  le reste de l'API reste fermé jusque-là (`/mot-de-passe`).
+- **Origine contrôlée** : une requête qui modifie des données doit venir du site lui-même
+  (`Origin` et `Sec-Fetch-Site`), en plus du cookie `SameSite`.
+- En-têtes : politique de sécurité du contenu avec nonce, `Permissions-Policy`, `Referrer-Policy`,
+  HSTS en production, aucune mise en cache des pages.
 - Les bonnes réponses ne quittent jamais le serveur avant que l'élève ait répondu :
   le QCM ouvre une tentative, chaque réponse est corrigée côté serveur, le score est calculé
   à partir des réponses enregistrées.
@@ -351,7 +367,7 @@ l'administration : `npm run verif` bloque si l'un d'eux est encore public en pro
 | POST | `/api/auth/connexion` | — | ouvrir une session |
 | POST | `/api/auth/deconnexion` | — | fermer la session |
 | GET | `/api/auth/moi` | connecté | profil courant |
-| PATCH | `/api/auth/motdepasse` | connecté | changer son mot de passe |
+| PATCH | `/api/auth/motdepasse` | connecté | changer son mot de passe (ferme les autres sessions) |
 | GET | `/api/catalogue` | connecté | matières et chapitres |
 | GET | `/api/chapitres/:id` | connecté | fiche complète (sans les réponses) |
 | GET | `/api/chapitres/:id/tp` | connecté | télécharger le TP corrigé |

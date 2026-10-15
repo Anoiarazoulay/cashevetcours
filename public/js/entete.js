@@ -58,11 +58,12 @@ window.UI = (() => {
       <button class="pbtn" id="pbtn" aria-haspopup="true" aria-label="Mon compte">
         <span class="avatar avatar-init" aria-hidden="true">${initiale}</span><span class="caret"></span></button>
       <div class="menu" id="menu" role="menu">
-        <div class="menu-tete"><b>${utilisateur.nom}</b><small>${utilisateur.email}</small>
+        <div class="menu-tete"><b>${esc(utilisateur.nom)}</b><small>${esc(utilisateur.email)}</small>
           <span class="role-pastille role-${utilisateur.role}">${
             { eleve: 'Élève', parent: 'Parent', enseignant: 'Enseignant',
               admin: 'Administrateur' }[utilisateur.role]}</span></div>
         ${liens.map(([, href, l]) => `<a role="menuitem" href="${href}">${l}</a>`).join('')}
+        <a role="menuitem" href="/mot-de-passe">Changer mon mot de passe</a>
         <button role="menuitem" id="deconnexion">Se déconnecter</button>
       </div>
     </div>

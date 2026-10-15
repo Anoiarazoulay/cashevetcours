@@ -21,6 +21,11 @@ window.API = (() => {
     }
     let donnees = null;
     if ((r.headers.get('content-type') || '').includes('application/json')) donnees = await r.json();
+    /* Un mot de passe à changer bloque tout le reste : on y va. */
+    if (r.status === 403 && donnees && donnees.code === 'MOT_DE_PASSE_A_CHANGER' && location.pathname !== '/mot-de-passe') {
+      location.href = '/mot-de-passe';
+      throw new Error(donnees.erreur);
+    }
     if (!r.ok) throw new Error((donnees && donnees.erreur) || 'Erreur ' + r.status);
     return donnees;
   };

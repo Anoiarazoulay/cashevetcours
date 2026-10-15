@@ -28,6 +28,12 @@ const conseil = e => {
     const c = await un('SELECT COUNT(*) AS n FROM matieres');
     const ch = await un('SELECT COUNT(*) AS n FROM chapitres');
     console.log(`· base connectée : ${c.n} matières, ${ch.n} chapitres`);
+    /* En production, un compte de démonstration qui a gardé son mot de passe
+       public devra en choisir un autre à sa prochaine connexion. */
+    if (config.env === 'production') {
+      const touches = await require('./services/securite').verrouillerComptesDemo();
+      if (touches.length) console.warn('! mots de passe de démonstration encore en place, changement exigé à la connexion : ' + touches.join(', '));
+    }
   } catch (e) {
     console.error('\n✗ Base de données inaccessible : ' + e.message);
     console.error('  ' + conseil(e) + '\n');

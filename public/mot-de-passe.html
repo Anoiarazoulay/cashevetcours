@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mot de passe — Cashevent School</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Anton&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css?v=3">
+<link rel="stylesheet" href="/css/ecole.css?v=3">
+<link rel="stylesheet" href="/css/app.css?v=3">
+<link rel="stylesheet" href="/css/pages.css?v=3">
+<link rel="stylesheet" href="/css/mobile.css?v=3">
+</head>
+<body data-page="motdepasse">
+
+<div class="parent-tete">
+  <div>
+    <h1>Changer mon mot de passe</h1>
+    <p id="sousTitre">Un bon mot de passe : huit caractères au moins, lettres et chiffres, rien de trop courant.</p>
+  </div>
+</div>
+
+<div class="colonnes-parent">
+  <div>
+    <div class="panneau">
+      <div class="erreur" id="erreur" hidden></div>
+      <form id="formMdp" class="auth-carte-form" autocomplete="on">
+        <label class="champ-libelle">Mot de passe actuel
+          <input class="champ" type="password" name="actuel" autocomplete="current-password" required></label>
+        <label class="champ-libelle">Nouveau mot de passe
+          <input class="champ" type="password" name="nouveau" autocomplete="new-password" minlength="8" required></label>
+        <label class="champ-libelle">Confirmer le nouveau mot de passe
+          <input class="champ" type="password" name="confirmation" autocomplete="new-password" minlength="8" required></label>
+        <p class="sous espace-haut">Vos autres sessions ouvertes seront fermées. Celle-ci reste connectée.</p>
+        <div class="rangee-boutons espace-haut">
+          <button class="pilule blanc" type="submit">Enregistrer le nouveau mot de passe</button>
+          <a class="pilule" href="/" id="annuler">Annuler</a>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div>
+    <div class="panneau">
+      <h2>Pourquoi ?</h2>
+      <p class="sous derniere" id="pourquoi">Changez votre mot de passe régulièrement, et ne le réutilisez pas ailleurs.</p>
+    </div>
+  </div>
+</div>
+<script src="/js/pied.js?v=3"></script>
+
+<script src="/js/api.js?v=3"></script>
+<script src="/js/entete.js?v=3"></script>
+<script src="/js/motdepasse.js?v=1"></script>
+</body>
+</html>
