@@ -254,6 +254,8 @@ server/
     services/projet.js      futur métier de l'élève et progression sur ses chapitres
     services/rattrapage.js  parcours de rattrapage : prérequis, mini-évaluations, validation
     services/ia.js          l'assistant : OpenRouter (modèles gratuits) ou Anthropic
+    services/qcm.js         banque de questions et tirage d'un QCM différent par tentative
+    services/bilan.js       le bilan de l'élève rédigé par l'assistant
     outils/verification.js  contrôle avant mise en production
     routes/                 auth · catalogue · progression · parent · admin · enseignant · professeurs · projet
   db/
@@ -301,6 +303,27 @@ niveau, puis resservis à tout le monde. Le fournisseur se choisit par la clé p
 Les modèles gratuits ne prennent pas tous en charge la sortie structurée : `services/ia.js`
 essaie d'abord le format JSON garanti, puis le texte libre avec extraction du JSON, modèle après
 modèle. `GET /api/admin/ia?tester=1` (administrateur) vérifie la configuration par un appel court.
+
+### Un QCM différent pour chaque élève
+
+Le catalogue apporte trois questions rédigées par chapitre. L'assistant en ajoute jusqu'à douze
+par chapitre (`services/qcm.js`), enregistrées une fois pour toutes dans la même table avec la
+marque `ia`. À chaque tentative, l'élève reçoit **six questions tirées au sort**, en évitant
+celles de sa tentative précédente, propositions mélangées. La banque se complète toute seule en
+arrière-plan la première fois qu'un élève ouvre le QCM d'un chapitre, ou d'un coup pour tout le
+programme avec `npm run qcm:banque` (48 chapitres, une quarantaine de minutes avec un modèle
+gratuit). L'administration peut aussi relancer un chapitre : `POST /api/admin/chapitres/:id/qcm/generer`.
+Éditer le questionnaire depuis l'administration ne touche jamais aux questions de l'assistant.
+
+### Mon bilan : l'analyse de l'assistant
+
+La page `/bilan` donne à l'élève ses chiffres — vidéos vues, QCM passés et moyenne, TP
+téléchargés, chapitres terminés, rythme — puis le **bilan rédigé par l'assistant**
+(`services/bilan.js`) : résumé, points forts, points à travailler, recommandations ordonnées,
+plan de la semaine, mot d'encouragement lié au futur métier. Le modèle ne reçoit que les
+chiffres et les titres de chapitres de l'élève. Le texte est conservé en base (`bilans_ia`) et
+n'est réécrit que si les chiffres ont changé, ou sur demande (« Actualiser »). Le parent lit le
+même bilan via `GET /api/parent/enfants/:id/bilan`.
 
 ### Sécurité
 
@@ -417,6 +440,7 @@ l'administration : `npm run verif` bloque si l'un d'eux est encore public en pro
 | GET | `/api/professeurs/code/:code` | — | retrouver un enseignant par son code |
 | GET/PUT | `/api/metiers` · `/metiers/mien` | élève | les métiers, choisir et activer le sien |
 | GET | `/api/metiers/mien/progression` | élève | avancement sur les chapitres du métier |
+| GET | `/api/bilan` | élève | chiffres et bilan rédigé par l'assistant (`?forcer=1` le réécrit) |
 | GET | `/api/rattrapage` · `/rattrapage/:id` | élève | mes parcours, le détail d'un parcours |
 | GET/POST | `/api/rattrapage/chapitre/:id` | élève | prérequis d'un chapitre, lancer un parcours |
 | GET/POST | `/api/rattrapage/:id/etapes/:prerequisId` | élève | lire une fiche, répondre à sa mini-évaluation |

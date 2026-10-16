@@ -44,6 +44,19 @@ routeur.get('/metiers/mien/progression', requiert('eleve'), route(async (req, re
   res.json({ progression: await projet.progression(req.utilisateur.id) });
 }));
 
+/* ---------------------------------- bilan --------------------------------- */
+
+/* GET /api/bilan — le relevé de l'élève et le bilan rédigé par l'assistant.
+   Le texte est rédigé quand les chiffres ont changé, ou avec ?forcer=1. */
+routeur.get('/bilan', requiert('eleve'), route(async (req, res) => {
+  const bilan = require('../services/bilan');
+  const d = await bilan.obtenir(req.utilisateur.id, { forcer: req.query.forcer === '1' });
+  if (!d) return res.status(404).json({ erreur: 'Élève introuvable.' });
+  if (d.genere) await journal.enregistrer(req, { categorie: 'apprentissage', action: 'Bilan rédigé',
+    cible: req.utilisateur.nom, details: d.modele });
+  res.json(d);
+}));
+
 /* -------------------------------- rattrapage ------------------------------ */
 
 /* GET /api/rattrapage — mes parcours */

@@ -133,6 +133,20 @@ routeur.get('/remunerations/:id', async (req, res) => {
 /* ------------------------ exercices générés : relecture --------------------- */
 /* Retirée de l'espace enseignant : avec une inscription libre, n'importe qui
    pourrait valider une série. La relecture reste à l'administration. */
+/* POST /api/admin/chapitres/:id/qcm/generer — l'assistant complète la banque de questions */
+routeur.post('/chapitres/:id/qcm/generer', async (req, res) => {
+  const qcm = require('../services/qcm');
+  const id = entier(req.params.id);
+  if (!await un('SELECT id FROM chapitres WHERE id = ?', [id])) return res.status(404).json({ erreur: 'Chapitre introuvable.' });
+  if (!require('../services/ia').actif()) return res.status(503).json({ erreur: 'L’assistant n’est pas activé.' });
+  try {
+    const r = await qcm.generer(id, Math.min(9, Number(req.body.nombre) || 9));
+    await journal.enregistrer(req, { categorie: 'catalogue', action: 'Questions générées',
+      cible: 'Chapitre ' + id, details: r.ajoutees + ' question(s) par ' + r.modele });
+    res.json({ ...r, total: await qcm.compter(id) });
+  } catch (e) { res.status(502).json({ erreur: e.message }); }
+});
+
 /* GET /api/admin/ia — l'état de l'assistant, et un appel d'essai avec ?tester=1 */
 routeur.get('/ia', async (req, res) => {
   const ia = require('../services/ia');
@@ -483,8 +497,9 @@ routeur.put('/chapitres/:id/questions', async (req, res) => {
   }
 
   await transaction(async cx => {
+    /* Seules les questions rédigées sont remplacées : la banque de l'assistant reste. */
     const gardees = liste.map(q => entier(q.id)).filter(Boolean);
-    await cx.query('DELETE FROM questions WHERE chapitre_id = ?' +
+    await cx.query("DELETE FROM questions WHERE chapitre_id = ? AND source = 'redaction'" +
       (gardees.length ? ' AND id NOT IN (' + gardees.map(() => '?').join(',') + ')' : ''), [id, ...gardees]);
 
     for (const [i, q] of liste.entries()) {

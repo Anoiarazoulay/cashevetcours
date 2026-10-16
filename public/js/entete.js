@@ -18,7 +18,8 @@ window.UI = (() => {
   const NAV = {
     eleve: [['accueil', '/ecole', 'Accueil'], ['matieres', '/matieres', 'Matières'],
             ['revisions', '/revisions', 'Mes révisions'],
-            ['progression', '/progression', 'Ma progression']],
+            ['progression', '/progression', 'Ma progression'],
+            ['bilan', '/bilan', 'Mon bilan']],
     parent: [['parent', '/espace-parent', 'Suivi de mon enfant']],
     enseignant: [['enseignant', '/espace-enseignant', 'Mon tableau de bord']],
     admin: [['admin', '/admin', 'Administration'], ['accueil', '/ecole', 'Vue élève'],

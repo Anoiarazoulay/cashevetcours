@@ -142,20 +142,22 @@ routeur.get('/chapitres/:id/tp', requiert(), async (req, res) => {
 /* ---------------------------------- QCM ---------------------------------- */
 const melanger = t => { const a = t.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0;[a[i], a[j]] = [a[j], a[i]]; } return a; };
 
-/* POST /api/chapitres/:id/qcm — ouvre une tentative, renvoie les questions sans les réponses */
+/* POST /api/chapitres/:id/qcm — ouvre une tentative, renvoie les questions sans les réponses.
+   Chaque tentative tire un jeu différent dans la banque du chapitre ; si la
+   banque est courte, l'assistant la complète en arrière-plan pour la suite. */
 routeur.post('/chapitres/:id/qcm', requiert('eleve'), async (req, res) => {
   if (!idValide(req.params.id)) return res.status(400).json({ erreur: 'Identifiant de chapitre invalide.' });
   const chapitreId = Number(req.params.id);
+  const qcm = require('../services/qcm');
 
-  const questions = await tous(
-    'SELECT id, enonce FROM questions WHERE chapitre_id = ? ORDER BY ordre', [chapitreId]);
+  const questions = await qcm.tirer(req.utilisateur.id, chapitreId);
   if (!questions.length)
     return res.status(404).json({ erreur: 'Aucune question n’est encore disponible pour ce chapitre.' });
+  qcm.enrichirEnArrierePlan(chapitreId, await qcm.compter(chapitreId));
 
   const options = await tous(
     `SELECT o.id, o.question_id, o.texte FROM options_reponse o
-       JOIN questions q ON q.id = o.question_id
-      WHERE q.chapitre_id = ? ORDER BY o.ordre`, [chapitreId]);
+      WHERE o.question_id IN (?) ORDER BY o.ordre`, [questions.map(q => q.id)]);
 
   const r = await executer(
     'INSERT INTO tentatives_qcm (eleve_id, chapitre_id, total) VALUES (?,?,?)',

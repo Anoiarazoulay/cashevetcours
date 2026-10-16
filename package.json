@@ -11,6 +11,7 @@
     "db:init": "node server/db/init.js",
     "db:reset": "node server/db/init.js --reset",
     "contenu": "node server/db/contenu.js",
+    "qcm:banque": "node server/outils/banque-qcm.js",
     "prod": "node -e \"process.env.NODE_ENV='production';require('./server/src/index.js')\"",
     "verif": "node server/outils/verification.js"
   },

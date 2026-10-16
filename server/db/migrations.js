@@ -40,7 +40,12 @@ const COLONNES = [
      passe déconnecte partout), et l'obligation de changer un mot de passe
      posé par quelqu'un d'autre (administration, démonstration). */
   ['utilisateurs', 'session_version', 'INT UNSIGNED NOT NULL DEFAULT 1'],
-  ['utilisateurs', 'doit_changer_mdp', 'TINYINT(1) NOT NULL DEFAULT 0']
+  ['utilisateurs', 'doit_changer_mdp', 'TINYINT(1) NOT NULL DEFAULT 0'],
+
+  /* Banque de questions : celles rédigées par l'assistant s'ajoutent aux
+     questions du catalogue, pour qu'un QCM diffère d'un élève à l'autre. */
+  ['questions', 'source', "ENUM('redaction','ia') NOT NULL DEFAULT 'redaction'"],
+  ['questions', 'modele', 'VARCHAR(60) NULL']
 ];
 
 /* [table, nom de l'index, définition] — ajoutés s'ils manquent. */
@@ -293,6 +298,17 @@ const TABLES = [
      PRIMARY KEY (parcours_id, prerequis_id),
      CONSTRAINT fk_pe_parcours FOREIGN KEY (parcours_id) REFERENCES parcours(id) ON DELETE CASCADE,
      CONSTRAINT fk_pe_prerequis FOREIGN KEY (prerequis_id) REFERENCES prerequis(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
+
+  /* Le bilan rédigé par l'assistant pour un élève, conservé tant que ses
+     chiffres n'ont pas changé (l'empreinte les résume). */
+  ['bilans_ia', `CREATE TABLE IF NOT EXISTS bilans_ia (
+     eleve_id INT UNSIGNED NOT NULL PRIMARY KEY,
+     empreinte VARCHAR(64) NOT NULL,
+     contenu JSON NOT NULL,
+     modele VARCHAR(60) NOT NULL,
+     cree_le DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     CONSTRAINT fk_bilans_eleve FOREIGN KEY (eleve_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
 
   /* Carnet de l'enseignant : ses notes personnelles sur un élève dans une

@@ -123,6 +123,7 @@ const PAGES = {
   '/matieres': ['eleve', 'admin'],
   '/revisions': ['eleve', 'admin'],
   '/progression': ['eleve', 'admin'],
+  '/bilan': ['eleve'],
   '/espace-parent': ['parent', 'admin'],
   '/espace-enseignant': ['enseignant'],
   '/admin': ['admin'],

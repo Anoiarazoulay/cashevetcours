@@ -35,6 +35,17 @@ routeur.get('/enfants/:id/tableau-bord', requiert('parent', 'admin'), async (req
   res.json(tb);
 });
 
+/* GET /api/parent/enfants/:id/bilan — le bilan de l'assistant, tel que l'élève le voit.
+   Le parent lit le bilan existant ; il ne déclenche pas de rédaction. */
+routeur.get('/enfants/:id/bilan', requiert('parent', 'admin'), async (req, res) => {
+  if (!await eleveAutorise(req.utilisateur, req.params.id))
+    return res.status(403).json({ erreur: 'Vous ne suivez pas cet élève.' });
+  const { un } = require('../db');
+  const b = await un('SELECT contenu, modele, cree_le FROM bilans_ia WHERE eleve_id = ?', [Number(req.params.id)]);
+  res.json({ bilan: b ? (typeof b.contenu === 'string' ? JSON.parse(b.contenu) : b.contenu) : null,
+    modele: b ? b.modele : null, creeLe: b ? b.cree_le : null });
+});
+
 /* GET /api/parent/enfants/:id/chapitres — le détail, matière par matière */
 routeur.get('/enfants/:id/chapitres', requiert('parent', 'admin'), async (req, res) => {
   if (!await eleveAutorise(req.utilisateur, req.params.id))
