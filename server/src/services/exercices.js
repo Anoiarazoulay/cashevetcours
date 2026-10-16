@@ -102,48 +102,43 @@ async function serie(chapitreId, niveau) {
 
 /* Produit une série et l'enregistre. Renvoie la série et le coût constaté. */
 async function generer(chapitreId, niveau = 'entrainement', nombre = 4) {
-  if (!client) throw new Error('Le générateur d’exercices n’est pas configuré.');
+  if (!ia.actif()) throw new Error('Le générateur d’exercices n’est pas configuré.');
   if (!NIVEAUX[niveau]) throw new Error('Niveau d’exercices inconnu.');
 
   const c = await cat.chapitre(chapitreId);
   if (!c) throw new Error('Ce chapitre n’existe pas.');
 
-  const reponse = await client.messages.create({
-    model: config.ia.modele,
-    max_tokens: 16000,
-    system: [{ type: 'text', text: CONSIGNE, cache_control: { type: 'ephemeral' } }],
-    output_config: { format: { type: 'json_schema', schema: SCHEMA } },
-    messages: [{
-      role: 'user',
-      content: `${contexte(c)}\n\nRédige ${nombre} ${NIVEAUX[niveau]}.`
-    }]
+  const r = await ia.completerJSON({
+    consigne: CONSIGNE,
+    demande: `${contexte(c)}\n\nRédige ${nombre} ${NIVEAUX[niveau]}.`,
+    schema: SCHEMA, nomSchema: 'exercices', maxTokens: 12000
   });
+  const contenu = r.contenu;
+  if (!contenu || !Array.isArray(contenu.exercices) || !contenu.exercices.length)
+    throw new Error('Le modèle n’a pas renvoyé d’exercices exploitables.');
+  /* Les modèles sans mode structuré oublient parfois un champ : on complète. */
+  const chaine = v => String(v == null ? '' : v);
+  const liste = v => Array.isArray(v) ? v.map(chaine) : [];
+  contenu.exercices = contenu.exercices.slice(0, nombre).map(x => ({
+    titre: chaine(x.titre || 'Exercice'), enonce: chaine(x.enonce),
+    donnees: liste(x.donnees), bareme: chaine(x.bareme), indice: chaine(x.indice),
+    correction: {
+      etapes: liste(x.correction && x.correction.etapes),
+      reponse: chaine(x.correction && x.correction.reponse),
+      erreurs: liste(x.correction && x.correction.erreurs)
+    }
+  }));
 
-  if (reponse.stop_reason === 'refusal')
-    throw new Error('Le modèle a refusé de rédiger cette série.');
-
-  /* Le format structuré garantit un premier bloc texte en JSON valide. */
-  const bloc = reponse.content.find(b => b.type === 'text');
-  if (!bloc) throw new Error('Réponse vide du modèle.');
-  const contenu = JSON.parse(bloc.text);
-
-  const u = reponse.usage || {};
   await executer(
     `INSERT INTO exercices (chapitre_id, niveau, contenu, modele, jetons_entree, jetons_sortie)
           VALUES (?, ?, ?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE contenu = VALUES(contenu), modele = VALUES(modele),
           jetons_entree = VALUES(jetons_entree), jetons_sortie = VALUES(jetons_sortie),
           cree_le = CURRENT_TIMESTAMP`,
-    [chapitreId, niveau, JSON.stringify(contenu), config.ia.modele,
-     u.input_tokens || 0, u.output_tokens || 0]);
+    [chapitreId, niveau, JSON.stringify(contenu), chaine(r.modele).slice(0, 60),
+     r.usage.entree, r.usage.sortie]);
 
-  return {
-    ...contenu,
-    niveau,
-    modele: config.ia.modele,
-    creeLe: new Date(),
-    cout: { entree: u.input_tokens || 0, sortie: u.output_tokens || 0 }
-  };
+  return { ...contenu, niveau, modele: r.modele, creeLe: new Date(), cout: r.usage };
 }
 
 module.exports = { serie, generer, NIVEAUX, actif: ia.actif };
