@@ -32,11 +32,23 @@ const config = {
      le reste de la plateforme n'en dépend pas. Les séries produites sont
      enregistrées en base et resservies à tout le monde — un chapitre n'est
      donc facturé qu'une fois, pas une fois par élève. */
-  ia: {
-    cle: process.env.ANTHROPIC_API_KEY || '',
-    modele: process.env.IA_MODELE || 'claude-opus-5',
-    active: !!process.env.ANTHROPIC_API_KEY
-  },
+  ia: (() => {
+    /* OpenRouter d'abord (modèles gratuits), Anthropic sinon. IA_FOURNISSEUR force le choix. */
+    const fournisseur = process.env.IA_FOURNISSEUR ||
+      (process.env.OPENROUTER_API_KEY ? 'openrouter' : process.env.ANTHROPIC_API_KEY ? 'anthropic' : '');
+    const cle = fournisseur === 'openrouter' ? process.env.OPENROUTER_API_KEY
+      : fournisseur === 'anthropic' ? process.env.ANTHROPIC_API_KEY : '';
+    const parDefaut = fournisseur === 'openrouter' ? 'google/gemma-4-31b-it:free' : 'claude-opus-5';
+    return {
+      fournisseur, cle: cle || '',
+      modele: process.env.IA_MODELE || parDefaut,
+      /* Chez OpenRouter, les modèles gratuits saturent parfois : on en essaie d'autres. */
+      secours: (process.env.IA_MODELES_SECOURS ||
+        'nvidia/nemotron-3-super-120b-a12b:free,google/gemma-4-26b-a4b-it:free,openrouter/free')
+        .split(',').map(s => s.trim()).filter(Boolean),
+      active: !!cle
+    };
+  })(),
   /* Pondération de l'avancement d'un chapitre (somme = 1) */
   poids: { seances: 0.5, resume: 0.1, qcm: 0.25, tp: 0.15 },
   seuilARevoir: 60,

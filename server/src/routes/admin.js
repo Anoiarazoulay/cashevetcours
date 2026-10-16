@@ -133,6 +133,20 @@ routeur.get('/remunerations/:id', async (req, res) => {
 /* ------------------------ exercices générés : relecture --------------------- */
 /* Retirée de l'espace enseignant : avec une inscription libre, n'importe qui
    pourrait valider une série. La relecture reste à l'administration. */
+/* GET /api/admin/ia — l'état de l'assistant, et un appel d'essai avec ?tester=1 */
+routeur.get('/ia', async (req, res) => {
+  const ia = require('../services/ia');
+  const etat = { actif: ia.actif(), fournisseur: ia.fournisseur() || null, modele: ia.actif() ? ia.modele() : null,
+    secours: config.ia.secours };
+  if (req.query.tester !== '1' || !ia.actif()) return res.json(etat);
+  try {
+    const r = await ia.tester();
+    res.json({ ...etat, essai: { ok: true, modeleUtilise: r.modele, duree: r.duree, reponse: r.contenu, usage: r.usage } });
+  } catch (e) {
+    res.json({ ...etat, essai: { ok: false, erreur: e.message } });
+  }
+});
+
 routeur.get('/exercices', async (_req, res) => {
   const series = await tous(
     `SELECT x.id, x.niveau, x.valide, x.note_relecture, x.cree_le, x.modele,

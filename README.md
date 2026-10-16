@@ -253,6 +253,7 @@ server/
     services/suivi.js       enseignants référents : suivis, classes, carnet, statistiques
     services/projet.js      futur métier de l'élève et progression sur ses chapitres
     services/rattrapage.js  parcours de rattrapage : prérequis, mini-évaluations, validation
+    services/ia.js          l'assistant : OpenRouter (modèles gratuits) ou Anthropic
     outils/verification.js  contrôle avant mise en production
     routes/                 auth · catalogue · progression · parent · admin · enseignant · professeurs · projet
   db/
@@ -283,6 +284,23 @@ dernier score au QCM descend sous 60 %. Ces valeurs sont regroupées dans `serve
 
 Ces calculs vivent dans un seul service : l'élève, le parent et l'administration lisent
 exactement les mêmes chiffres.
+
+### L'assistant : OpenRouter (gratuit) ou Anthropic
+
+Les exercices corrigés sont rédigés par un modèle de langage, une fois par chapitre et par
+niveau, puis resservis à tout le monde. Le fournisseur se choisit par la clé présente dans `.env` :
+
+| Variable | Rôle |
+|---|---|
+| `OPENROUTER_API_KEY` | clé OpenRouter (https://openrouter.ai/keys) : les modèles gratuits suffisent |
+| `IA_MODELE` | modèle demandé ; par défaut `google/gemma-4-31b-it:free` |
+| `IA_MODELES_SECOURS` | modèles essayés si le premier sature ; par défaut Nemotron 3 Super, Gemma 4 26B, puis `openrouter/free` |
+| `ANTHROPIC_API_KEY` | pour utiliser Claude à la place (laisser `OPENROUTER_API_KEY` vide) |
+| `IA_FOURNISSEUR` | force `openrouter` ou `anthropic` si les deux clés sont présentes |
+
+Les modèles gratuits ne prennent pas tous en charge la sortie structurée : `services/ia.js`
+essaie d'abord le format JSON garanti, puis le texte libre avec extraction du JSON, modèle après
+modèle. `GET /api/admin/ia?tester=1` (administrateur) vérifie la configuration par un appel court.
 
 ### Sécurité
 

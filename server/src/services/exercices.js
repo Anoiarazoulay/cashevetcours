@@ -1,15 +1,15 @@
-/* Génération d'exercices corrigés par Claude.
+/* Génération d'exercices corrigés par l'assistant (OpenRouter ou Anthropic,
+   voir services/ia.js).
 
    Une série est produite une fois par chapitre et par niveau, puis enregistrée
    en base et resservie à tous les élèves : le coût est payé une fois, pas une
    fois par consultation. Seule l'administration peut en redemander une.
 
-   Sans ANTHROPIC_API_KEY, la fonction se désactive et le reste de la
-   plateforme continue de fonctionner normalement.                            */
-const Anthropic = require('@anthropic-ai/sdk');
-const config = require('../config');
+   Sans clé d'API, la fonction se désactive et le reste de la plateforme
+   continue de fonctionner normalement.                                       */
 const { un, executer } = require('../db');
 const cat = require('./catalogue');
+const ia = require('./ia');
 
 const NIVEAUX = {
   application: 'exercices d\'application directe du cours, pour vérifier que les ' +
@@ -19,10 +19,6 @@ const NIVEAUX = {
   bac: 'exercices de type épreuve du baccalauréat, avec un énoncé contextualisé ' +
     'et un barème sur points'
 };
-
-const client = config.ia.active
-  ? new (Anthropic.default || Anthropic)({ apiKey: config.ia.cle })
-  : null;
 
 /* Le contrat de sortie. « additionalProperties: false » et « required » sont
    obligatoires : le modèle ne peut alors rendre que cette forme exacte. */
