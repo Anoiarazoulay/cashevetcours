@@ -146,4 +146,4 @@ async function generer(chapitreId, niveau = 'entrainement', nombre = 4) {
   };
 }
 
-module.exports = { serie, generer, NIVEAUX, actif: () => !!client };
+module.exports = { serie, generer, NIVEAUX, actif: ia.actif };
