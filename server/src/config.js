@@ -44,7 +44,7 @@ const config = {
       modele: process.env.IA_MODELE || parDefaut,
       /* Chez OpenRouter, les modèles gratuits saturent parfois : on en essaie d'autres. */
       secours: (process.env.IA_MODELES_SECOURS ||
-        'nvidia/nemotron-3-super-120b-a12b:free,google/gemma-4-26b-a4b-it:free,openrouter/free')
+        'nvidia/nemotron-3-super-120b-a12b:free,nvidia/nemotron-3-ultra-550b-a55b:free,google/gemma-4-26b-a4b-it:free,openrouter/free')
         .split(',').map(s => s.trim()).filter(Boolean),
       active: !!cle
     };

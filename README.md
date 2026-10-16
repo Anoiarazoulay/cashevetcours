@@ -294,7 +294,7 @@ niveau, puis resservis à tout le monde. Le fournisseur se choisit par la clé p
 |---|---|
 | `OPENROUTER_API_KEY` | clé OpenRouter (https://openrouter.ai/keys) : les modèles gratuits suffisent |
 | `IA_MODELE` | modèle demandé ; par défaut `google/gemma-4-31b-it:free` |
-| `IA_MODELES_SECOURS` | modèles essayés si le premier sature ; par défaut Nemotron 3 Super, Gemma 4 26B, puis `openrouter/free` |
+| `IA_MODELES_SECOURS` | modèles essayés si le premier sature ; par défaut Nemotron 3 Super, Nemotron 3 Ultra, Gemma 4 26B, puis `openrouter/free` |
 | `ANTHROPIC_API_KEY` | pour utiliser Claude à la place (laisser `OPENROUTER_API_KEY` vide) |
 | `IA_FOURNISSEUR` | force `openrouter` ou `anthropic` si les deux clés sont présentes |
 
