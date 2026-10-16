@@ -119,6 +119,7 @@ async function completerJSON({ consigne, demande, schema, nomSchema = 'reponse',
         return await appelOpenRouter(modele, { consigne, demande, schema, nomSchema, maxTokens, structure });
       } catch (e) {
         erreurs.push(`${modele}${structure ? '' : ' (texte)'} : ${e.message}`);
+        console.warn(`· assistant : ${modele}${structure ? '' : ' (texte)'} n’a pas répondu (${String(e.message).slice(0, 120)})`);
         /* Saturation ou modèle indisponible : inutile de réessayer en texte, on change de modèle. */
         if ([429, 404, 402, 503, 502].includes(e.statut)) break;
       }

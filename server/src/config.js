@@ -38,13 +38,13 @@ const config = {
       (process.env.OPENROUTER_API_KEY ? 'openrouter' : process.env.ANTHROPIC_API_KEY ? 'anthropic' : '');
     const cle = fournisseur === 'openrouter' ? process.env.OPENROUTER_API_KEY
       : fournisseur === 'anthropic' ? process.env.ANTHROPIC_API_KEY : '';
-    const parDefaut = fournisseur === 'openrouter' ? 'google/gemma-4-31b-it:free' : 'claude-opus-5';
+    const parDefaut = fournisseur === 'openrouter' ? 'nvidia/nemotron-3-super-120b-a12b:free' : 'claude-opus-5';
     return {
       fournisseur, cle: cle || '',
       modele: process.env.IA_MODELE || parDefaut,
       /* Chez OpenRouter, les modèles gratuits saturent parfois : on en essaie d'autres. */
       secours: (process.env.IA_MODELES_SECOURS ||
-        'nvidia/nemotron-3-super-120b-a12b:free,nvidia/nemotron-3-ultra-550b-a55b:free,google/gemma-4-26b-a4b-it:free,openrouter/free')
+        'google/gemma-4-31b-it:free,nvidia/nemotron-3-ultra-550b-a55b:free,nvidia/nemotron-3.5-super-vl:free,openrouter/free')
         .split(',').map(s => s.trim()).filter(Boolean),
       active: !!cle
     };

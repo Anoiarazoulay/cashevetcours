@@ -70,6 +70,9 @@ Règles de rédaction :
 - « erreurs » recense les fautes que les élèves commettent réellement sur ce
   type de question, pas des généralités ;
 - « indice » est une piste de départ, jamais la réponse ;
+- « etapes » contient une entrée par étape du raisonnement, quatre au moins,
+  chacune en une ou deux phrases : jamais toute la correction dans une seule entrée ;
+- écris un français correct, avec tous les accents (é, è, à, ç…) ;
 - pas de Markdown ni de LaTeX : du texte simple, les formules écrites en clair
   (par exemple « v = d / t » ou « z = a + ib »).`;
 
