@@ -126,6 +126,11 @@
 .tableau td.detail{color:var(--text-3);font-size:12.5px;max-width:280px}
 .tableau td.ip{color:#6a6a72;font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .anonyme{color:var(--text-3)}
+.etiquette.eleve{background:rgba(76,141,255,.16);color:#9db6ff}
+.etiquette.premium{background:rgba(205,92,180,.2);color:#E9A6DA}
+.etiquette.paie-declare{background:rgba(76,141,255,.16);color:#9db6ff}
+.etiquette.paie-confirme{background:rgba(63,208,138,.18);color:#6fe0ac}
+.etiquette.paie-en_attente{background:rgba(245,165,36,.18);color:#f5c078}
 .etiquette{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700;
   margin-right:8px;letter-spacing:.02em}
 .cat-auth{background:rgba(76,141,255,.18);color:#9db6ff}

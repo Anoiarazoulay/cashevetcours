@@ -49,6 +49,22 @@ const config = {
       active: !!cle
     };
   })(),
+  /* Abonnements annuels. Tant que ABONNEMENTS_OBLIGATOIRES n'est pas à 1,
+     les offres sont visibles et souscriptibles mais rien n'est bloqué : on
+     peut lancer les paiements sans fermer la porte aux comptes existants.
+     Le paiement se fait hors ligne (virement, espèces…) : le compte déclare
+     sa référence, l'administration confirme et l'année démarre. */
+  abonnements: {
+    obligatoires: process.env.ABONNEMENTS_OBLIGATOIRES === '1',
+    instructionsPaiement: process.env.ABONNEMENTS_PAIEMENT ||
+      'Réglez le montant par virement ou auprès de votre contact Cashevent School, puis indiquez ici la référence du paiement. Votre abonnement est activé dès réception.',
+    formules: {
+      eleve:   { libelle: 'Élève', prix: 10, devise: 'EUR', dureeMois: 12,
+                 debloque: ['eleve', 'etablissement'] },
+      premium: { libelle: 'Premium', prix: 50, devise: 'EUR', dureeMois: 12,
+                 debloque: ['eleve', 'parent', 'enseignant', 'etablissement'] }
+    }
+  },
   /* Pondération de l'avancement d'un chapitre (somme = 1) */
   poids: { seances: 0.5, resume: 0.1, qcm: 0.25, tp: 0.15 },
   seuilARevoir: 60,

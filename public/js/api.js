@@ -26,6 +26,11 @@ window.API = (() => {
       location.href = '/mot-de-passe';
       throw new Error(donnees.erreur);
     }
+    /* Abonnement obligatoire et absent : la page des offres. */
+    if (r.status === 402 && donnees && donnees.code === 'ABONNEMENT_REQUIS' && location.pathname !== '/abonnement') {
+      location.href = '/abonnement';
+      throw new Error(donnees.erreur);
+    }
     if (!r.ok) throw new Error((donnees && donnees.erreur) || 'Erreur ' + r.status);
     return donnees;
   };

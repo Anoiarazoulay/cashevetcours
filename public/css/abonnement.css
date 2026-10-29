@@ -1,0 +1,109 @@
+/* CASHEVENT SCHOOL — « Mon abonnement » : situation du compte, formules,
+   comparatif, fonctionnement, confiance, questions fréquentes.              */
+.abo{gap:34px}
+.abo .sous{color:var(--text-3);font-size:13.5px;line-height:1.55}
+
+/* Situation du compte */
+.abo-etat{font-size:14.5px;line-height:1.6;color:var(--text-2)}
+.abo-etat>b,.abo-etat-tete b{display:block;font-size:19px;color:#fff;margin-bottom:6px}
+.abo-etat strong{color:#fff;font-weight:700}
+.abo-etat.ok{border-color:rgba(63,208,138,.4);background:linear-gradient(135deg,rgba(63,208,138,.12),var(--card) 60%)}
+.abo-etat.attente{border-color:rgba(245,165,36,.4);background:linear-gradient(135deg,rgba(245,165,36,.1),var(--card) 60%)}
+.abo-etat.bloque{border-color:rgba(205,92,180,.45);background:linear-gradient(135deg,rgba(205,92,180,.14),var(--card) 60%)}
+.abo-etat code{background:#2c2c31;padding:1px 6px;border-radius:6px;font-size:13px;color:#fff}
+.abo-etat-tete{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap}
+.abo-compteur{text-align:center;padding:10px 18px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--line-2);min-width:110px}
+.abo-compteur b{display:block;font-family:Anton,Inter,sans-serif;font-size:34px;line-height:1;color:#fff}
+.abo-compteur small{font-size:11.5px;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em}
+.abo-compteur.bientot{border-color:rgba(245,165,36,.5)}.abo-compteur.bientot b{color:#ffd166}
+.abo-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.abo-actions .pilule[disabled]{opacity:.5;cursor:not-allowed}
+
+/* Étapes */
+.abo-etapes{list-style:none;margin:18px 0 14px;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;counter-reset:etape}
+.abo-etapes li{position:relative;padding:12px 12px 12px 46px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line-2);min-height:62px}
+.abo-etapes li span{position:absolute;left:12px;top:12px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12.5px;font-weight:800;background:#2c2c31;color:var(--text-3)}
+.abo-etapes li b{display:block;font-size:13.5px;color:var(--text-3)}
+.abo-etapes li small{display:block;font-size:12px;color:var(--text-3);opacity:.8;margin-top:2px;line-height:1.4}
+.abo-etapes li.faite span{background:var(--ok);color:#06240f}.abo-etapes li.faite span::before{content:"✓"}
+.abo-etapes li.faite span{font-size:0}.abo-etapes li.faite span::before{font-size:13px}
+.abo-etapes li.faite b{color:#fff}
+.abo-etapes li.en-cours{border-color:#fff;background:rgba(255,255,255,.07)}
+.abo-etapes li.en-cours span{background:#fff;color:#111}
+.abo-etapes li.en-cours b{color:#fff}
+
+/* Demande en cours */
+.abo-demande{margin-top:8px;display:grid;gap:12px}
+.abo-recap{display:grid;grid-template-columns:auto 1fr;gap:6px 18px;margin:0;font-size:14px}
+.abo-recap dt{color:var(--text-3)}.abo-recap dd{margin:0;color:#fff}
+.consignes{padding:14px 16px;border-radius:12px;background:var(--card-2);border-left:3px solid #ffd166;white-space:pre-wrap;line-height:1.6}
+.consignes b{display:block;font-size:13px;color:#ffd166;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.ligne-paiement{display:flex;gap:10px;flex-wrap:wrap}
+.ligne-paiement .champ{flex:1;min-width:240px}
+.lien-discret{background:none;border:0;color:var(--text-3);font-size:13px;text-decoration:underline;cursor:pointer;padding:0;justify-self:start}
+.lien-discret:hover{color:#fff}
+
+/* Formules */
+.abo-entete-section{margin-bottom:14px}
+.abo-titre{font-size:22px;margin:0 0 4px}
+.abo-grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-bottom:18px}
+.abo-carte{border:1px solid var(--line-2);border-radius:18px;padding:26px;background:var(--card);display:flex;flex-direction:column;gap:12px;position:relative;overflow:hidden;transition:.18s}
+.abo-carte:hover{transform:translateY(-3px);border-color:#5a5a64}
+.abo-carte.premium{border-color:rgba(233,166,218,.55);background:linear-gradient(160deg,rgba(205,92,180,.18),var(--card) 55%)}
+.abo-carte.premium::before{content:"Recommandé";position:absolute;top:18px;right:-36px;transform:rotate(38deg);background:var(--brand);color:#fff;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:5px 46px}
+.abo-carte.fermee{opacity:.75}
+.abo-nom{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--text-3)}
+.abo-prix{font-family:Anton,Inter,sans-serif;font-size:50px;line-height:1;letter-spacing:.01em;color:#fff}
+.abo-prix small{font-family:Inter,sans-serif;font-size:14px;color:var(--text-3);margin-left:8px;letter-spacing:0}
+.abo-mensuel{font-size:13px;color:var(--text-3);margin-top:-6px}
+.abo-liste{list-style:none;margin:6px 0;padding:0;display:flex;flex-direction:column;gap:10px}
+.abo-liste li{display:grid;gap:2px;padding-left:26px;position:relative;font-size:13.5px;line-height:1.5;color:var(--text-2)}
+.abo-liste li::before{content:"✓";position:absolute;left:0;top:0;color:var(--ok);font-weight:800}
+.abo-liste li b{color:#fff;font-size:14.5px}
+.abo-note{font-size:13px;line-height:1.5;color:var(--text-3);margin:0;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.04)}
+.abo-carte .pilule{margin-top:auto;align-self:flex-start}
+.abo-carte .pilule[disabled]{opacity:.5;cursor:not-allowed}
+
+/* Comparatif */
+.abo-comparatif h2{font-size:18px;margin-bottom:10px}
+.abo .table-defile,.abo .tableau{width:100%}
+.tableau-plat table{min-width:520px;width:100%}
+.tableau-comparatif{table-layout:auto}
+.tableau-comparatif th{font-size:13px;letter-spacing:0;text-transform:none;color:#fff}
+.tableau-comparatif th.premium,.tableau-comparatif td.premium{background:rgba(205,92,180,.08)}
+.tableau-comparatif td{font-size:13.5px}
+.tableau-comparatif tr.groupe td{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);padding-top:16px;background:none}
+.tableau-comparatif .oui-non{text-align:center;width:110px}
+.tableau-comparatif i{font-style:normal;font-weight:800}
+.tableau-comparatif i.oui{color:var(--ok)}.tableau-comparatif i.non{color:var(--text-3)}
+
+/* Fonctionnement et confiance */
+.abo-pas{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+.pas{position:relative;padding:22px 20px 20px;border-radius:16px;background:var(--card);border:1px solid var(--line-2)}
+.pas span{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#fff;color:#111;font-weight:900;font-size:15px;margin-bottom:12px}
+.pas b{display:block;font-size:15.5px;margin-bottom:6px}
+.pas p{margin:0;font-size:13.5px;line-height:1.55;color:var(--text-2)}
+.abo-confiance{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.conf{padding:16px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid var(--line-2);font-size:13px;line-height:1.55;color:var(--text-2)}
+.conf b{display:block;color:#fff;font-size:14px;margin-bottom:6px}
+
+/* FAQ */
+.abo-faq{display:grid;gap:8px}
+.abo-faq details{border:1px solid var(--line-2);border-radius:12px;background:var(--card);padding:0 18px}
+.abo-faq summary{cursor:pointer;padding:14px 0;font-weight:600;font-size:14.5px;list-style:none;position:relative;padding-right:30px}
+.abo-faq summary::-webkit-details-marker{display:none}
+.abo-faq summary::after{content:"+";position:absolute;right:0;top:12px;font-size:20px;color:var(--text-3)}
+.abo-faq details[open] summary::after{content:"–"}
+.abo-faq p{margin:0 0 14px;font-size:13.5px;line-height:1.6;color:var(--text-2)}
+
+@media (max-width:900px){
+  .abo-etapes,.abo-confiance{grid-template-columns:1fr 1fr}
+  .abo-pas{grid-template-columns:1fr}
+}
+@media (max-width:600px){
+  .abo{gap:26px}
+  .abo-etapes,.abo-confiance{grid-template-columns:1fr}
+  .abo-prix{font-size:40px}
+  .abo-carte{padding:20px}
+  .abo-recap{grid-template-columns:1fr}
+}

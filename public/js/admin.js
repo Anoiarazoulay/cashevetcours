@@ -19,7 +19,7 @@
   const ONGLETS = [
     ['bord', 'Tableau de bord'], ['utilisateurs', 'Utilisateurs'],
     ['catalogue', 'Catalogue'], ['suivi', 'Suivi des élèves'],
-    ['enseignants', 'Enseignants'], ['exercices', 'Exercices'],
+    ['enseignants', 'Enseignants'], ['abonnements', 'Abonnements'], ['exercices', 'Exercices'],
     ['messages', 'Messages'], ['journal', 'Journal']
   ];
   let onglet = location.hash.slice(1) || 'bord';
@@ -800,6 +800,88 @@
     };
   }
 
+  /* ------------------------------- abonnements ---------------------------- */
+  /* Le paiement se fait hors ligne : le compte déclare sa référence, l'admin
+     confirme ici et l'année démarre. Un abonnement peut aussi être accordé. */
+  let etatAbo = 'en_attente';
+  const FORMULE = { eleve: 'Élève', premium: 'Premium' };
+  const PAIE_ABO = { en_attente: ['À payer', ''], declare: ['Déclaré', 'declare'], confirme: ['Reçu', 'confirme'] };
+  async function rendreAbonnements() {
+    attente();
+    const d = await API.get('/admin/abonnements' + (etatAbo === 'tous' ? '' : '?etat=' + etatAbo));
+    const c = d.compte;
+    vue.innerHTML = `
+      <div class="tuiles">
+        <div class="tuile"><div class="lab">Demandes à traiter</div><div class="val">${Number(c.en_attente) || 0}</div>
+          <div class="sous">${Number(c.declares) || 0} paiement(s) déclaré(s) à vérifier</div></div>
+        <div class="tuile"><div class="lab">Abonnements actifs</div><div class="val">${Number(c.actifs) || 0}</div>
+          <div class="sous">dont ${Number(c.premium) || 0} premium</div></div>
+        <div class="tuile"><div class="lab">Encaissé sur les abonnements actifs</div><div class="val">${eur(c.encaisse || 0)}</div></div>
+        <div class="tuile"><div class="lab">Barrière</div><div class="val petit">${d.obligatoires ? 'Abonnement obligatoire' : 'Accès libre (lancement)'}</div>
+          <div class="sous">ABONNEMENTS_OBLIGATOIRES dans .env</div></div>
+      </div>
+      <div class="barre-outils">
+        <div class="filtres-roles">${[['en_attente', 'À traiter'], ['actif', 'Actifs'], ['annule', 'Annulés'], ['tous', 'Tous']].map(([v, l]) =>
+          `<button class="pilule mini ${etatAbo === v ? 'blanc' : ''}" data-etat-abo="${v}">${l}</button>`).join('')}</div>
+        <button class="pilule blanc" data-accorder>Accorder un abonnement</button>
+      </div>
+      <div class="table-defile"><table class="tableau">
+        <thead><tr><th>Compte</th><th>Formule</th><th>Montant</th><th>Paiement</th><th>Période</th><th>Demandé le</th><th></th></tr></thead>
+        <tbody>${d.abonnements.map(a => `
+          <tr>
+            <td><b>${echapper(a.nom)}</b><small>${echapper(a.email)} · ${ROLES[a.role] || a.role}</small></td>
+            <td><span class="etiquette ${a.formule}">${FORMULE[a.formule]}</span></td>
+            <td>${eur(a.prix)}</td>
+            <td><span class="etiquette paie-${a.paiement}">${PAIE_ABO[a.paiement][0]}</span>${a.reference_paiement ? `<small>${echapper(a.reference_paiement)}</small>` : ''}</td>
+            <td>${a.etat === 'actif' ? `${dateFR(a.debut)} → ${dateFR(a.fin)}` : a.etat === 'annule' ? 'Annulé' : '—'}${a.note ? `<small>${echapper(a.note)}</small>` : ''}</td>
+            <td class="quand-cell">${dateFR(a.cree_le)}</td>
+            <td class="actions-ligne">
+              ${a.etat === 'en_attente' ? `<button class="mini" data-confirmer="${a.id}">Confirmer le paiement</button>` : ''}
+              ${a.etat !== 'annule' ? `<button class="mini danger" data-annuler-abo="${a.id}">Annuler</button>` : ''}
+            </td>
+          </tr>`).join('')}</tbody>
+      </table></div>
+      ${d.abonnements.length ? '' : '<p class="sous vide">Rien dans cette liste.</p>'}
+      <p class="sous" style="margin-top:14px">Élève : ${eur(d.formules.eleve.prix)} par an, ouvre l’espace élève et les universités.
+        Premium : ${eur(d.formules.premium.prix)} par an, ouvre en plus l’espace des parents et des enseignants référents de l’élève.</p>`;
+
+    gestionnaire = async e => {
+      const f = e.target.closest('[data-etat-abo]'), ok = e.target.closest('[data-confirmer]');
+      const an = e.target.closest('[data-annuler-abo]'), acc = e.target.closest('[data-accorder]');
+      if (f) { etatAbo = f.dataset.etatAbo; return rendreAbonnements(); }
+      if (ok) {
+        const a = d.abonnements.find(x => x.id === Number(ok.dataset.confirmer));
+        return dialogue('Confirmer le paiement de ' + a.nom, `
+          <p class="sous">${FORMULE[a.formule]} · ${eur(a.prix)}${a.reference_paiement ? ' · référence ' + echapper(a.reference_paiement) : ''}.
+            L’abonnement démarre aujourd’hui (ou à la suite de l’abonnement en cours).</p>
+          <label class="champ-libelle">Durée en mois <input class="champ" name="mois" type="number" min="1" max="60" value="12"></label>
+          <label class="champ-libelle">Note (facultatif) <input class="champ" name="note" maxlength="300" placeholder="Virement reçu le…"></label>`,
+          async v => { await API.post(`/admin/abonnements/${a.id}/confirmer`, { mois: Number(v.mois), note: v.note }); message('Abonnement activé.'); rendreAbonnements(); });
+      }
+      if (an) {
+        if (!confirm('Annuler cet abonnement ? Le compte perdra la couverture correspondante.')) return;
+        try { await API.supprimer('/admin/abonnements/' + an.dataset.annulerAbo); rendreAbonnements(); }
+        catch (err) { message(err.message); }
+      }
+      if (acc) {
+        let comptes = [];
+        try { comptes = (await API.get('/admin/utilisateurs')).utilisateurs.filter(u => ['eleve', 'parent', 'enseignant'].includes(u.role)); }
+        catch (err) { return message(err.message); }
+        dialogue('Accorder un abonnement', `
+          <label class="champ-libelle">Compte <select class="champ" name="utilisateurId" required>
+            ${comptes.map(u => `<option value="${u.id}">${echapper(u.nom)} — ${ROLES[u.role]} (${echapper(u.email)})</option>`).join('')}
+          </select></label>
+          <label class="champ-libelle">Formule <select class="champ" name="formule">
+            <option value="eleve">Élève — ${eur(d.formules.eleve.prix)} / an</option>
+            <option value="premium" selected>Premium — ${eur(d.formules.premium.prix)} / an</option>
+          </select></label>
+          <label class="champ-libelle">Durée en mois <input class="champ" name="mois" type="number" min="1" max="60" value="12"></label>
+          <label class="champ-libelle">Note <input class="champ" name="note" maxlength="300" placeholder="Offert, payé en espèces…"></label>`,
+          async v => { await API.post('/admin/abonnements', { utilisateurId: Number(v.utilisateurId), formule: v.formule, mois: Number(v.mois), note: v.note }); message('Abonnement accordé.'); rendreAbonnements(); });
+      }
+    };
+  }
+
   /* -------------------------------- exercices ----------------------------- */
   /* La relecture des séries générées reste à l'administration. */
   const NIVEAUX_EXO = { application: 'Application', entrainement: 'Entraînement', bac: 'Type bac' };
@@ -935,6 +1017,7 @@
       else if (onglet === 'journal') await rendreJournal();
       else if (onglet === 'enseignants') await rendreEnseignants();
       else if (onglet === 'exercices') await rendreExercices();
+      else if (onglet === 'abonnements') await rendreAbonnements();
       else await rendreSuivi();
     } catch (e) { vue.innerHTML = `<div class="vide-etat"><b>Erreur</b>${e.message}</div>`; }
   }

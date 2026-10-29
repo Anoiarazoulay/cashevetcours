@@ -66,6 +66,7 @@ window.UI = (() => {
             { eleve: 'Élève', parent: 'Parent', enseignant: 'Enseignant', etablissement: 'Établissement',
               admin: 'Administrateur' }[utilisateur.role]}</span></div>
         ${liens.map(([, href, l]) => `<a role="menuitem" href="${href}">${l}</a>`).join('')}
+        ${['eleve', 'parent', 'enseignant'].includes(utilisateur.role) ? '<a role="menuitem" href="/abonnement">Mon abonnement</a>' : ''}
         <a role="menuitem" href="/mot-de-passe">Changer mon mot de passe</a>
         <button role="menuitem" id="deconnexion">Se déconnecter</button>
       </div>

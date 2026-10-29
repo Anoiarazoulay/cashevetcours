@@ -9,7 +9,7 @@ const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const config = require('./config');
-const { attacher, exigerNouveauMotDePasse, memeOrigine } = require('./middleware/auth');
+const { attacher, exigerNouveauMotDePasse, exigerAbonnement, memeOrigine } = require('./middleware/auth');
 
 const app = express();
 const prod = config.env === 'production';
@@ -91,6 +91,7 @@ const api = express.Router();
 api.use(limiteApi);
 api.use(memeOrigine);
 api.use(exigerNouveauMotDePasse);
+api.use(exigerAbonnement);
 api.post('/auth/connexion', limiteConnexion);
 api.post('/auth/inscription', limiteConnexion);
 api.patch('/auth/motdepasse', limiteConnexion);
@@ -104,6 +105,7 @@ api.use('/enseignant', require('./routes/enseignant'));
 api.use('/professeurs', require('./routes/professeurs'));
 api.use('/', require('./routes/projet'));
 api.use('/', require('./routes/etablissements'));
+api.use('/abonnement', require('./routes/abonnement'));
 api.use('/contact', require('./routes/contact'));
 /* La santé dit aussi si une table attendue manque : sur un hébergement sans
    terminal, c'est le seul moyen de voir qu'une migration n'est pas passée. */
@@ -132,15 +134,39 @@ const PAGES = {
   '/espace-etablissement': ['etablissement'],
   '/apres-bac': ['eleve', 'admin'],
   '/admin': ['admin'],
+  '/abonnement': ['eleve', 'parent', 'enseignant', 'admin'],
   '/mot-de-passe': ['eleve', 'parent', 'enseignant', 'etablissement', 'admin']
 };
-app.get(Object.keys(PAGES), (req, res, suite) => {
+const SANS_ABONNEMENT = new Set(['/abonnement', '/mot-de-passe']);
+app.get(Object.keys(PAGES), async (req, res, suite) => {
   const roles = PAGES[req.path];
   /* Chaque espace a sa propre porte d'entrée : on renvoie vers la bonne. */
   if (!req.utilisateur)
     return res.redirect('/connexion/' + roles[0] + '?suite=' + encodeURIComponent(req.path));
   if (!roles.includes(req.utilisateur.role)) return res.redirect('/');
+  /* Abonnement obligatoire : l'espace s'ouvre sur la page des offres. */
+  if (config.abonnements.obligatoires && !SANS_ABONNEMENT.has(req.path) &&
+      ['eleve', 'parent', 'enseignant'].includes(req.utilisateur.role)) {
+    try { if (!await require('./services/abonnement').autorise(req.utilisateur)) return res.redirect('/abonnement'); }
+    catch (e) { return suite(e); }
+  }
   suite();
+});
+
+/* Reçu d'abonnement : réservé au titulaire du compte, ou à l'administration. */
+app.get('/abonnement/:id/recu', async (req, res, suite) => {
+  try {
+    if (!req.utilisateur) return res.redirect('/connexion/eleve?suite=' + encodeURIComponent(req.path));
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(404).type('text').send('Reçu introuvable.');
+    const { un } = require('./db');
+    const a = await un(`SELECT * FROM abonnements WHERE id = ? AND etat = 'actif' AND paiement = 'confirme'`, [id]);
+    if (!a || (a.utilisateur_id !== req.utilisateur.id && req.utilisateur.role !== 'admin'))
+      return res.status(404).type('text').send('Reçu introuvable.');
+    const u = await un('SELECT id, nom, email, role FROM utilisateurs WHERE id = ?', [a.utilisateur_id]);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.send(require('./services/abonnement').recuHTML(a, u, res.locals.nonce));
+  } catch (e) { suite(e); }
 });
 
 /* Racine : la vitrine pour un visiteur, son espace pour un compte connecté */

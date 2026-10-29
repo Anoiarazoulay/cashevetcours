@@ -10,12 +10,54 @@ const journal = require('../services/journal');
 const suivi = require('../services/suivi');
 const exos = require('../services/exercices');
 const securite = require('../services/securite');
+const abo = require('../services/abonnement');
 
 const routeur = express.Router();
 routeur.use(requiert('admin'));
 
 const entier = v => Number.isInteger(Number(v)) && Number(v) > 0 ? Number(v) : null;
 const texte = (v, max = 400) => String(v == null ? '' : v).trim().slice(0, max);
+
+/* -------------------------------- abonnements ------------------------------ */
+/* GET /api/admin/abonnements?etat=en_attente|actif|annule|tous */
+routeur.get('/abonnements', async (req, res) => {
+  const etat = ['en_attente', 'actif', 'annule'].includes(req.query.etat) ? req.query.etat : null;
+  const [lignes, compte] = await Promise.all([
+    tous(`SELECT a.*, u.nom, u.email, u.role FROM abonnements a JOIN utilisateurs u ON u.id = a.utilisateur_id
+           ${etat ? 'WHERE a.etat = ?' : ''} ORDER BY (a.paiement = 'declare') DESC, a.cree_le DESC LIMIT 300`, etat ? [etat] : []),
+    un(`SELECT SUM(etat = 'en_attente') AS en_attente, SUM(etat = 'en_attente' AND paiement = 'declare') AS declares,
+               SUM(etat = 'actif' AND fin >= CURDATE()) AS actifs,
+               SUM(etat = 'actif' AND fin >= CURDATE() AND formule = 'premium') AS premium,
+               SUM(CASE WHEN etat = 'actif' AND fin >= CURDATE() THEN prix ELSE 0 END) AS encaisse FROM abonnements`)
+  ]);
+  res.json({ abonnements: lignes, compte, formules: abo.FORMULES, obligatoires: config.abonnements.obligatoires });
+});
+
+/* POST /api/admin/abonnements/:id/confirmer — { mois?, note? } : le paiement est reçu, l'année démarre */
+routeur.post('/abonnements/:id/confirmer', async (req, res) => {
+  try {
+    const a = await abo.activer(entier(req.params.id), { mois: req.body.mois, note: texte(req.body.note, 300) || null });
+    await journal.enregistrer(req, { categorie: 'compte', action: 'Abonnement confirmé', cible: a.formule, details: 'compte ' + a.utilisateur_id });
+    res.json({ abonnement: a });
+  } catch (e) { if (!e.statut) throw e; res.status(e.statut).json({ erreur: e.message }); }
+});
+
+/* POST /api/admin/abonnements — { utilisateurId, formule, mois?, note? } : accordé directement */
+routeur.post('/abonnements', async (req, res) => {
+  try {
+    const a = await abo.accorder(entier(req.body.utilisateurId), texte(req.body.formule, 20), { mois: req.body.mois, note: texte(req.body.note, 300) || null });
+    await journal.enregistrer(req, { categorie: 'compte', action: 'Abonnement accordé', cible: a.formule, details: 'compte ' + a.utilisateur_id });
+    res.status(201).json({ abonnement: a });
+  } catch (e) { if (!e.statut) throw e; res.status(e.statut).json({ erreur: e.message }); }
+});
+
+/* DELETE /api/admin/abonnements/:id — annule (demande ou abonnement actif) */
+routeur.delete('/abonnements/:id', async (req, res) => {
+  const r = await executer(`UPDATE abonnements SET etat = 'annule' WHERE id = ? AND etat <> 'annule'`, [entier(req.params.id)]);
+  if (!r.affectedRows) return res.status(404).json({ erreur: 'Abonnement introuvable.' });
+  await journal.enregistrer(req, { categorie: 'compte', action: 'Abonnement annulé', cible: String(req.params.id) });
+  res.json({ ok: true });
+});
 
 /* ------------------------------ tableau de bord ---------------------------- */
 routeur.get('/tableau-bord', async (_req, res) => {

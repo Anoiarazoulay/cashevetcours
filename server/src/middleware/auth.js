@@ -53,6 +53,20 @@ const exigerNouveauMotDePasse = (req, res, suite) => {
   suite();
 };
 
+/* Abonnement : quand il est rendu obligatoire, un élève sans formule, ou un
+   parent / enseignant sans premium (le sien ou celui d'un élève lié), ne
+   garde que son profil, sa déconnexion et la page d'abonnement. */
+const EXEMPTES_ABO = [/^\/auth\//, /^\/abonnement(\/|$)/, /^\/contact/, /^\/catalogue\/public/, /^\/sante/];
+const exigerAbonnement = async (req, res, suite) => {
+  const u = req.utilisateur;
+  if (!config.abonnements.obligatoires || !u || !['eleve', 'parent', 'enseignant'].includes(u.role)) return suite();
+  if (EXEMPTES_ABO.some(r => r.test(req.path))) return suite();
+  try {
+    if (await require('../services/abonnement').autorise(u)) return suite();
+  } catch (e) { return suite(e); }
+  res.status(402).json({ erreur: 'Un abonnement est nécessaire pour accéder à cet espace.', code: 'ABONNEMENT_REQUIS' });
+};
+
 /* Garde-fou contre les requêtes forgées depuis un autre site : une requête
    qui modifie des données doit venir de la même origine. Le cookie est déjà
    en « SameSite=Lax » ; ceci double la ceinture. */
@@ -82,4 +96,4 @@ const eleveAutorise = async (utilisateur, eleveId) => {
   return false;
 };
 
-module.exports = { signer, poserCookie, retirerCookie, attacher, requiert, exigerNouveauMotDePasse, memeOrigine, eleveAutorise };
+module.exports = { signer, poserCookie, retirerCookie, attacher, requiert, exigerNouveauMotDePasse, exigerAbonnement, memeOrigine, eleveAutorise };

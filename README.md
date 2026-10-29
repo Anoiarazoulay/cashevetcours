@@ -241,9 +241,37 @@ puis déclaration du paiement avec sa référence. La réponse arrive sur l'accu
 sur la page. Le paiement en ligne des frais n'est pas encore branché : l'élève déclare son
 règlement, l'école le confirme.
 
+### Abonnements — `/abonnement`
+
+Deux formules annuelles, visibles depuis le menu du compte (« Mon abonnement ») :
+
+| Formule | Prix | Ce qu'elle ouvre |
+|---|---|---|
+| **Élève** | 10 € / an | l'espace élève et les universités / écoles |
+| **Premium** | 50 € / an | l'espace élève, les universités / écoles, **et** l'espace des parents liés et des enseignants référents de l'élève, sans qu'ils paient |
+
+Un parent ou un enseignant est couvert par le premium d'un de ses élèves, ou souscrit le premium
+pour son propre compte. Le circuit est le même que pour les frais de candidature : le compte
+choisit sa formule, règle hors ligne (virement, espèces — aucune carte n'est saisie sur la
+plateforme), déclare la référence du paiement, puis l'administration confirme depuis l'onglet
+**Abonnements** et l'année démarre. Un renouvellement confirmé avant l'échéance commence le
+lendemain de l'ancienne année. Chaque abonnement confirmé a son reçu numéroté, imprimable
+(`/abonnement/:id/recu`, servi au titulaire seulement).
+
+La page détaille la situation étape par étape (formule choisie → paiement → vérification →
+espace ouvert), le comparatif des deux formules, le fonctionnement, les garanties et les questions
+fréquentes. Les jours restants s'affichent, et un bouton de renouvellement apparaît dans les
+soixante derniers jours.
+
+**La barrière est désactivée par défaut** : tant que `ABONNEMENTS_OBLIGATOIRES` n'est pas à `1`
+dans `.env`, tout le monde garde son accès et les offres servent seulement à encaisser. Une fois
+activée, un élève sans formule, ou un parent / enseignant sans premium, est renvoyé vers
+`/abonnement` (pages comme API, code `ABONNEMENT_REQUIS`) ; établissements et administration ne
+sont jamais bloqués. `ABONNEMENTS_PAIEMENT` remplace les consignes de paiement affichées.
+
 ### Administration — `/admin`
 
-Quatre onglets :
+Neuf onglets :
 
 - **Tableau de bord** — comptes, élèves actifs sur 7 jours, volume du catalogue, moyenne générale
   aux QCM, et les chapitres les plus ratés (là où le contenu mérite d'être retravaillé) ;
@@ -252,6 +280,9 @@ Quatre onglets :
 - **Catalogue** — matières et chapitres : création, édition complète du contenu (notions, séances,
   résumé, TP) et édition du questionnaire, avec contrôle d'une bonne réponse unique ;
 - **Suivi des élèves** — la progression réelle de chaque élève, avec ses alertes ;
+- **Abonnements** — demandes à traiter (paiements déclarés en tête), abonnements actifs, annulés ;
+  confirmation d'un paiement avec durée et note, abonnement accordé directement à un compte,
+  annulation ; le montant encaissé et l'état de la barrière ;
 - **Messages** — les demandes reçues par le formulaire de contact, filtrables sur celles qui
   restent à traiter, avec réponse en un clic par courriel ;
 - **Journal** — la trace des actions : connexions (réussies et refusées), comptes, catalogue,
@@ -414,6 +445,12 @@ La politique CSP n'autorise aucun script en ligne anonyme : les rares scripts in
 pages reçoivent un *nonce* recalculé à chaque requête. Les sources externes admises se
 limitent aux polices Google, aux miniatures `ytimg.com` et aux lecteurs YouTube.
 
+### Les abonnements
+
+`ABONNEMENTS_OBLIGATOIRES=1` ferme les espaces élève, parent et enseignant aux comptes sans
+abonnement actif. Ne l'activez qu'une fois les abonnements des comptes existants accordés depuis
+l'administration, sinon ils se retrouvent tous devant la page des offres.
+
 ### Avant l'ouverture
 
 Changez les mots de passe des quatre comptes de démonstration, ou supprimez-les depuis
@@ -467,6 +504,9 @@ l'administration : `npm run verif` bloque si l'un d'eux est encore public en pro
 | POST/DELETE | `/api/candidatures/:id/pieces` · `/pieces/:pid` | élève | joindre ou retirer une pièce (brouillon) |
 | POST | `/api/candidatures/:id/envoyer` · `/paiement` · `/lu` | élève | envoyer, déclarer les frais, lire la décision |
 | GET/PUT | `/api/etablissement/profil` | établissement | la fiche d'admission |
+| GET/POST | `/api/abonnement` | élève, parent, enseignant | offres et situation ; demander une formule |
+| POST/DELETE | `/api/abonnement/:id/paiement` · `/abonnement/:id` | idem | déclarer le paiement ; retirer une demande |
+| GET/POST/DELETE | `/api/admin/abonnements` · `/:id/confirmer` | admin | lister, accorder, confirmer, annuler |
 | GET | `/api/etablissement/candidatures` · `/:id` · `/:id/pieces/:pid/fichier` | établissement | les dossiers, ouvrir, lire une pièce |
 | POST | `/api/etablissement/candidatures/:id/decision` · `/paiement` | établissement | accepter ou refuser, confirmer les frais |
 | GET | `/api/rattrapage` · `/rattrapage/:id` | élève | mes parcours, le détail d'un parcours |

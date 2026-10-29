@@ -387,6 +387,29 @@ const TABLES = [
        REFERENCES utilisateurs(id) ON DELETE CASCADE,
      CONSTRAINT fk_notes_matiere FOREIGN KEY (matiere_id)
        REFERENCES matieres(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
+
+  /* Abonnements annuels : « eleve » (10 €) débloque l'espace élève et les
+     universités ; « premium » (50 €) débloque aussi les espaces parent et
+     enseignant des personnes liées à l'élève. Le paiement est déclaré par le
+     compte puis confirmé par l'administration, qui pose les dates. */
+  ['abonnements', `CREATE TABLE IF NOT EXISTS abonnements (
+     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+     utilisateur_id INT UNSIGNED NOT NULL,
+     formule ENUM('eleve','premium') NOT NULL,
+     etat ENUM('en_attente','actif','annule') NOT NULL DEFAULT 'en_attente',
+     prix DECIMAL(8,2) NOT NULL,
+     devise VARCHAR(8) NOT NULL DEFAULT 'EUR',
+     paiement ENUM('en_attente','declare','confirme') NOT NULL DEFAULT 'en_attente',
+     reference_paiement VARCHAR(80) NULL,
+     debut DATE NULL,
+     fin DATE NULL,
+     note VARCHAR(300) NULL,
+     cree_le DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     confirme_le DATETIME NULL,
+     KEY idx_abonnements_utilisateur (utilisateur_id, etat, fin),
+     CONSTRAINT fk_abonnements_utilisateur FOREIGN KEY (utilisateur_id)
+       REFERENCES utilisateurs(id) ON DELETE CASCADE
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`]
 ];
 
