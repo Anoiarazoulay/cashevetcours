@@ -58,11 +58,13 @@
             <b>Je suis parent</b><small>Je suis la progression</small></label>
           <label><input type="radio" name="role" value="enseignant">
             <b>Je suis enseignant</b><small>Je suis mes élèves</small></label>
+          <label><input type="radio" name="role" value="etablissement">
+            <b>Université / école</b><small>Je reçois des candidatures</small></label>
         </div>
 
         <div class="nf-champ">
           <input id="nom" name="nom" type="text" placeholder=" " autocomplete="name" required maxlength="120">
-          <label for="nom">Nom complet</label>
+          <label for="nom" id="labelNom">Nom complet</label>
         </div>
         <div class="nf-champ">
           <input id="email" name="email" type="email" placeholder=" " autocomplete="email" required maxlength="190">
@@ -80,8 +82,15 @@
 
       <!-- ------------------------------ étape 2 ------------------------------ -->
       <section class="panneau-etape" data-etape="2" hidden>
-        <div class="deux-champs">
-          <div class="nf-champ">
+        <div class="nf-champ" id="champTypeEtablissement" hidden>
+          <select id="typeEtablissement" name="typeEtablissement">
+            <option value="ecole">École de formation</option>
+            <option value="universite">Université</option>
+          </select>
+        </div>
+
+        <div class="deux-champs" id="blocNaissance">
+          <div class="nf-champ" id="champNaissance">
             <input id="dateNaissance" name="dateNaissance" type="date" placeholder=" "
               autocomplete="bday" required>
             <label for="dateNaissance" class="fixe">Date de naissance</label>

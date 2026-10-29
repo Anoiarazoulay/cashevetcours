@@ -12,6 +12,8 @@
 .role-eleve{background:rgba(76,141,255,.18);color:#9db6ff}
 .role-parent{background:rgba(63,208,138,.18);color:#6fe0ac}
 .role-admin{background:rgba(205,92,180,.18);color:#E9A6DA}
+.role-enseignant{background:rgba(245,165,36,.18);color:#f5c078}
+.role-etablissement{background:rgba(32,198,198,.18);color:#7fe0e0}
 
 /* ------------------------------- chargement ------------------------------ */
 .chargement{display:flex;flex-direction:column;align-items:center;gap:14px;padding:80px 20px;color:var(--text-3)}

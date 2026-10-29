@@ -14,7 +14,7 @@ window.API = (() => {
     }
     if (r.status === 401 && !location.pathname.startsWith('/connexion')) {
       /* Session expirée : retour à la porte de l'espace où l'on se trouvait. */
-      const porte = { '/espace-parent': 'parent', '/espace-enseignant': 'enseignant', '/admin': 'admin' };
+      const porte = { '/espace-parent': 'parent', '/espace-enseignant': 'enseignant', '/espace-etablissement': 'etablissement', '/admin': 'admin' };
       location.href = '/connexion/' + (porte[location.pathname] || 'eleve') +
         '?suite=' + encodeURIComponent(location.pathname);
       throw new Error('Session expirée.');

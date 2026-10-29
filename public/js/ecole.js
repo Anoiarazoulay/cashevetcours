@@ -45,6 +45,13 @@
     .then(r => { TRAVAUX = r; if (page === 'accueil') rendre(); })
     .catch(() => { });
 
+  /* Les candidatures de l'élève : une décision reçue se voit dès l'accueil et dans la cloche. */
+  let CANDIDATURES = [];
+  if (!lectureSeule) API.get('/candidatures')
+    .then(r => { CANDIDATURES = r.candidatures; if (page === 'accueil') rendre(); })
+    .catch(() => { });
+  const decisionsNonLues = () => CANDIDATURES.filter(c => (c.etat === 'acceptee' || c.etat === 'refusee') && !c.lueLe);
+
   /* Les parcours de rattrapage de l'élève : lacunes prises en main, en cours ou comblées. */
   let PARCOURS = [];
   const chargerParcours = async () => {
@@ -876,7 +883,22 @@
       </section>`;
 
     const rows = [];
-    /* Le projet d'abord : le métier visé, puis les chapitres qui y mènent. */
+    /* Une réponse d'université ou d'école passe avant tout. */
+    const decisions = decisionsNonLues();
+    if (decisions.length) rows.push(`
+      <section class="rowsec">
+        <div class="rowhead"><h2>Réponses à vos candidatures</h2></div>
+        <div class="profs-grille" style="margin-top:12px">${decisions.map(c => `
+          <article class="carte-prof ${c.etat === 'acceptee' ? 'acceptee' : 'refusee'}">
+            <span class="etiquette-mat" style="--c1:${c.etat === 'acceptee' ? '#3fd08a' : '#CD5CB4'}">${c.etat === 'acceptee' ? 'Candidature acceptée' : 'Candidature refusée'}</span>
+            <b>${txt(c.etablissement.nom)}</b>
+            <p>${c.etat === 'acceptee'
+              ? `Vous avez ${c.delaiOriginaux} jours pour venir avec les originaux de vos documents${c.limiteOriginaux ? ', avant le ' + new Date(c.limiteOriginaux).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : ''}.`
+              : 'Cette candidature n’a pas été retenue. D’autres établissements vous attendent dans « Après le bac ».'}</p>
+            <a class="pilule blanc" href="/apres-bac#etablissement-${c.etablissement.id}">Voir ma candidature</a>
+          </article>`).join('')}</div>
+      </section>`);
+    /* Le projet ensuite : le métier visé, puis les chapitres qui y mènent. */
     if (!lectureSeule) rows.push(sectionProjet());
     const m = metier();
     if (m) {
@@ -979,6 +1001,12 @@
   };
   const majNotifications = () => {
     const liste = [];
+    decisionsNonLues().forEach(c => liste.push({
+      initiale: c.etat === 'acceptee' ? '🎉' : '✕', teinte: c.etat === 'acceptee' ? 'rgba(63,208,138,.25)' : 'rgba(205,92,180,.25)',
+      titre: (c.etat === 'acceptee' ? 'Acceptée · ' : 'Refusée · ') + c.etablissement.nom,
+      texte: c.etat === 'acceptee' ? `Vous avez ${c.delaiOriginaux} jours pour apporter les originaux de vos documents.` : 'La candidature n’a pas été retenue.',
+      quand: 'Candidature', href: '/apres-bac#etablissement-' + c.etablissement.id
+    }));
     TRAVAUX.messages.filter(m => !m.lu_le).forEach(m => liste.push({
       initiale: (m.enseignant || '?').trim()[0].toUpperCase(), teinte: m.teinte,
       titre: 'Message de ' + m.enseignant, texte: m.matiere + ' — ' + m.commentaire, quand: ilYa(m.le),

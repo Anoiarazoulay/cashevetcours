@@ -1,0 +1,87 @@
+/* CASHEVENT SCHOOL — candidatures : la page « Après le bac » de l'élève et
+   l'espace des universités et écoles.                                        */
+.cand{padding:22px var(--page-x) 70px;display:flex;flex-direction:column;gap:20px}
+.cand .panneau h2{font-size:18px}
+.etab-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.etab-carte{text-align:left;border:1px solid var(--line-2);border-radius:14px;padding:18px;background:var(--card);
+  display:flex;flex-direction:column;gap:8px;transition:.15s;color:#fff;position:relative;overflow:hidden}
+.etab-carte:hover{border-color:#5a5a64;background:var(--card-2);transform:translateY(-2px)}
+.etab-carte .type{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#7fe0e0}
+.etab-carte .type.universite{color:#9db6ff}
+.etab-carte b{font-size:17px;line-height:1.25}
+.etab-carte small{font-size:12.5px;color:var(--text-3)}
+.etab-carte p{font-size:13.5px;line-height:1.5;color:var(--text-2);margin:0}
+.etab-carte .pied{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto;padding-top:6px}
+.etiquette.mode{background:rgba(76,141,255,.16);color:#9db6ff}
+.etiquette.frais{background:rgba(255,209,102,.16);color:#ffd166}
+.etiquette.etat-envoyee{background:rgba(245,165,36,.18);color:#f5c078}
+.etiquette.etat-acceptee{background:rgba(63,208,138,.18);color:#6fe0ac}
+.etiquette.etat-refusee{background:rgba(205,92,180,.18);color:#E9A6DA}
+.etiquette.etat-brouillon{background:#2c2c31;color:var(--text-3)}
+.etiquette.paie-confirme{background:rgba(63,208,138,.18);color:#6fe0ac}
+.etiquette.paie-declare{background:rgba(76,141,255,.16);color:#9db6ff}
+.etiquette.paie-en_attente{background:rgba(245,165,36,.18);color:#f5c078}
+
+/* Mes candidatures */
+.cand-ligne{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.cand-ligne:last-child{border-bottom:0}
+.cand-ligne .nom{flex:1;min-width:200px}
+.cand-ligne .nom b{display:block;font-size:14.5px}
+.cand-ligne .nom small{display:block;font-size:12.5px;color:var(--text-3);margin-top:2px;line-height:1.5}
+.decision{padding:14px 16px;border-radius:12px;margin-top:10px;font-size:14px;line-height:1.55}
+.decision.acceptee{background:rgba(63,208,138,.12);border:1px solid rgba(63,208,138,.35)}
+.decision.refusee{background:rgba(205,92,180,.1);border:1px solid rgba(205,92,180,.35)}
+.decision b{display:block;font-size:15px;margin-bottom:4px}
+
+/* Fiche et dossier (modale) */
+.fiche-etab dl{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin:14px 0;font-size:14px}
+.fiche-etab dt{color:var(--text-3)}
+.fiche-etab dd{margin:0;color:var(--text-2)}
+.fiche-etab .description{font-size:14.5px;line-height:1.6;color:var(--text-2);white-space:pre-wrap}
+.pieces-liste{display:flex;flex-direction:column;gap:8px;margin:10px 0}
+.piece{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;background:var(--card-2);border:1px solid var(--line-2)}
+.piece .ico{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-size:12px;font-weight:800;flex:none;background:#3a3a42}
+.piece .txt{flex:1;min-width:0}
+.piece .txt b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.piece .txt small{color:var(--text-3);font-size:12px}
+.piece.manquante{border-style:dashed;opacity:.8}
+.piece.manquante .ico{background:rgba(245,165,36,.2);color:#f5c078}
+.piece input[type=file]{display:none}
+.chargement-piece{font-size:12.5px;color:var(--text-3)}
+
+/* Lecture des pièces côté établissement : elles défilent dans la page. */
+.lecteur-pieces{display:flex;flex-direction:column;gap:18px;margin-top:14px}
+.lecteur-piece{border:1px solid var(--line-2);border-radius:12px;overflow:hidden;background:#0f0f12}
+.lecteur-piece .titre{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--card-2);font-size:13.5px}
+.lecteur-piece .titre b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lecteur-piece .titre small{color:var(--text-3)}
+.lecteur-piece img{display:block;max-width:100%;margin:0 auto}
+.lecteur-piece iframe{display:block;width:100%;height:720px;border:0;background:#fff}
+.candidat{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center;padding:14px 16px;border-radius:12px;background:var(--card-2);border:1px solid var(--line-2)}
+.candidat .av{width:48px;height:48px;border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:18px;background:linear-gradient(135deg,#20c6c6,#4c8dff)}
+.candidat b{display:block;font-size:17px}
+.candidat small{display:block;font-size:13px;color:var(--text-3);margin-top:3px;line-height:1.5}
+.decision-boutons{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.pilule.accepter{background:var(--ok);color:#06240f}
+.pilule.refuser{background:rgba(205,92,180,.2);color:#E9A6DA}
+.message-candidat{padding:12px 14px;border-radius:10px;background:var(--card-2);border-left:3px solid #9db6ff;font-size:14px;line-height:1.55;color:var(--text-2);white-space:pre-wrap}
+
+/* Espace établissement : liste */
+.cand-table .tableau table{min-width:760px}
+.formulaire-etab{display:grid;grid-template-columns:1fr 1fr;gap:14px 20px}
+.formulaire-etab .pleine{grid-column:1 / -1}
+.formulaire-etab .champ-libelle{margin-top:0}
+.bloc-mode{grid-column:1 / -1;display:flex;gap:10px;flex-wrap:wrap}
+.bloc-mode label{display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--line-2);border-radius:10px;cursor:pointer;font-size:14px}
+.bloc-mode label.actif{border-color:#fff;background:#26262a}
+.bloc-mode input{accent-color:#fff}
+.sous-form{grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;padding:14px;border-radius:12px;border:1px dashed var(--line-2)}
+.sous-form[hidden]{display:none}
+
+@media (max-width:900px){
+  .cand{padding:14px 14px 60px}
+  .formulaire-etab,.sous-form{grid-template-columns:1fr}
+  .fiche-etab dl{grid-template-columns:1fr}
+  .lecteur-piece iframe{height:520px}
+  .candidat{grid-template-columns:1fr}
+}

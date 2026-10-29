@@ -19,9 +19,11 @@ window.UI = (() => {
     eleve: [['accueil', '/ecole', 'Accueil'], ['matieres', '/matieres', 'Matières'],
             ['revisions', '/revisions', 'Mes révisions'],
             ['progression', '/progression', 'Ma progression'],
-            ['bilan', '/bilan', 'Mon bilan']],
+            ['bilan', '/bilan', 'Mon bilan'],
+            ['apresbac', '/apres-bac', 'Après le bac']],
     parent: [['parent', '/espace-parent', 'Suivi de mon enfant']],
     enseignant: [['enseignant', '/espace-enseignant', 'Mon tableau de bord']],
+    etablissement: [['etablissement', '/espace-etablissement', 'Candidatures']],
     admin: [['admin', '/admin', 'Administration'], ['accueil', '/ecole', 'Vue élève'],
             ['parent', '/espace-parent', 'Vue parent']]
   };
@@ -61,7 +63,7 @@ window.UI = (() => {
       <div class="menu" id="menu" role="menu">
         <div class="menu-tete"><b>${esc(utilisateur.nom)}</b><small>${esc(utilisateur.email)}</small>
           <span class="role-pastille role-${utilisateur.role}">${
-            { eleve: 'Élève', parent: 'Parent', enseignant: 'Enseignant',
+            { eleve: 'Élève', parent: 'Parent', enseignant: 'Enseignant', etablissement: 'Établissement',
               admin: 'Administrateur' }[utilisateur.role]}</span></div>
         ${liens.map(([, href, l]) => `<a role="menuitem" href="${href}">${l}</a>`).join('')}
         <a role="menuitem" href="/mot-de-passe">Changer mon mot de passe</a>

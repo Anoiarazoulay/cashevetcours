@@ -220,6 +220,27 @@ La progression de tous les élèves d'un enseignant se calcule en cinq requêtes
 (`progression.lignesEnseignant`), quel que soit leur nombre : le tableau de bord complet
 répond en 0,2 s pour mille élèves, le dossier d'un élève en 0,1 s.
 
+### Universités et écoles — `/espace-etablissement`
+
+Un quatrième public, qui s'inscrit depuis la même page que les autres (« Université / école »).
+Son espace a deux onglets :
+
+- **Ma fiche d'admission** — concours ou étude de dossier. Pour un concours : matières à
+  composer, dates. Dans les deux cas : pièces à fournir (une par ligne), frais (du concours ou
+  d'envoi du dossier) et comment les payer, délai en jours pour déposer les originaux une fois
+  accepté, candidatures ouvertes ou fermées.
+- **Candidatures** — les dossiers reçus, à traiter d'abord. **Ouvrir** affiche le candidat, son
+  message et chacune de ses pièces dans la page (PDF et images défilent sans quitter la plateforme,
+  servis sous une politique de sécurité qui interdit tout script) ; l'ouverture est consignée.
+  **Accepter** prévient l'élève et lui indique son délai pour les originaux ; **Refuser** le
+  prévient aussi. L'école confirme la réception des frais déclarés par l'élève.
+
+Côté élève, la page **« Après le bac »** liste les établissements, leur mode d'admission, leurs
+frais, et permet de postuler : message, pièces jointes (PDF, JPEG, PNG, WebP, 5 Mo chacune), envoi,
+puis déclaration du paiement avec sa référence. La réponse arrive sur l'accueil, dans la cloche et
+sur la page. Le paiement en ligne des frais n'est pas encore branché : l'élève déclare son
+règlement, l'école le confirme.
+
 ### Administration — `/admin`
 
 Quatre onglets :
@@ -257,7 +278,7 @@ server/
     services/qcm.js         banque de questions et tirage d'un QCM différent par tentative
     services/bilan.js       le bilan de l'élève rédigé par l'assistant
     outils/verification.js  contrôle avant mise en production
-    routes/                 auth · catalogue · progression · parent · admin · enseignant · professeurs · projet
+    routes/                 auth · catalogue · progression · parent · admin · enseignant · professeurs · projet · etablissements
   db/
     schema.sql              18 tables
     migrations.js           tables et colonnes ajoutées après coup (enseignants, classes,
@@ -441,6 +462,13 @@ l'administration : `npm run verif` bloque si l'un d'eux est encore public en pro
 | GET/PUT | `/api/metiers` · `/metiers/mien` | élève | les métiers, choisir et activer le sien |
 | GET | `/api/metiers/mien/progression` | élève | avancement sur les chapitres du métier |
 | GET | `/api/bilan` | élève | chiffres et bilan rédigé par l'assistant (`?forcer=1` le réécrit) |
+| GET | `/api/etablissements` · `/etablissements/:id` | connecté | les universités et écoles, une fiche et ma candidature |
+| GET/POST | `/api/candidatures` · `/etablissements/:id/candidatures` | élève | mes candidatures, ouvrir un dossier |
+| POST/DELETE | `/api/candidatures/:id/pieces` · `/pieces/:pid` | élève | joindre ou retirer une pièce (brouillon) |
+| POST | `/api/candidatures/:id/envoyer` · `/paiement` · `/lu` | élève | envoyer, déclarer les frais, lire la décision |
+| GET/PUT | `/api/etablissement/profil` | établissement | la fiche d'admission |
+| GET | `/api/etablissement/candidatures` · `/:id` · `/:id/pieces/:pid/fichier` | établissement | les dossiers, ouvrir, lire une pièce |
+| POST | `/api/etablissement/candidatures/:id/decision` · `/paiement` | établissement | accepter ou refuser, confirmer les frais |
 | GET | `/api/rattrapage` · `/rattrapage/:id` | élève | mes parcours, le détail d'un parcours |
 | GET/POST | `/api/rattrapage/chapitre/:id` | élève | prérequis d'un chapitre, lancer un parcours |
 | GET/POST | `/api/rattrapage/:id/etapes/:prerequisId` | élève | lire une fiche, répondre à sa mini-évaluation |

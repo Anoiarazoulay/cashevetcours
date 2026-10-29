@@ -40,6 +40,7 @@
         <a href="/connexion/eleve"><b>Élève</b><small>Cours, QCM, révisions</small></a>
         <a href="/connexion/parent"><b>Parent</b><small>Suivre mon enfant</small></a>
         <a href="/connexion/enseignant"><b>Enseignant</b><small>Suivre mes élèves</small></a>
+        <a href="/connexion/etablissement"><b>Université / école</b><small>Recevoir des candidatures</small></a>
         <a href="/connexion/admin"><b>Administration</b><small>Gérer la plateforme</small></a>
       </nav>
       <p class="nf-bas">Nouveau sur Cashevent School ? <a href="/inscription">Inscrivez-vous.</a></p>
@@ -91,7 +92,7 @@
 (function () {
   var f = document.getElementById('formConnexion');
   if (!f) return;
-  var m = location.pathname.match(/^\/connexion\/(eleve|parent|enseignant|admin)$/);
+  var m = location.pathname.match(/^\/connexion\/(eleve|parent|enseignant|etablissement|admin)$/);
   if (m && !f.espace.value) {
     f.espace.value = m[1];
     document.getElementById('choixEspace').hidden = true;
@@ -110,7 +111,7 @@
       return r.json().then(function (j) { return { ok: r.ok, corps: j }; });
     }).then(function (x) {
       if (!x.ok) throw new Error(x.corps.erreur || 'Connexion impossible.');
-      var cible = { eleve: '/ecole', parent: '/espace-parent', enseignant: '/espace-enseignant', admin: '/admin' };
+      var cible = { eleve: '/ecole', parent: '/espace-parent', enseignant: '/espace-enseignant', etablissement: '/espace-etablissement', admin: '/admin' };
       location.href = cible[x.corps.utilisateur.role] || '/';
     }).catch(function (err) {
       var zone = document.getElementById('erreur');

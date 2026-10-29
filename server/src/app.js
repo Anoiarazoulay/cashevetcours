@@ -37,7 +37,8 @@ app.use(helmet({
       'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       'font-src': ["'self'", 'https://fonts.gstatic.com'],
       'img-src': ["'self'", 'data:', 'https://i.ytimg.com', 'https://*.ytimg.com'],
-      'frame-src': ['https://www.youtube-nocookie.com', 'https://www.youtube.com'],
+      /* 'self' : les pièces d'une candidature (PDF) se lisent dans un cadre de la page. */
+      'frame-src': ["'self'", 'https://www.youtube-nocookie.com', 'https://www.youtube.com'],
       'connect-src': ["'self'"],
       'object-src': ["'none'"],
       'base-uri': ["'self'"],
@@ -61,6 +62,7 @@ app.use((_req, res, suite) => {
 /* Les TP envoyés par les enseignants arrivent encodés en base64 : 5 Mo de
    fichier font un peu moins de 7 Mo de JSON. Cette route seule a droit à plus. */
 app.use('/api/enseignant/tp', express.json({ limit: '8mb' }));
+app.use('/api/candidatures', express.json({ limit: '8mb' }));
 app.use(express.json({ limit: '256kb' }));
 app.use(cookieParser());
 app.use(attacher);
@@ -101,6 +103,7 @@ api.use('/admin', require('./routes/admin'));
 api.use('/enseignant', require('./routes/enseignant'));
 api.use('/professeurs', require('./routes/professeurs'));
 api.use('/', require('./routes/projet'));
+api.use('/', require('./routes/etablissements'));
 api.use('/contact', require('./routes/contact'));
 /* La santé dit aussi si une table attendue manque : sur un hébergement sans
    terminal, c'est le seul moyen de voir qu'une migration n'est pas passée. */
@@ -126,8 +129,10 @@ const PAGES = {
   '/bilan': ['eleve'],
   '/espace-parent': ['parent', 'admin'],
   '/espace-enseignant': ['enseignant'],
+  '/espace-etablissement': ['etablissement'],
+  '/apres-bac': ['eleve', 'admin'],
   '/admin': ['admin'],
-  '/mot-de-passe': ['eleve', 'parent', 'enseignant', 'admin']
+  '/mot-de-passe': ['eleve', 'parent', 'enseignant', 'etablissement', 'admin']
 };
 app.get(Object.keys(PAGES), (req, res, suite) => {
   const roles = PAGES[req.path];
@@ -142,7 +147,7 @@ app.get(Object.keys(PAGES), (req, res, suite) => {
 app.get('/', (req, res) => {
   if (!req.utilisateur) return res.redirect('/accueil');
   const cible = { eleve: '/ecole', parent: '/espace-parent',
-                  enseignant: '/espace-enseignant', admin: '/admin' };
+                  enseignant: '/espace-enseignant', etablissement: '/espace-etablissement', admin: '/admin' };
   res.redirect(cible[req.utilisateur.role] || '/accueil');
 });
 
@@ -219,7 +224,7 @@ app.get(/^\/([\w-]+)\.html$/, (req, res, suite) => {
 app.get(/^\/([\w-]+)$/, (req, res, suite) => servirPage(req.params[0], res, suite));
 
 /* Une page de connexion par espace : le même fichier, qui lit l'espace dans l'adresse. */
-app.get(/^\/connexion\/(eleve|parent|enseignant|admin)$/, (req, res, suite) =>
+app.get(/^\/connexion\/(eleve|parent|enseignant|etablissement|admin)$/, (req, res, suite) =>
   servirPage('connexion', res, suite));
 
 function servirPage(nom, res, suite) {

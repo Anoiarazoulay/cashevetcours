@@ -213,7 +213,7 @@ routeur.post('/exercices/:id/regenerer', async (req, res) => {
 
 /* -------------------------------- utilisateurs ----------------------------- */
 routeur.get('/utilisateurs', async (req, res) => {
-  const role = ['eleve', 'parent', 'enseignant', 'admin'].includes(req.query.role) ? req.query.role : null;
+  const role = ['eleve', 'parent', 'enseignant', 'etablissement', 'admin'].includes(req.query.role) ? req.query.role : null;
   const q = texte(req.query.q, 80);
   const clauses = [], params = [];
   if (role) { clauses.push('u.role = ?'); params.push(role); }
@@ -233,7 +233,7 @@ routeur.get('/utilisateurs', async (req, res) => {
 
 routeur.post('/utilisateurs', async (req, res) => {
   const nom = texte(req.body.nom, 120), email = texte(req.body.email, 190).toLowerCase();
-  const role = ['eleve', 'parent', 'enseignant', 'admin'].includes(req.body.role) ? req.body.role : 'eleve';
+  const role = ['eleve', 'parent', 'enseignant', 'etablissement', 'admin'].includes(req.body.role) ? req.body.role : 'eleve';
   const mdp = String(req.body.motDePasse || '');
   if (nom.length < 2) return res.status(400).json({ erreur: 'Indiquez un nom.' });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))
@@ -260,7 +260,7 @@ routeur.patch('/utilisateurs/:id', async (req, res) => {
   if (req.body.nom !== undefined) { champs.push('nom = ?'); params.push(texte(req.body.nom, 120)); }
   if (req.body.niveau !== undefined) { champs.push('niveau = ?'); params.push(texte(req.body.niveau, 80) || null); }
   if (req.body.actif !== undefined) { champs.push('actif = ?'); params.push(req.body.actif ? 1 : 0); }
-  if (req.body.role !== undefined && ['eleve', 'parent', 'enseignant', 'admin'].includes(req.body.role)) {
+  if (req.body.role !== undefined && ['eleve', 'parent', 'enseignant', 'etablissement', 'admin'].includes(req.body.role)) {
     if (u.id === req.utilisateur.id && req.body.role !== 'admin')
       return res.status(400).json({ erreur: 'Vous ne pouvez pas retirer votre propre rôle d’administrateur.' });
     champs.push('role = ?'); params.push(req.body.role);

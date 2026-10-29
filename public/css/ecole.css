@@ -447,3 +447,5 @@ button.etape-ligne:hover{background:#2c2c31;border-color:#4a4a52}
   .projet .actions{width:100%}
   .projet .actions .pilule{flex:1;justify-content:center}
 }
+.carte-prof.acceptee{border-left:3px solid var(--ok)}
+.carte-prof.refusee{border-left:3px solid var(--brand)}

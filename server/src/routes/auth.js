@@ -51,7 +51,7 @@ routeur.post('/inscription', async (req, res) => {
   const nom = String(req.body.nom || '').trim();
   const email = String(req.body.email || '').trim().toLowerCase();
   const motDePasse = String(req.body.motDePasse || '');
-  const role = ['eleve', 'parent', 'enseignant'].includes(req.body.role) ? req.body.role : 'eleve';
+  const role = ['eleve', 'parent', 'enseignant', 'etablissement'].includes(req.body.role) ? req.body.role : 'eleve';
 
   if (nom.length < 2) return res.status(400).json({ erreur: 'Indiquez votre nom complet.' });
   if (!EMAIL.test(email)) return res.status(400).json({ erreur: 'Cette adresse e-mail n’est pas valide.' });
@@ -59,12 +59,15 @@ routeur.post('/inscription', async (req, res) => {
   if (faible) return res.status(400).json({ erreur: faible });
 
   /* ------------------------------ la fiche ------------------------------- */
-  const dateNaissance = String(req.body.dateNaissance || '').trim();
-  const age = ageDepuis(dateNaissance);
-  if (age === null)
-    return res.status(400).json({ erreur: 'Indiquez une date de naissance valide.' });
-  if (age < 5 || age > 100)
-    return res.status(400).json({ erreur: 'Cette date de naissance ne semble pas correcte.' });
+  /* Un établissement n'a pas de date de naissance. */
+  const dateNaissance = role === 'etablissement' ? null : String(req.body.dateNaissance || '').trim();
+  const age = role === 'etablissement' ? null : ageDepuis(dateNaissance);
+  if (role !== 'etablissement') {
+    if (age === null)
+      return res.status(400).json({ erreur: 'Indiquez une date de naissance valide.' });
+    if (age < 5 || age > 100)
+      return res.status(400).json({ erreur: 'Cette date de naissance ne semble pas correcte.' });
+  }
 
   const telephone = texte(req.body.telephone, 30);
   if (!telephone || telephone.replace(/\D/g, '').length < 8)
@@ -127,6 +130,12 @@ routeur.post('/inscription', async (req, res) => {
     await suivi.profil(r.insertId);
   }
 
+  /* Un établissement reçoit sa fiche d'admission, à compléter depuis son espace. */
+  if (role === 'etablissement') {
+    await executer('INSERT INTO etablissements (utilisateur_id, type, ville, pays) VALUES (?, ?, ?, ?)',
+      [r.insertId, req.body.typeEtablissement === 'universite' ? 'universite' : 'ecole', ville, pays]);
+  }
+
   /* Un élève peut désigner ses professeurs dès l'inscription. Un code erroné
      n'empêche pas la création du compte : il se corrige ensuite. */
   const professeurs = [];
@@ -150,10 +159,11 @@ routeur.post('/inscription', async (req, res) => {
     details: ({
       parent: 'Parent',
       enseignant: 'Enseignant · ' + matieresEnseignees.length + ' matière(s)',
+      etablissement: req.body.typeEtablissement === 'universite' ? 'Université' : 'École de formation',
       eleve: 'Élève · ' + (filiere || 'filière non précisée') +
         (professeurs.length ? ' · ' + professeurs.length + ' professeur(s) désigné(s)' : '')
     })[role] +
-      ' · ' + age + ' ans · ' + ville + (lie ? ' · enfant rattaché : ' + emailEnfant : '')
+      (age === null ? '' : ' · ' + age + ' ans') + ' · ' + ville + (lie ? ' · enfant rattaché : ' + emailEnfant : '')
   });
   res.status(201).json({ utilisateur: await profil(u), enfantLie: lie, professeurs });
 });
@@ -193,7 +203,7 @@ routeur.post('/connexion', async (req, res) => {
   }
 
   /* Chaque espace a sa porte : un compte ne s'ouvre que depuis la page de son rôle. */
-  const ESPACES = { eleve: 'élève', parent: 'parent', enseignant: 'enseignant', admin: 'administration' };
+  const ESPACES = { eleve: 'élève', parent: 'parent', enseignant: 'enseignant', etablissement: 'établissement', admin: 'administration' };
   const espace = String(req.body.espace || '');
   if (!ESPACES[espace]) return res.status(400).json({ erreur: 'Choisissez votre espace de connexion.' });
   if (u.role !== espace) {

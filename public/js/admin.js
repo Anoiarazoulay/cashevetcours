@@ -13,7 +13,7 @@
   const echapper = t => String(t == null ? '' : t)
     .replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const dateFR = d => d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
-  const ROLES = { eleve: 'Élève', parent: 'Parent', enseignant: 'Enseignant', admin: 'Admin' };
+  const ROLES = { eleve: 'Élève', parent: 'Parent', enseignant: 'Enseignant', etablissement: 'Établissement', admin: 'Admin' };
 
   /* --------------------------------- onglets ------------------------------ */
   const ONGLETS = [
@@ -101,7 +101,7 @@
       <div class="barre-outils">
         <div class="pills serres" id="filtres">
           ${[['', 'Tous'], ['eleve', 'Élèves'], ['parent', 'Parents'],
-             ['enseignant', 'Enseignants'], ['admin', 'Administrateurs']]
+             ['enseignant', 'Enseignants'], ['etablissement', 'Universités / écoles'], ['admin', 'Administrateurs']]
             .map(([v, l]) => `<button data-role="${v}" class="${filtreRole === v ? 'active' : ''}">${l}</button>`).join('')}
         </div>
         <input class="champ" id="rech" type="search" placeholder="Nom ou e-mail…" value="${echapper(recherche)}">
@@ -559,7 +559,7 @@
     etablissement: 'Établissement', suggestion: 'Suggestion', autre: 'Autre'
   };
   const PROFILS = {
-    eleve: 'Élève', parent: 'Parent', enseignant: 'Enseignant',
+    eleve: 'Élève', parent: 'Parent', enseignant: 'Enseignant', etablissement: 'Établissement',
     etablissement: 'Établissement', autre: 'Autre'
   };
   let messagesEnAttente = false;

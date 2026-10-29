@@ -51,6 +51,7 @@
     parent: { nom: 'Espace parent', titre: 'Connexion parent', inscription: 'parent',
               demo: ['parent@cashevent.education', 'parent1234'] },
     enseignant: { nom: 'Espace enseignant', titre: 'Connexion enseignant', inscription: 'enseignant', demo: null },
+    etablissement: { nom: 'Universités et écoles', titre: 'Connexion établissement', inscription: 'etablissement', demo: null },
     admin: { nom: 'Administration', titre: 'Connexion administrateur', inscription: null,
              demo: ['admin@cashevent.education', 'admin1234'] }
   };
@@ -108,9 +109,16 @@
       const r = role();
       const enfant = $('#champEnfant'), filiere = $('#champFiliere'), label = $('#labelEtablissement');
       const matieres = $('#champMatieres'), jalon = $('[data-jalon-eleve]'), bouton = $('#boutonEtape2');
+      const naissanceBloc = $('#blocNaissance'), naissance = $('#champNaissance'), typeEtab = $('#champTypeEtablissement'), labelNom = $('#labelNom');
       if (enfant) enfant.hidden = r !== 'parent';
       if (filiere) filiere.hidden = r !== 'eleve';
       if (matieres) matieres.hidden = r !== 'enseignant';
+      /* Un établissement n'a ni date de naissance ni lycée : il a un type et un nom d'institution. */
+      if (naissance) { naissance.hidden = r === 'etablissement'; $('#dateNaissance').required = r !== 'etablissement'; }
+      if (naissanceBloc) naissanceBloc.classList.toggle('seul', r === 'etablissement');
+      if (typeEtab) typeEtab.hidden = r !== 'etablissement';
+      if (labelNom) labelNom.textContent = r === 'etablissement' ? 'Nom de l’établissement' : 'Nom complet';
+      const etabChamp = $('#etablissement'); if (etabChamp) etabChamp.closest('.nf-champ').hidden = r === 'etablissement';
       if (jalon) jalon.hidden = r !== 'eleve';
       if (bouton) bouton.textContent = r === 'eleve' ? 'Continuer' : 'Créer mon compte';
       if (label) label.textContent = { parent: 'Lycée de votre enfant',
@@ -119,7 +127,7 @@
     };
     const choix = $('#choixRole');
     /* Venu depuis la page de connexion d'un espace : le rôle est déjà choisi. */
-    const voulu = choix && ['eleve', 'parent', 'enseignant'].includes(params.get('role')) &&
+    const voulu = choix && ['eleve', 'parent', 'enseignant', 'etablissement'].includes(params.get('role')) &&
       choix.querySelector(`input[name=role][value="${params.get('role')}"]`);
     if (voulu) voulu.checked = true;
     if (choix) { choix.addEventListener('change', majRole); majRole(); }
@@ -226,9 +234,11 @@
       return null;
     };
     const etape2Valide = () => {
-      const a = age(valeur('dateNaissance'));
-      if (a === null) return 'Indiquez votre date de naissance.';
-      if (a < 5 || a > 100) return 'Cette date de naissance ne semble pas correcte.';
+      if (role() !== 'etablissement') {
+        const a = age(valeur('dateNaissance'));
+        if (a === null) return 'Indiquez votre date de naissance.';
+        if (a < 5 || a > 100) return 'Cette date de naissance ne semble pas correcte.';
+      }
       if (valeur('telephone').replace(/\D/g, '').length < 8)
         return 'Indiquez un numéro de téléphone valide.';
       if (valeur('ville').length < 2) return 'Indiquez votre ville.';

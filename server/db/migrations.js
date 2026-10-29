@@ -311,6 +311,66 @@ const TABLES = [
      CONSTRAINT fk_bilans_eleve FOREIGN KEY (eleve_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
 
+  /* ------------------------ universités et écoles ------------------------ */
+  /* La fiche d'admission d'un établissement : concours ou étude de dossier,
+     pièces à fournir, frais, et délai pour apporter les originaux une fois
+     la candidature acceptée. */
+  ['etablissements', `CREATE TABLE IF NOT EXISTS etablissements (
+     utilisateur_id INT UNSIGNED NOT NULL PRIMARY KEY,
+     type ENUM('universite','ecole') NOT NULL DEFAULT 'ecole',
+     ville VARCHAR(120) NULL,
+     pays VARCHAR(80) NULL,
+     site_web VARCHAR(200) NULL,
+     description TEXT NULL,
+     mode ENUM('concours','dossier') NOT NULL DEFAULT 'dossier',
+     matieres_concours VARCHAR(400) NULL,
+     dates_concours VARCHAR(200) NULL,
+     pieces JSON NULL,
+     frais DECIMAL(10,2) NOT NULL DEFAULT 0,
+     devise VARCHAR(8) NOT NULL DEFAULT 'MAD',
+     delai_originaux SMALLINT UNSIGNED NOT NULL DEFAULT 7,
+     instructions_paiement VARCHAR(600) NULL,
+     ouvert TINYINT(1) NOT NULL DEFAULT 1,
+     publie TINYINT(1) NOT NULL DEFAULT 1,
+     cree_le DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     CONSTRAINT fk_etab_utilisateur FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
+
+  /* Une candidature : l'élève postule, envoie ses pièces, déclare le paiement
+     des frais ; l'établissement ouvre, accepte ou refuse. */
+  ['candidatures', `CREATE TABLE IF NOT EXISTS candidatures (
+     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+     eleve_id INT UNSIGNED NOT NULL,
+     etablissement_id INT UNSIGNED NOT NULL,
+     etat ENUM('brouillon','envoyee','acceptee','refusee') NOT NULL DEFAULT 'brouillon',
+     message VARCHAR(600) NULL,
+     paiement ENUM('en_attente','declare','confirme') NOT NULL DEFAULT 'en_attente',
+     reference_paiement VARCHAR(80) NULL,
+     ouverte_le DATETIME NULL,
+     decidee_le DATETIME NULL,
+     delai_originaux SMALLINT UNSIGNED NULL,
+     lue_le DATETIME NULL,
+     cree_le DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     envoyee_le DATETIME NULL,
+     UNIQUE KEY uq_candidature (eleve_id, etablissement_id),
+     KEY idx_candidatures_etab (etablissement_id, etat, cree_le),
+     CONSTRAINT fk_cand_eleve FOREIGN KEY (eleve_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
+     CONSTRAINT fk_cand_etab FOREIGN KEY (etablissement_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
+
+  ['candidature_pieces', `CREATE TABLE IF NOT EXISTS candidature_pieces (
+     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+     candidature_id INT UNSIGNED NOT NULL,
+     libelle VARCHAR(160) NOT NULL,
+     fichier_nom VARCHAR(200) NOT NULL,
+     fichier_type VARCHAR(100) NOT NULL,
+     taille INT UNSIGNED NOT NULL,
+     fichier MEDIUMBLOB NOT NULL,
+     cree_le DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     KEY idx_pieces_candidature (candidature_id),
+     CONSTRAINT fk_pieces_candidature FOREIGN KEY (candidature_id) REFERENCES candidatures(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
+
   /* Carnet de l'enseignant : ses notes personnelles sur un élève dans une
      matière. L'élève ne les voit jamais, l'administration non plus. */
   ['notes_enseignant', `CREATE TABLE IF NOT EXISTS notes_enseignant (
@@ -336,7 +396,12 @@ const ENUMS = [
   ['utilisateurs', 'role',
    "ENUM('eleve','parent','enseignant','admin') NOT NULL DEFAULT 'eleve'", 'enseignant'],
   ['journal', 'role',
-   "ENUM('eleve','parent','enseignant','admin','anonyme') NOT NULL DEFAULT 'anonyme'", 'enseignant']
+   "ENUM('eleve','parent','enseignant','admin','anonyme') NOT NULL DEFAULT 'anonyme'", 'enseignant'],
+  /* Les universités et écoles de formation : un quatrième public. */
+  ['utilisateurs', 'role',
+   "ENUM('eleve','parent','enseignant','etablissement','admin') NOT NULL DEFAULT 'eleve'", 'etablissement'],
+  ['journal', 'role',
+   "ENUM('eleve','parent','enseignant','etablissement','admin','anonyme') NOT NULL DEFAULT 'anonyme'", 'etablissement']
 ];
 
 /* Les colonnes qu'une instruction CREATE TABLE déclare. */
