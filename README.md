@@ -541,3 +541,20 @@ et son TP corrigé — soit 144 questions rédigées.
 
 La source rédactionnelle reste `server/db/donnees/*.js`, importée en base au peuplement.
 Une fois en base, tout se modifie depuis l'administration.
+
+### Espagnol — Terminale A (LV II)
+
+Neuvième matière, importée du livre « Espagnol au Baccalauréat A » (éditions Excellence —
+C. Kengne, J. Tayemdj, P. Takamtsia) : le résumé du programme en 46 questions-réponses, les
+règles et le barème de l'épreuve, et douze sujets corrigés (devoirs, journées pédagogiques,
+épreuves officielles 2022, 2023 et 2025). Huit chapitres dans `donnees/ecole-data-espagnol*.js` :
+méthode de l'épreuve, la femme (discrimination, violence, droits), famille-viudez-herencia,
+NTIC et médias, la basura y la contaminación, cambio climático y Pacto Verde, ciudadanía y
+democracia, economía y mundo laboral. Chaque chapitre porte le vocabulaire à retenir, les pièges
+de traduction, un QCM et, en TP, les sujets complets avec leur corrigé.
+
+Le livre est scanné (pas de texte) : les pages ont été reconnues par OCR puis relues et
+corrigées. Les scans eux-mêmes ne sont pas versionnés.
+
+Une matière ajoutée au dépôt après l'installation rejoint une base déjà peuplée au démarrage
+suivant (`seed.completer()` insère celles dont le code est absent, sans toucher aux autres).

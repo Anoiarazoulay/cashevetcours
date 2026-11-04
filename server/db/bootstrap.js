@@ -45,6 +45,8 @@ module.exports = async function amorcer() {
   if (!(await baseVierge())) {
     await migrations.appliquer({ silencieux: true });
     /* Rattrape une base installée avant que le contenu ne soit versionné. */
+    /* Une matière ajoutée au dépôt (l'espagnol) rejoint une base déjà peuplée. */
+    await require('./seed').completer();
     await require('./videos').appliquer();
     await require('./projet').appliquer({ silencieux: true });
     return false;

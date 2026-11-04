@@ -23,7 +23,8 @@ const CONTEXTE = {
   histoire: 'histoire bac cours',
   geographie: 'géographie bac cours',
   philo: 'philosophie bac cours',
-  oeuvres: 'français bac résumé analyse'
+  oeuvres: 'français bac résumé analyse',
+  espagnol: 'espagnol terminale bac cours'
 };
 
 /* ------------------------------ YouTube ---------------------------------- */
