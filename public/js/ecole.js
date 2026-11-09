@@ -175,8 +175,65 @@
     </button>`;
   };
 
+  /* Deux formats de chapitre : en vidéo, ou en livre quand aucune séance n'a de vidéo. */
+  const enLivre = c => !c.seances.some(s => s.video);
+  const decouper = (t, n) => Array.from({ length: Math.ceil(t.length / n) }, (_, i) => t.slice(i * n, i * n + n));
+  const listeHTML = t => `<ul>${t.map(x => `<li>${x}</li>`).join('')}</ul>`;
+  const parties = c => {
+    const blocs = decouper(c.resume.points, 2);
+    const out = blocs.map((b, i) => ({ titre: 'Le cours' + (blocs.length > 1 ? ' — partie ' + (i + 1) : ''), corps: listeHTML(b) }));
+    if (c.resume.formules.length) out.push({ titre: c.matiere.labelFormules, corps: listeHTML(c.resume.formules) });
+    if (c.resume.pieges.length) out.push({ titre: 'Pièges fréquents', corps: listeHTML(c.resume.pieges) });
+    const { exercices: ex, corrige: co } = c.tp, apparies = ex.length === co.length;
+    ex.forEach((x, i) => out.push({ titre: 'Exercice ' + (i + 1), corps: `<p class="livre-texte">${x}</p>` +
+      (apparies ? `<details class="livre-corrige"><summary>Voir le corrigé</summary><p class="livre-texte">${co[i]}</p></details>` : '') }));
+    if (!apparies && co.length) out.push({ titre: 'Corrigés', corps: `<details class="livre-corrige"><summary>Voir les corrigés</summary>${co.map(t => `<p class="livre-texte">${t}</p>`).join('')}</details>` });
+    return out;
+  };
+  /* La page la plus avancée est retenue sur l'appareil ; le serveur garde l'avancement. */
+  const cleLivre = id => 'cashevent:livre:' + id;
+  const pagesLues = c => {
+    let n = 0; try { n = Number(localStorage.getItem(cleLivre(c.id))) || 0; } catch (e) { /* stockage indisponible */ }
+    const total = parties(c).length;
+    return Math.max(n, c.seances.length ? Math.floor(etat(c.id).seances.length / c.seances.length * total) : 0);
+  };
+  const noterLecture = async (c, i) => {
+    const total = parties(c).length;
+    try { if (i + 1 > pagesLues(c)) localStorage.setItem(cleLivre(c.id), i + 1); } catch (e) { /* stockage indisponible */ }
+    if (lectureSeule) return;
+    const cibleVues = Math.ceil((i + 1) / total * c.seances.length);
+    try {
+      for (const s of c.seances.slice(0, cibleVues)) if (!etat(c.id).seances.includes(s.id))
+        majEtat(c.id, (await API.post('/progression/seance', { seanceId: s.id })).etat);
+      if (i === total - 1 && !etat(c.id).resume)
+        majEtat(c.id, (await API.post('/progression/resume', { chapitreId: c.id, lu: true })).etat);
+      rendre();
+    } catch (e) { message(e.message); }
+  };
+  const ouvrirPartie = (c, i) => {
+    const tout = parties(c), n = tout.length; i = Math.max(0, Math.min(i, n - 1));
+    bg.innerHTML = `<div class="sheet livre" style="${styleMat(c.matiere)}" data-page="${i}">
+      <button class="close" aria-label="Fermer" data-fermer>${ICO.croix}</button>
+      <header class="livre-tete"><button class="lien-retour" data-retour-fiche>← Sommaire du chapitre</button>
+        <div class="num">${c.matiere.nom} · Chapitre ${c.n}</div><h2>${c.titre}</h2>
+        <div class="livre-avance"><span>Page ${i + 1} sur ${n}</span><div class="avancee"><i style="width:${Math.round((i + 1) / n * 100)}%"></i></div></div></header>
+      <article class="livre-page"><h3>${tout[i].titre}</h3>${tout[i].corps}</article>
+      <footer class="livre-pied">
+        <button class="pilule" data-livre-nav="-1"${i ? '' : ' disabled'}>Précédent</button>
+        <button class="pilule blanc" data-livre-nav="1">${i === n - 1 ? 'Terminer la lecture' : 'Page suivante'}</button>
+      </footer></div>`;
+    bg.scrollTop = 0;
+  };
+  const sommaireLivre = c => {
+    const lues = pagesLues(c);
+    return `<div class="seances livre-sommaire"><h3>Le chapitre, page par page</h3>
+      ${parties(c).map((x, i) => `<button class="seance" data-partie="${i}">
+        <span class="idx">${i < lues ? ICO.check : i + 1}</span>
+        <span class="txt"><b>${x.titre}</b></span></button>`).join('')}</div>`;
+  };
+
   const fiche = c => {
-    const e = etat(c.id), p = pc(c.id), m = c.matiere;
+    const e = etat(c.id), p = pc(c.id), m = c.matiere, livre = enLivre(c);
     const q = e.qcm;
     const note = q
       ? `<div class="score-ligne${q.pc < 60 ? ' faible' : ''}">Dernier score : <b>${q.pc} %</b> · ${
@@ -186,10 +243,10 @@
 
     return `<div class="sheet" style="${styleMat(m)}">
   <button class="close" aria-label="Fermer" data-fermer>${ICO.croix}</button>
-  <div class="lecteur${c.image ? ' avec-image' : ''}" id="lecteur">
+  <div class="lecteur${c.image ? ' avec-image' : ''}${livre ? ' sans-video' : ''}" id="lecteur">
     ${c.image ? `<img class="affiche" src="${c.image}" alt="">` : ''}
     <span class="g" aria-hidden="true">${m.glyphe}</span>
-    <button class="gros" data-lire aria-label="Lancer le cours en vidéo">${ICO.play}</button>
+    ${livre ? '' : `<button class="gros" data-lire aria-label="Lancer le cours en vidéo">${ICO.play}</button>`}
     <div class="habillage">
       <div class="num">${m.nom} · Chapitre ${c.n}</div>
       <h2>${c.titre}</h2>
@@ -199,7 +256,8 @@
 
   <div class="corps">
     <div class="actions">
-      <button class="pilule blanc" data-lire${desactive}>${ICO.play} Lecture</button>
+      ${livre ? `<button class="pilule blanc" data-livre>${pagesLues(c) ? 'Continuer la lecture' : 'Lire le chapitre'}</button>`
+        : `<button class="pilule blanc" data-lire${desactive}>${ICO.play} Lecture</button>`}
       <button class="pilule rond${S.liste.includes(c.id) ? ' on' : ''}" data-liste aria-label="Ajouter à ma liste"${desactive}>${ICO.plus}</button>
       <button class="pilule rond${e.fini ? ' on' : ''}" data-fini aria-label="Marquer le chapitre comme terminé"${desactive}>${ICO.check}</button>
       <span class="actions-fin">${p} % du chapitre</span>
@@ -208,14 +266,15 @@
     <div class="colonnes">
       <div>
         <div class="meta-ligne">
-          <span>${c.duree} min de vidéo</span><span>·</span><span>${c.seances.length} séances</span>
+          ${livre ? `<span>${c.duree} min de lecture</span><span>·</span><span>${parties(c).length} pages</span>`
+            : `<span>${c.duree} min de vidéo</span><span>·</span><span>${c.seances.length} séances</span>`}
           <span class="puce diff">${c.difficulte}</span><span class="puce">Coef. ${m.coef}</span>
         </div>
         ${t ? `<div class="cible-ligne"><span>${metier().glyphe}</span>
           <span><b>★ ${t.libelle} pour devenir ${txt(metier().nom.toLowerCase())}</b> — ${txt(t.raison)}</span></div>` : ''}
         <p class="accroche">${c.accroche || ''}</p>
 
-        <div class="bloc">
+        ${livre ? '' : `<div class="bloc">
           <h3><span class="rep">4</span> Résumé écrit du cours</h3>
           <ul>${c.resume.points.map(t => `<li>${t}</li>`).join('')}</ul>
         </div>
@@ -226,7 +285,7 @@
         <div class="bloc pieges">
           <h3>Pièges fréquents</h3>
           <ul>${c.resume.pieges.map(t => `<li>${t}</li>`).join('')}</ul>
-        </div>
+        </div>`}
       </div>
 
       <div>
@@ -258,15 +317,15 @@
           <span class="rep">3</span>
         </button>
 
-        <button class="gros-bouton" data-resume${desactive}>
+        ${livre ? '' : `<button class="gros-bouton" data-resume${desactive}>
           <span class="ico plat">✓</span>
           <span><b>${e.resume ? 'Résumé marqué comme lu' : 'Marquer le résumé comme lu'}</b>
             <small>Compte pour 10 % du chapitre</small></span>
-        </button>
+        </button>`}
       </div>
     </div>
 
-    <div class="seances">
+    ${livre ? sommaireLivre(c) : `<div class="seances">
       <h3><span class="rep">5</span> Séances du chapitre</h3>
       ${c.seances.map(s => `
         <button class="seance" data-seance="${s.id}">
@@ -280,7 +339,7 @@
               : 'Cours de répétition en vidéo'}</small></span>
           <span class="duree">${s.video && s.video.duree ? s.video.duree : s.duree + ' min'}</span>
         </button>`).join('')}
-    </div>
+    </div>`}
   </div>
 </div>`;
   };
@@ -342,6 +401,17 @@
       const ouvert = exo.classList.toggle('ouvert');
       corr.textContent = ouvert ? 'Masquer la correction' : 'Voir la correction';
       return;
+    }
+
+    if (e.target.closest('[data-livre]')) return ouvrirPartie(c, Math.min(pagesLues(c), parties(c).length - 1));
+    const partie = e.target.closest('[data-partie]');
+    if (partie) return ouvrirPartie(c, Number(partie.dataset.partie));
+    const nav = e.target.closest('[data-livre-nav]');
+    if (nav) {
+      const i = Number($('.sheet.livre', bg).dataset.page), pas = Number(nav.dataset.livreNav), n = parties(c).length;
+      if (pas > 0) noterLecture(c, i);
+      if (pas > 0 && i === n - 1) { message('Chapitre lu : passez au QCM'); return rafraichir(); }
+      return ouvrirPartie(c, i + pas);
     }
 
     if (e.target.closest('[data-lire]')) {
@@ -872,7 +942,7 @@
           <div class="matiere-nom">${c.matiere.nom} · Chapitre ${c.n} · ${moi.niveau || ''}</div>
           <div class="barre"><i style="width:${p}%"></i></div>
           <div class="barre-legende"><span>${p} % du chapitre</span>
-            <span>${suite ? 'Prochaine séance : ' + suite.titre : 'Toutes les séances vues'}</span></div>
+            <span>${enLivre(c) ? 'Chapitre à lire' : suite ? 'Prochaine séance : ' + suite.titre : 'Toutes les séances vues'}</span></div>
           <p>${c.accroche || ''}</p>
           <div class="actions">
             <button class="pilule blanc" data-ouvrir="${c.id}">${ICO.play} ${p > 0 ? 'Reprendre' : 'Commencer'}</button>
@@ -966,7 +1036,7 @@
     const liste = matiere ? matiere.chapitres : CHAP;
     hote.innerHTML = liste.map(c => carte(c)).join('');
     $('#compte').textContent = `${liste.length} chapitre${liste.length > 1 ? 's' : ''} · ` +
-      `${liste.reduce((s, c) => s + c.duree, 0)} minutes de vidéo`;
+      `${liste.reduce((s, c) => s + c.duree, 0)} minutes de cours`;
     $$('#pills button').forEach(b => b.addEventListener('click', () => {
       sessionStorage.setItem('cashevent:matiere', b.dataset.m); rendreMatieres();
     }));

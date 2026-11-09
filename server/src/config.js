@@ -18,7 +18,7 @@ const config = {
     duree: process.env.JWT_DUREE || '7d',
     cookie: 'cashevent_session'
   },
-  niveauParDefaut: process.env.NIVEAU || '2ᵉ année Bac — Sciences',
+  niveauParDefaut: process.env.NIVEAU || 'Terminale',
   /* Enseignants référents. Un montant par élève suivi, par matière et par mois,
      dû seulement si le suivi du mois a été enregistré. */
   remuneration: {

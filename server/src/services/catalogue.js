@@ -22,7 +22,10 @@ const fiche = s => {
 };
 
 /* Arbre matières → chapitres, sans le contenu pédagogique détaillé. */
-async function catalogue() {
+/* « Série A » → A ; une filière ancienne ou absente montre tout le catalogue. */
+const serieDe = filiere => (String(filiere || '').match(/^Série ([ACD])$/) || [])[1] || null;
+
+async function catalogue(serie = null) {
   const [matieres, chapitres, notions, seances] = await Promise.all([
     tous('SELECT * FROM matieres ORDER BY ordre, id'),
     tous(`SELECT c.*, (SELECT COUNT(*) FROM questions q WHERE q.chapitre_id = c.id) AS nb_questions
@@ -32,8 +35,9 @@ async function catalogue() {
             FROM seances ORDER BY chapitre_id, numero`)
   ]);
 
-  return matieres.map(m => ({
-    id: m.code, matiereId: m.id, nom: m.nom, court: m.court, prof: m.professeur,
+  const avecChapitres = new Set(chapitres.map(c => c.matiere_id));
+  return matieres.filter(m => avecChapitres.has(m.id) && (!serie || !m.series || m.series.split(',').includes(serie))).map(m => ({
+    id: m.code, matiereId: m.id, series: m.series ? m.series.split(',') : [], nom: m.nom, court: m.court, prof: m.professeur,
     coef: m.coefficient, teinte: m.teinte, teinte2: m.teinte2, glyphe: m.glyphe,
     labelFormules: m.label_formules,
     chapitres: chapitres.filter(c => c.matiere_id === m.id).map(c => ({
@@ -102,4 +106,4 @@ function documentTP(c, niveau) {
 const nomFichierTP = c => 'TP_' + c.matiere.court + '_Ch' + c.n + '_' +
   c.titre.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '-') + '.txt';
 
-module.exports = { catalogue, chapitre, documentTP, nomFichierTP, identifiantVideo };
+module.exports = { serieDe, catalogue, chapitre, documentTP, nomFichierTP, identifiantVideo };

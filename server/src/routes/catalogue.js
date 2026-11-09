@@ -22,7 +22,9 @@ routeur.get('/catalogue/public', async (_req, res) => {
                  (SELECT c.image FROM chapitres c
                    WHERE c.matiere_id = m.id AND c.publie = 1 AND c.image IS NOT NULL
                    ORDER BY c.numero LIMIT 1) AS image
-            FROM matieres m ORDER BY m.ordre, m.id`),
+            FROM matieres m
+           WHERE EXISTS (SELECT 1 FROM chapitres c WHERE c.matiere_id = m.id AND c.publie = 1)
+           ORDER BY m.ordre, m.id`),
     /* Les affiches alimentent le mur de vignettes de la page d'accueil. */
     tous(`SELECT c.image, c.titre, m.teinte, m.teinte2, m.glyphe
             FROM chapitres c JOIN matieres m ON m.id = c.matiere_id
@@ -37,6 +39,7 @@ routeur.get('/catalogue/public', async (_req, res) => {
   const programme = await tous(`
     SELECT c.matiere_id, c.numero, c.titre, c.duree,
            (SELECT COUNT(*) FROM seances s WHERE s.chapitre_id = c.id) AS seances,
+           (SELECT COUNT(*) FROM seances s WHERE s.chapitre_id = c.id AND s.video_url IS NOT NULL) AS videos,
            (SELECT GROUP_CONCAT(n.libelle ORDER BY n.ordre SEPARATOR '||')
               FROM notions n WHERE n.chapitre_id = c.id) AS notions
       FROM chapitres c
@@ -61,7 +64,8 @@ routeur.get('/catalogue/public', async (_req, res) => {
 });
 
 /* GET /api/catalogue */
-routeur.get('/catalogue', requiert(), async (_req, res) => res.json({ matieres: await cat.catalogue() }));
+routeur.get('/catalogue', requiert(), async (req, res) => res.json({
+  matieres: await cat.catalogue(req.utilisateur.role === 'eleve' ? cat.serieDe(req.utilisateur.filiere) : null) }));
 
 /* GET /api/catalogue/populaires — les chapitres les plus travaillés sur la plateforme.
    Le classement vient de l'activité réelle : séances vues et QCM passés, toutes

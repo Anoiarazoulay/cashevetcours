@@ -86,7 +86,7 @@
           <span class="num">${c.numero}</span>
           <div class="corps">
             <b>${echapper(c.titre)}</b>
-            <small>${c.seances} séance${c.seances > 1 ? 's' : ''} en vidéo${c.duree ? ' · ' + heures(c.duree) : ''}
+            <small>${c.videos ? `${c.seances} séance${c.seances > 1 ? 's' : ''} en vidéo` : 'Cours à lire'}${c.duree ? ' · ' + heures(c.duree) : ''}
               · résumé · QCM corrigé · TP avec corrigé</small>
             ${c.notions.length ? `<div class="notions">${c.notions.map(n => `<span>${echapper(n)}</span>`).join('')}</div>` : ''}
           </div>
@@ -127,11 +127,12 @@
         document.querySelectorAll('[data-chiffre]').forEach(el => {
           const v = valeurs[el.dataset.chiffre];
           if (v) el.textContent = Number(v).toLocaleString('fr-FR');
+          else if (el.dataset.chiffre === 'videos') el.parentElement.hidden = true;
         });
         const compte = document.getElementById('compteMatieres');
         if (compte) compte.textContent =
-          `${d.matieres.length} matières, ${d.chiffres.chapitres} chapitres et ` +
-          `${d.chiffres.videos} cours en vidéo. Choisissez une matière pour voir ses chapitres.`;
+          `${d.matieres.length} matières et ${d.chiffres.chapitres} chapitres` +
+          `${d.chiffres.videos ? ', dont ' + d.chiffres.videos + ' cours en vidéo' : ''}. Choisissez une matière pour voir ses chapitres.`;
       }
     })
     .catch(() => { });

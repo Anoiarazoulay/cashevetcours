@@ -214,7 +214,7 @@
   /* Les pondérations viennent du serveur : le texte reste juste si elles changent. */
   const w = tb.poids;
   $('#formule').textContent =
-    `Chaque chapitre combine les séances vidéo visionnées (${Math.round(w.seances * 100)} %), ` +
+    `Chaque chapitre combine les séances vues ou pages lues (${Math.round(w.seances * 100)} %), ` +
     `le résumé lu (${Math.round(w.resume * 100)} %), le QCM passé (${Math.round(w.qcm * 100)} %) ` +
     `et le TP téléchargé (${Math.round(w.tp * 100)} %). Un chapitre passe « à reprendre » ` +
     `quand le dernier score au QCM descend sous ${tb.seuilARevoir} %.`;

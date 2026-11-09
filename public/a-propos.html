@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>À propos — Cashevent School</title>
 <meta name="description" content="Notre ambition : préparer l’avenir des élèves en identifiant leurs lacunes pour consolider leurs acquis. Cashevent School réunit pour chaque chapitre du programme du bac un cours en vidéo, un résumé écrit, un QCM corrigé et expliqué, et un TP avec son corrigé. Découvrez la méthode et le parti pris.">
-<link rel="canonical" href="https://cashevent.education/a-propos">
+<link rel="canonical" href="https://cashevent.school/a-propos">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Cashevent School">
 <meta property="og:locale" content="fr_FR">
 <meta property="og:title" content="À propos — Cashevent School">
 <meta property="og:description" content="Un cours en vidéo, un résumé, un QCM expliqué et un TP corrigé pour chaque chapitre du programme du bac.">
-<meta property="og:url" content="https://cashevent.education/a-propos">
-<meta property="og:image" content="https://cashevent.education/img/partage.png">
+<meta property="og:url" content="https://cashevent.school/a-propos">
+<meta property="og:image" content="https://cashevent.school/img/partage.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Anton&display=swap" rel="stylesheet">
@@ -144,6 +144,7 @@ fetch('/api/catalogue/public')
     poser('nbMatieres', d.matieres.length);
     poser('nbChapitres', d.chiffres.chapitres);
     poser('nbVideos', d.chiffres.videos);
+    if (!d.chiffres.videos) document.getElementById('nbVideos').parentElement.hidden = true;
     poser('nbQuestions', d.chiffres.questions);
   })
   .catch(() => { });

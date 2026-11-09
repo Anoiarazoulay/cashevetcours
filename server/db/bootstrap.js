@@ -17,8 +17,9 @@ const { un } = require('../src/db');
 /* La table « matieres » sert de témoin : sans elle, la base est vierge. */
 const baseVierge = async () => {
   try {
-    await un('SELECT 1 FROM matieres LIMIT 1');
-    return false;
+    /* Une première installation interrompue laisse des tables vides : on la reprend. */
+    const n = await un('SELECT (SELECT COUNT(*) FROM matieres) + (SELECT COUNT(*) FROM utilisateurs) AS n');
+    return Number(n.n) === 0;
   } catch (e) {
     if (e.code === 'ER_NO_SUCH_TABLE') return true;
     throw e;
@@ -46,7 +47,10 @@ module.exports = async function amorcer() {
     await migrations.appliquer({ silencieux: true });
     /* Rattrape une base installée avant que le contenu ne soit versionné. */
     /* Une matière ajoutée au dépôt (l'espagnol) rejoint une base déjà peuplée. */
-    await require('./seed').completer();
+    /* En arrière-plan : l'import est long et ne doit pas retarder l'ouverture du site. */
+    const seed = require('./seed');
+    seed.completer().then(seed.masquerAncienProgramme)
+      .catch(e => console.error('· import du catalogue interrompu : ' + e.message));
     await require('./videos').appliquer();
     await require('./projet').appliquer({ silencieux: true });
     return false;
@@ -58,8 +62,10 @@ module.exports = async function amorcer() {
   await migrations.appliquer({ silencieux: true });
 
   /* Le pool doit rester ouvert : le serveur démarre juste après. */
-  await require('./seed')({ fermer: false });
-  await require('./videos').appliquer();
-  await require('./projet').appliquer();
+  /* En arrière-plan : l'hébergeur attend que le site réponde, l'import est long. */
+  require('./seed')({ fermer: false })
+    .then(() => require('./videos').appliquer())
+    .then(() => require('./projet').appliquer())
+    .catch(e => console.error('· installation du catalogue interrompue : ' + e.message));
   return true;
 };

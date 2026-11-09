@@ -1,16 +1,24 @@
 /* Peuplement : catalogue pédagogique + comptes de démonstration.
    Le catalogue est lu dans server/db/donnees/*.js (la source rédactionnelle). */
+const fs = require('fs');
+const path = require('path');
 const bcrypt = require('bcryptjs');
 const config = require('../src/config');
 const { pool, tous, un, executer, transaction } = require('../src/db');
 
 /* Les fichiers de données s'attachent à `window` : on le simule côté Node. */
-const FICHIERS = ['./donnees/ecole-data.js', './donnees/ecole-data-sciences.js', './donnees/ecole-data-lettres.js',
-  './donnees/ecole-data-espagnol.js', './donnees/ecole-data-espagnol-2.js', './donnees/ecole-data-espagnol-3.js'];
+/* Catalogue camerounais : l'espagnol, puis chaque fichier de donnees/cameroun.
+   Un fichier illisible est signalé sans empêcher le serveur de démarrer. */
 const chargerCatalogue = () => {
-  global.window = {};
-  for (const f of FICHIERS) delete require.cache[require.resolve(f)];
-  for (const f of FICHIERS) require(f);
+  const dossier = path.join(__dirname, 'donnees', 'cameroun');
+  const fichiers = ['./donnees/ecole-data-espagnol.js', './donnees/ecole-data-espagnol-2.js', './donnees/ecole-data-espagnol-3.js']
+    .map(f => require.resolve(f))
+    .concat(fs.existsSync(dossier) ? fs.readdirSync(dossier).filter(f => f.endsWith('.js')).map(f => path.join(dossier, f)) : []);
+  global.window = { ECOLE: { M: [], q: (e, o, i, x) => ({ e, o, i, x }) } };
+  for (const f of fichiers) {
+    delete require.cache[f];
+    try { require(f); } catch (e) { console.error('· catalogue ignoré : ' + path.basename(f) + ' — ' + e.message); }
+  }
   return global.window.ECOLE.M;
 };
 
@@ -42,9 +50,10 @@ async function insererCatalogue(cx, matieres, premierOrdre = 0) {
 
   for (const [iM, m] of matieres.entries()) {
     const [rm] = await cx.query(
-      `INSERT INTO matieres (code, nom, court, professeur, coefficient, teinte, teinte2, glyphe, label_formules, ordre)
-       VALUES (?,?,?,?,?,?,?,?,?,?)`,
-      [m.id, m.nom, m.court, m.prof, m.coef, m.teinte, m.teinte2, m.glyphe, m.labelFormules, premierOrdre + iM]);
+      `INSERT INTO matieres (code, nom, court, professeur, coefficient, teinte, teinte2, glyphe, label_formules, ordre, series)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+      [m.id, m.nom, m.court, m.prof, m.coef || 1, m.teinte, m.teinte2, m.glyphe, m.labelFormules, premierOrdre + iM,
+       (m.series || ['A']).join(',')]);
     const matiereId = rm.insertId;
 
     for (const [iC, c] of m.chapitres.entries()) {
@@ -192,16 +201,18 @@ async function insererProgressionDemo(cx, eleveId) {
    matières déjà en base ne sont jamais réécrites. */
 async function completer({ silencieux = false } = {}) {
   const presentes = new Set((await tous('SELECT code FROM matieres')).map(m => m.code));
-  const nouvelles = chargerCatalogue().filter(m => !presentes.has(m.id));
+  const toutes = chargerCatalogue();
+  /* Les séries suivent le dépôt, y compris pour une matière déjà en base. */
+  for (const m of toutes) await executer('UPDATE matieres SET series = ? WHERE code = ?', [(m.series || ['A']).join(','), m.id]);
+  const nouvelles = toutes.filter(m => !presentes.has(m.id));
   if (!nouvelles.length) return { nbMat: 0, nbChap: 0, nbQ: 0 };
   const { ordre } = await un('SELECT COALESCE(MAX(ordre), -1) + 1 AS ordre FROM matieres');
   let total = { nbMat: 0, nbChap: 0, nbQ: 0 };
-  await transaction(async cx => {
-    for (const [i, m] of nouvelles.entries()) {
-      const c = await insererCatalogue(cx, [m], ordre + i);
-      total = { nbMat: total.nbMat + c.nbMat, nbChap: total.nbChap + c.nbChap, nbQ: total.nbQ + c.nbQ };
-    }
-  });
+  /* Une transaction par matière : un redémarrage ne perd que la matière en cours. */
+  for (const [i, m] of nouvelles.entries()) {
+    const c = await transaction(cx => insererCatalogue(cx, [m], Number(ordre) + i));
+    total = { nbMat: total.nbMat + c.nbMat, nbChap: total.nbChap + c.nbChap, nbQ: total.nbQ + c.nbQ };
+  }
   if (!silencieux) console.log(`· catalogue complété : ${nouvelles.map(m => m.nom).join(', ')} (${total.nbChap} chapitres, ${total.nbQ} questions)`);
   return total;
 }
@@ -227,7 +238,7 @@ module.exports = async ({ reset = false, fermer = true } = {}) => {
     const ids = await insererComptes(cx);
     console.log('· 4 comptes créés (admin, parent, 2 élèves)');
 
-    await insererProgressionDemo(cx, ids['yasmine@cashevent.education']);
+    if (matieres.some(m => m.id === 'maths')) await insererProgressionDemo(cx, ids['yasmine@cashevent.education']);
     console.log('· progression de démonstration pour Yasmine (un mois de travail)');
   });
 
@@ -242,3 +253,9 @@ module.exports = async ({ reset = false, fermer = true } = {}) => {
   if (fermer) await pool.end();
 };
 module.exports.completer = completer;
+
+/* L'ancien programme est masqué, jamais effacé : les progressions restent en
+   base. Appelé seulement une fois le nouveau catalogue entièrement importé. */
+module.exports.masquerAncienProgramme = () => executer(
+  `UPDATE chapitres c JOIN matieres m ON m.id = c.matiere_id SET c.publie = 0
+    WHERE m.series IS NULL AND m.code IN ('maths','physique','chimie','svt','histoire','geographie','philo','oeuvres')`);
