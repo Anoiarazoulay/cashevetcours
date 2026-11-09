@@ -11,13 +11,14 @@
 const express = require('express');
 const config = require('../config');
 const { tous, un, executer, transaction } = require('../db');
-const { requiert } = require('../middleware/auth');
+const { agirPour, requiert } = require('../middleware/auth');
 const prog = require('../services/progression');
 const suivi = require('../services/suivi');
 const journal = require('../services/journal');
 const { envoyerFichier } = require('../services/fichiers');
 
 const routeur = express.Router();
+routeur.use(agirPour('enseignant'));
 routeur.use(requiert('enseignant'));
 
 const entier = v => Number.isInteger(Number(v)) && Number(v) > 0 ? Number(v) : null;
@@ -157,7 +158,8 @@ routeur.get('/eleves/:eleveId/matieres/:matiereId', route(async (req, res) => {
   const lien = eleveId && matiereId && await referent(id, eleveId, matiereId);
   if (!lien) return res.status(403).json({ erreur: REFUS_ELEVE });
 
-  await suivi.consigner(id, eleveId, matiereId);
+  /* L'administration regarde sans créer de preuve de suivi pour l'enseignant. */
+  if (!req.adminReel) await suivi.consigner(id, eleveId, matiereId);
   const mois = await suivi.moisCourant();
   const rattrapage = require('../services/rattrapage');
   const [eleve, matiere, d, duMois, historique, tentatives, chrono, semaines, tp, notes, classes, appart, liste,

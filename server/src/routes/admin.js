@@ -3,7 +3,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const config = require('../config');
 const { tous, un, executer, transaction } = require('../db');
-const { requiert } = require('../middleware/auth');
+const { requiert, posezVue, COOKIE_VUE } = require('../middleware/auth');
 const cat = require('../services/catalogue');
 const prog = require('../services/progression');
 const journal = require('../services/journal');
@@ -17,6 +17,22 @@ routeur.use(requiert('admin'));
 
 const entier = v => Number.isInteger(Number(v)) && Number(v) > 0 ? Number(v) : null;
 const texte = (v, max = 400) => String(v == null ? '' : v).trim().slice(0, max);
+
+/* ---------------------- entrer dans l'espace d'un compte ---------------------- */
+routeur.get('/vue', async (req, res) => {
+  const [role, id] = String(req.cookies[COOKIE_VUE] || '').split(':');
+  const u = Number(id) > 0 ? await un('SELECT id, nom, email, role FROM utilisateurs WHERE id = ? AND role = ?', [Number(id), role]) : null;
+  res.json({ vue: u || null });
+});
+routeur.post('/vue', async (req, res) => {
+  const id = entier(req.body.id), role = ['enseignant', 'etablissement'].includes(req.body.role) ? req.body.role : null;
+  const u = id && role && await un('SELECT id, nom FROM utilisateurs WHERE id = ? AND role = ?', [id, role]);
+  if (!u) return res.status(404).json({ erreur: 'Compte introuvable.' });
+  posezVue(res, role, id);
+  await journal.enregistrer(req, { categorie: 'compte', action: 'Entrée dans un espace', cible: role + ' · ' + u.nom });
+  res.json({ ok: true });
+});
+routeur.delete('/vue', async (_req, res) => { res.clearCookie(COOKIE_VUE); res.json({ ok: true }); });
 
 /* -------------------------------- abonnements ------------------------------ */
 /* GET /api/admin/abonnements?etat=en_attente|actif|annule|tous */

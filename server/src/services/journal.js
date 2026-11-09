@@ -25,7 +25,7 @@ async function enregistrer(req, { categorie, action, cible, details, succes = tr
        CATEGORIES.includes(categorie) ? categorie : 'auth',
        couper(action, 60),
        couper(cible, 200),
-       couper(details, 400),
+       couper(req.adminReel ? [details, 'fait par l’administration (' + req.adminReel.nom + ')'].filter(Boolean).join(' · ') : details, 400),
        succes ? 1 : 0,
        adresse(req)]);
   } catch (e) {

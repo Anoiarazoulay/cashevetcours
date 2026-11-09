@@ -25,7 +25,9 @@ window.UI = (() => {
     enseignant: [['enseignant', '/espace-enseignant', 'Mon tableau de bord']],
     etablissement: [['etablissement', '/espace-etablissement', 'Candidatures']],
     admin: [['admin', '/admin', 'Administration'], ['accueil', '/ecole', 'Vue élève'],
-            ['parent', '/espace-parent', 'Vue parent']]
+            ['parent', '/espace-parent', 'Vue parent'],
+            ['enseignant', '/espace-enseignant', 'Vue enseignant'],
+            ['etablissement', '/espace-etablissement', 'Vue établissement']]
   };
 
   let tt;
@@ -73,6 +75,17 @@ window.UI = (() => {
     </div>
   </div>
 </header>`);
+
+    /* Dans l'espace d'un autre compte, on rappelle toujours à qui il appartient. */
+    if (utilisateur.role === 'admin' && (page === 'enseignant' || page === 'etablissement'))
+      API.get('/admin/vue').then(({ vue }) => {
+        if (!vue) return;
+        const b = document.createElement('div');
+        b.className = 'vue-admin'; b.setAttribute('role', 'status');
+        b.innerHTML = '<span>Vous gérez l’espace de <b></b></span><a href="/admin#espaces">Changer</a><a href="/admin">Quitter</a>';
+        b.querySelector('b').textContent = vue.nom;
+        document.body.appendChild(b);
+      }).catch(() => {});
 
     const pr = $('#profile'), menu = $('#menu');
     $('#pbtn').addEventListener('click', e => {

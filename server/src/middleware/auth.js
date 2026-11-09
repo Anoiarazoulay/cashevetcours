@@ -17,7 +17,8 @@ const poserCookie = (res, jeton) => res.cookie(config.jwt.cookie, jeton, {
   maxAge: 7 * 24 * 3600 * 1000
 });
 
-const retirerCookie = res => res.clearCookie(config.jwt.cookie);
+const COOKIE_VUE = 'cashevent_vue';
+const retirerCookie = res => { res.clearCookie(config.jwt.cookie); res.clearCookie(COOKIE_VUE); };
 
 /* Attache req.utilisateur quand un jeton valide est présent. Ne bloque jamais. */
 const attacher = async (req, _res, suite) => {
@@ -84,6 +85,30 @@ const memeOrigine = (req, res, suite) => {
   suite();
 };
 
+/* L'administration entre dans l'espace d'un enseignant ou d'un établissement
+   et le gère à sa place : le compte choisi est lu dans un cookie, vérifié à
+   chaque requête, et ne vaut que pour un compte réellement administrateur. */
+const posezVue = (res, role, id) => res.cookie(COOKIE_VUE, role + ':' + id, {
+  httpOnly: true, sameSite: 'lax', secure: config.env === 'production', maxAge: 8 * 3600 * 1000 });
+const lireVue = (req, role) => {
+  const [r, id] = String((req.cookies && req.cookies[COOKIE_VUE]) || '').split(':');
+  return r === role && Number(id) > 0 ? Number(id) : null;
+};
+const agirPour = role => async (req, res, suite) => {
+  if (!req.utilisateur || req.utilisateur.role !== 'admin') return suite();
+  try {
+    const id = lireVue(req, role);
+    const cible = id && await un(
+      `SELECT id, nom, email, role, niveau, actif, telephone, date_naissance,
+              etablissement, filiere, ville, code_postal, pays
+         FROM utilisateurs WHERE id = ? AND role = ?`, [id, role]);
+    if (!cible) return res.status(409).json({ erreur: 'Choisissez d’abord le compte à gérer.', code: 'VUE_A_CHOISIR' });
+    req.adminReel = req.utilisateur;
+    req.utilisateur = cible;
+    suite();
+  } catch (e) { suite(e); }
+};
+
 /* Un parent ne consulte que ses propres enfants ; l'admin voit tout le monde. */
 const eleveAutorise = async (utilisateur, eleveId) => {
   eleveId = Number(eleveId);
@@ -96,4 +121,4 @@ const eleveAutorise = async (utilisateur, eleveId) => {
   return false;
 };
 
-module.exports = { signer, poserCookie, retirerCookie, attacher, requiert, exigerNouveauMotDePasse, exigerAbonnement, memeOrigine, eleveAutorise };
+module.exports = { signer, poserCookie, retirerCookie, attacher, requiert, exigerNouveauMotDePasse, exigerAbonnement, memeOrigine, eleveAutorise, agirPour, posezVue, lireVue, COOKIE_VUE };

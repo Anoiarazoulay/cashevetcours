@@ -9,7 +9,7 @@ const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const config = require('./config');
-const { attacher, exigerNouveauMotDePasse, exigerAbonnement, memeOrigine } = require('./middleware/auth');
+const { lireVue, attacher, exigerNouveauMotDePasse, exigerAbonnement, memeOrigine } = require('./middleware/auth');
 
 const app = express();
 const prod = config.env === 'production';
@@ -130,8 +130,8 @@ const PAGES = {
   '/progression': ['eleve', 'admin'],
   '/bilan': ['eleve'],
   '/espace-parent': ['parent', 'admin'],
-  '/espace-enseignant': ['enseignant'],
-  '/espace-etablissement': ['etablissement'],
+  '/espace-enseignant': ['enseignant', 'admin'],
+  '/espace-etablissement': ['etablissement', 'admin'],
   '/apres-bac': ['eleve', 'admin'],
   '/admin': ['admin'],
   '/abonnement': ['eleve', 'parent', 'enseignant', 'admin'],
@@ -144,6 +144,9 @@ app.get(Object.keys(PAGES), async (req, res, suite) => {
   if (!req.utilisateur)
     return res.redirect('/connexion/' + roles[0] + '?suite=' + encodeURIComponent(req.path));
   if (!roles.includes(req.utilisateur.role)) return res.redirect('/');
+  /* L'administration choisit d'abord le compte dont elle gère l'espace. */
+  const espaceGere = { '/espace-enseignant': 'enseignant', '/espace-etablissement': 'etablissement' }[req.path];
+  if (espaceGere && req.utilisateur.role === 'admin' && !lireVue(req, espaceGere)) return res.redirect('/admin#espaces');
   /* Abonnement obligatoire : l'espace s'ouvre sur la page des offres. */
   if (config.abonnements.obligatoires && !SANS_ABONNEMENT.has(req.path) &&
       ['eleve', 'parent', 'enseignant'].includes(req.utilisateur.role)) {

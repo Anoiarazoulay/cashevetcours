@@ -8,10 +8,11 @@
    pièces affichées en ligne, la décision, la confirmation du paiement.      */
 const express = require('express');
 const { tous, un, executer, transaction } = require('../db');
-const { requiert } = require('../middleware/auth');
+const { requiert, agirPour } = require('../middleware/auth');
 const journal = require('../services/journal');
 
 const routeur = express.Router();
+routeur.use('/etablissement', agirPour('etablissement'));
 const entier = v => Number.isInteger(Number(v)) && Number(v) > 0 ? Number(v) : null;
 const texte = (v, max) => String(v == null ? '' : v).trim().slice(0, max);
 const json = v => typeof v === 'string' ? JSON.parse(v) : (v || []);
@@ -242,7 +243,8 @@ routeur.get('/etablissement/candidatures/:id', requiert('etablissement'), async 
        FROM candidatures c JOIN utilisateurs u ON u.id = c.eleve_id
       WHERE c.id = ? AND c.etablissement_id = ? AND c.etat <> 'brouillon'`, [entier(req.params.id), req.utilisateur.id]);
   if (!c) return res.status(404).json({ erreur: 'Candidature introuvable.' });
-  await executer('UPDATE candidatures SET ouverte_le = COALESCE(ouverte_le, NOW()) WHERE id = ?', [c.id]);
+  /* Un passage de l'administration ne compte pas comme une ouverture par l'établissement. */
+  if (!req.adminReel) await executer('UPDATE candidatures SET ouverte_le = COALESCE(ouverte_le, NOW()) WHERE id = ?', [c.id]);
   const pieces = await tous(
     'SELECT id, libelle, fichier_nom, fichier_type, taille, cree_le FROM candidature_pieces WHERE candidature_id = ? ORDER BY id', [c.id]);
   res.json({ candidature: {

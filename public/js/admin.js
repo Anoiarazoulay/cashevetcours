@@ -20,7 +20,7 @@
     ['bord', 'Tableau de bord'], ['utilisateurs', 'Utilisateurs'],
     ['catalogue', 'Catalogue'], ['suivi', 'Suivi des élèves'],
     ['enseignants', 'Enseignants'], ['abonnements', 'Abonnements'], ['exercices', 'Exercices'],
-    ['messages', 'Messages'], ['journal', 'Journal']
+    ['espaces', 'Entrer dans un espace'], ['messages', 'Messages'], ['journal', 'Journal']
   ];
   let onglet = location.hash.slice(1) || 'bord';
   if (!ONGLETS.some(([id]) => id === onglet)) onglet = 'bord';
@@ -665,6 +665,41 @@
       });
   }
 
+  /* ---------------------------- entrer dans un espace ---------------------- */
+  /* L'administration entre dans le compte d'un enseignant ou d'un établissement et le gère. */
+  async function rendreEspaces() {
+    attente();
+    const [{ utilisateurs: ens }, { utilisateurs: etabs }] = await Promise.all([
+      API.get('/admin/utilisateurs?role=enseignant'), API.get('/admin/utilisateurs?role=etablissement')]);
+    const carte = (u, role) => `<article class="esp-ligne" data-nom="${echapper((u.nom + ' ' + u.email).toLowerCase())}">
+        <span class="esp-av">${echapper((u.nom || '?').trim()[0].toUpperCase())}</span>
+        <span class="esp-txt"><b>${echapper(u.nom)}</b><small>${echapper(u.email)}${u.actif ? '' : ' · désactivé'}</small></span>
+        <button class="pilule mini blanc" data-entrer="${u.id}" data-role="${role}">Entrer</button></article>`;
+    const colonne = (titre, sous, liste, role) => `<section class="esp-col"><h2>${titre}</h2><p>${sous}</p>
+        <div class="esp-liste">${liste.map(u => carte(u, role)).join('') || '<div class="vide-etat"><b>Aucun compte</b>Créez-en un depuis l’onglet Utilisateurs.</div>'}</div></section>`;
+    vue.innerHTML = `
+      <div class="esp-acces">
+        <a class="esp-tuile" href="/ecole"><b>Vue élève</b><span>Le site tel que le voit un élève</span></a>
+        <a class="esp-tuile" href="/espace-parent"><b>Vue parent</b><span>Le suivi de tous les enfants</span></a>
+      </div>
+      <input class="champ" id="espRecherche" type="search" placeholder="Chercher un nom ou un e-mail…" aria-label="Chercher un compte">
+      <div class="esp-colonnes">
+        ${colonne('Enseignants', 'Classes, élèves, suivis et TP de l’enseignant.', ens, 'enseignant')}
+        ${colonne('Universités et écoles', 'Fiche d’admission et candidatures reçues.', etabs, 'etablissement')}
+      </div>`;
+    $('#espRecherche').addEventListener('input', e => {
+      const q = e.target.value.trim().toLowerCase();
+      $$('.esp-ligne').forEach(l => { l.hidden = !!q && !l.dataset.nom.includes(q); });
+    });
+    gestionnaire = async e => {
+      const b = e.target.closest('[data-entrer]'); if (!b) return;
+      try {
+        await API.post('/admin/vue', { role: b.dataset.role, id: Number(b.dataset.entrer) });
+        location.href = b.dataset.role === 'enseignant' ? '/espace-enseignant' : '/espace-etablissement';
+      } catch (err) { message(err.message); }
+    };
+  }
+
   /* ----------------------------- suivi des élèves ------------------------- */
   async function rendreSuivi() {
     attente();
@@ -1172,6 +1207,7 @@
       else if (onglet === 'enseignants') await rendreEnseignants();
       else if (onglet === 'exercices') await rendreExercices();
       else if (onglet === 'abonnements') await rendreAbonnements();
+      else if (onglet === 'espaces') await rendreEspaces();
       else await rendreSuivi();
     } catch (e) { vue.innerHTML = `<div class="vide-etat"><b>Erreur</b>${e.message}</div>`; }
   }

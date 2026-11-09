@@ -577,3 +577,20 @@ textarea.champ{height:auto;padding:10px 12px;line-height:1.5;resize:vertical}
 .exo-edit{border:1px solid var(--line-2);border-radius:12px;padding:12px 14px;display:grid;gap:10px}
 .exo-edit legend{display:flex;gap:10px;align-items:center;font-weight:700;padding:0 6px}
 #ajoutExo{align-self:flex-start}
+.esp-acces{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+.esp-tuile{padding:16px 18px;border-radius:14px;background:var(--card);border:1px solid var(--line-2);transition:border-color .15s}
+.esp-tuile:hover{border-color:#fff}
+.esp-tuile b{display:block;font-size:16px}
+.esp-tuile span{font-size:13px;color:var(--text-3)}
+#espRecherche{margin-bottom:18px;max-width:380px}
+.esp-colonnes{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+.esp-col h2{font-size:19px}
+.esp-col>p{font-size:13.5px;color:var(--text-3);margin:2px 0 12px}
+.esp-liste{display:flex;flex-direction:column;gap:8px}
+.esp-ligne{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:var(--card);border:1px solid var(--line-2)}
+.esp-ligne[hidden]{display:none}
+.esp-av{flex:none;display:grid;place-items:center;width:38px;height:38px;border-radius:10px;font-weight:800;background:linear-gradient(135deg,#CD5CB4,#4c8dff)}
+.esp-txt{flex:1;min-width:0}
+.esp-txt b{display:block;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.esp-txt small{display:block;font-size:12.5px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:800px){.esp-colonnes,.esp-acces{grid-template-columns:1fr}}

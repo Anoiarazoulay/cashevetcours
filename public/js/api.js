@@ -31,6 +31,10 @@ window.API = (() => {
       location.href = '/abonnement';
       throw new Error(donnees.erreur);
     }
+    if (r.status === 409 && donnees && donnees.code === 'VUE_A_CHOISIR') {
+      location.href = '/admin#espaces';
+      throw new Error(donnees.erreur);
+    }
     if (!r.ok) throw new Error((donnees && donnees.erreur) || 'Erreur ' + r.status);
     return donnees;
   };
