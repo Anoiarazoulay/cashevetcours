@@ -35,7 +35,15 @@
   const decisionHTML = c => c.etat === 'acceptee' ? `
       <div class="decision acceptee"><b>🎉 Candidature acceptée</b>
         ${txt(c.etablissement.nom)} a accepté votre candidature. Vous avez <b style="display:inline">${c.delaiOriginaux} jours</b> pour venir avec
-        les originaux de vos documents${c.limiteOriginaux ? ', soit avant le <b style="display:inline">' + dateFR(c.limiteOriginaux) + '</b>' : ''}.</div>`
+        les originaux de vos documents${c.limiteOriginaux ? ', soit avant le <b style="display:inline">' + dateFR(c.limiteOriginaux) + '</b>' : ''}.
+        ${c.originauxLe ? `<p class="originaux-ok">✓ Originaux reçus par l’établissement le ${dateFR(c.originauxLe)}.</p>` : c.code ? `
+        <div class="qr-admis">
+          <img src="/api/candidatures/${c.id}/qr" width="168" height="168" alt="QR code de votre admission">
+          <div><b>Votre QR code d’admission</b>
+            <span>Présentez-le à l’établissement avec vos originaux : il est scanné à l’accueil et confirme votre admission.</span>
+            <span class="code">Code : <b style="display:inline">${txt(c.code)}</b></span>
+            <a class="pilule mini" href="/api/candidatures/${c.id}/qr?telecharger=1" download>Télécharger le QR code</a></div>
+        </div>` : ''}</div>`
     : c.etat === 'refusee' ? `
       <div class="decision refusee"><b>Candidature refusée</b>
         ${txt(c.etablissement.nom)} n’a pas retenu votre candidature. Vous pouvez postuler ailleurs depuis cette page.</div>` : '';
@@ -132,7 +140,7 @@
           ${e.frais > 0 && c.etat !== 'brouillon' ? `
             <div class="panneau espace-haut">
               <h3 class="titre-bloc">Frais ${e.mode === 'concours' ? 'du concours' : 'd’envoi du dossier'} : ${argent(e.frais, e.devise)}</h3>
-              <p class="sous">${txt(e.instructionsPaiement || 'Réglez les frais selon les indications de l’établissement, puis indiquez ici la référence de votre paiement.')}</p>
+              <p class="sous">Moyens acceptés : ${(e.moyensPaiement || []).map(txt).join(' · ')}.${e.instructionsPaiement ? ' ' + txt(e.instructionsPaiement) : ''} Après le paiement, indiquez ici sa référence.</p>
               ${c.paiement === 'confirme' ? '<span class="etiquette paie-confirme">Frais reçus par l’établissement</span>'
                 : c.paiement === 'declare' ? `<span class="etiquette paie-declare">Paiement déclaré · réf. ${txt(c.referencePaiement)}</span> <small class="sous">en attente de confirmation</small>`
                 : `<form id="formPaiement" class="ligne-form">

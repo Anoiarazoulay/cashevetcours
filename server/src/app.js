@@ -172,6 +172,12 @@ app.get('/abonnement/:id/recu', async (req, res, suite) => {
   } catch (e) { suite(e); }
 });
 
+/* Le QR code d'un admis ouvre cette page : l'établissement y voit l'élève accepté. */
+app.get('/verifier/:code', (req, res) => {
+  if (!req.utilisateur) return res.redirect('/connexion/etablissement?suite=' + encodeURIComponent(req.path));
+  res.sendFile(path.join(config.racinePublique, 'verifier.html'));
+});
+
 /* Racine : la vitrine pour un visiteur, son espace pour un compte connecté */
 app.get('/', (req, res) => {
   if (!req.utilisateur) return res.redirect('/accueil');

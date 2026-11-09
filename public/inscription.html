@@ -18,7 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Anton&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/style.css?v=3">
 <link rel="stylesheet" href="/css/ecole.css?v=4">
-<link rel="stylesheet" href="/css/accueil.css?v=3">
+<link rel="stylesheet" href="/css/accueil.css?v=4">
 <link rel="stylesheet" href="/css/pages.css?v=3">
 <link rel="stylesheet" href="/css/mobile.css?v=3">
 <link rel="icon" href="/favicon.ico" sizes="48x48">
@@ -167,9 +167,10 @@
       <!-- ------------------------------ étape 3 ------------------------------ -->
       <!-- Élèves seulement : chaque professeur référent ne suit qu'une matière. -->
       <section class="panneau-etape" data-etape="3" hidden>
-        <p class="nf-intro">Indiquez le code que vos professeurs vous ont donné. Chacun pourra suivre
-          votre progression <b>dans sa matière uniquement</b>. Étape facultative : vous pourrez les
-          ajouter plus tard, depuis « Ma progression ».</p>
+        <p class="nf-intro"><b>Étape facultative.</b> Si un professeur vous a donné son code, saisissez-le
+          dans sa matière : il suivra votre progression <b>dans cette matière uniquement</b>. Pas de code ?
+          Créez votre compte directement, vous pourrez les ajouter plus tard depuis « Ma progression ».</p>
+        <button class="nf-soumettre passer-profs" type="submit">Je n’ai pas de code : créer mon compte</button>
         <div class="nf-profs" id="listeProfesseurs"></div>
         <div class="rangee-boutons">
           <button class="nf-bouton fantome" type="button" data-precedent>Retour</button>
@@ -187,6 +188,6 @@
 
 <script src="/js/api.js?v=4"></script>
 <script src="/js/accueil.js?v=4"></script>
-<script src="/js/connexion.js?v=3"></script>
+<script src="/js/connexion.js?v=4"></script>
 </body>
 </html>

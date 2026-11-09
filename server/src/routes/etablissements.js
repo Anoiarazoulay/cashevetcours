@@ -12,6 +12,17 @@ const { requiert, agirPour } = require('../middleware/auth');
 const journal = require('../services/journal');
 
 const routeur = express.Router();
+/* Tous les moyens de paiement sont toujours proposés aux élèves. */
+const MOYENS_PAIEMENT = ['Orange Money', 'MTN Mobile Money', 'Virement bancaire', 'Carte bancaire', 'Espèces à l’établissement'];
+/* Code de l'admis : lisible à la main, sans 0/O ni 1/I. */
+const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const nouveauJeton = () => Array.from(require('crypto').randomBytes(10), o => ALPHABET[o % ALPHABET.length]).join('');
+const assurerJeton = async c => {
+  if (c.etat !== 'acceptee' || c.jeton) return c;
+  c.jeton = nouveauJeton();
+  await executer('UPDATE candidatures SET jeton = COALESCE(jeton, ?) WHERE id = ?', [c.jeton, c.id]);
+  return c;
+};
 routeur.use('/etablissement', agirPour('etablissement'));
 const entier = v => Number.isInteger(Number(v)) && Number(v) > 0 ? Number(v) : null;
 const texte = (v, max) => String(v == null ? '' : v).trim().slice(0, max);
@@ -28,7 +39,7 @@ const ficheDe = e => ({
   id: e.utilisateur_id, nom: e.nom, type: e.type, ville: e.ville, pays: e.pays, siteWeb: e.site_web,
   description: e.description, mode: e.mode, matieresConcours: e.matieres_concours, datesConcours: e.dates_concours,
   pieces: json(e.pieces), frais: Number(e.frais), devise: e.devise, delaiOriginaux: e.delai_originaux,
-  instructionsPaiement: e.instructions_paiement, ouvert: !!e.ouvert, publie: !!e.publie,
+  instructionsPaiement: e.instructions_paiement, moyensPaiement: MOYENS_PAIEMENT, ouvert: !!e.ouvert, publie: !!e.publie,
   candidatures: e.candidatures === undefined ? undefined : Number(e.candidatures)
 });
 
@@ -85,8 +96,10 @@ async function detailCandidature(c) {
     id: c.id, etat: c.etat, message: c.message, paiement: c.paiement, referencePaiement: c.reference_paiement,
     creeLe: c.cree_le, envoyeeLe: c.envoyee_le, ouverteLe: c.ouverte_le, decideeLe: c.decidee_le, lueLe: c.lue_le,
     delaiOriginaux: c.delai_originaux, limiteOriginaux: limite,
+    code: c.etat === 'acceptee' ? c.jeton || null : null, originauxLe: c.originaux_le || null,
     etablissement: e ? { id: e.utilisateur_id, nom: e.nom, type: e.type, ville: e.ville, mode: e.mode,
-      frais: Number(e.frais), devise: e.devise, pieces: json(e.pieces), instructionsPaiement: e.instructions_paiement } : null,
+      frais: Number(e.frais), devise: e.devise, pieces: json(e.pieces), instructionsPaiement: e.instructions_paiement,
+      moyensPaiement: MOYENS_PAIEMENT } : null,
     pieces
   };
 }
@@ -94,7 +107,22 @@ async function detailCandidature(c) {
 /* GET /api/candidatures — mes candidatures */
 routeur.get('/candidatures', requiert('eleve'), async (req, res) => {
   const liste = await tous('SELECT * FROM candidatures WHERE eleve_id = ? ORDER BY cree_le DESC', [req.utilisateur.id]);
+  for (const c of liste) await assurerJeton(c);
   res.json({ candidatures: await Promise.all(liste.map(detailCandidature)) });
+});
+
+/* GET /api/candidatures/:id/qr — le QR code de l'admis, à présenter avec ses originaux */
+routeur.get('/candidatures/:id/qr', requiert('eleve'), async (req, res) => {
+  const c = await un(`SELECT * FROM candidatures WHERE id = ? AND eleve_id = ? AND etat = 'acceptee'`,
+    [entier(req.params.id), req.utilisateur.id]);
+  if (!c) return res.status(404).json({ erreur: 'Aucune admission pour cette candidature.' });
+  await assurerJeton(c);
+  const lien = req.protocol + '://' + req.get('host') + '/verifier/' + c.jeton;
+  const svg = await require('qrcode').toString(lien, { type: 'svg', margin: 2, errorCorrectionLevel: 'M', color: { dark: '#000000', light: '#ffffff' } });
+  res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+  res.setHeader('Cache-Control', 'private, no-store');
+  if (req.query.telecharger) res.setHeader('Content-Disposition', 'attachment; filename="admission-' + c.jeton + '.svg"');
+  res.send(svg);
 });
 
 /* POST /api/etablissements/:id/candidatures — ouvre un dossier (brouillon) */
@@ -225,7 +253,7 @@ routeur.put('/etablissement/profil', requiert('etablissement'), async (req, res)
 /* GET /api/etablissement/candidatures — toutes les candidatures reçues */
 routeur.get('/etablissement/candidatures', requiert('etablissement'), async (req, res) => {
   const liste = await tous(
-    `SELECT c.id, c.etat, c.paiement, c.reference_paiement, c.cree_le, c.envoyee_le, c.ouverte_le, c.decidee_le, c.delai_originaux,
+    `SELECT c.id, c.etat, c.paiement, c.reference_paiement, c.cree_le, c.envoyee_le, c.ouverte_le, c.originaux_le, c.decidee_le, c.delai_originaux,
             u.id AS eleve_id, u.nom, u.filiere, u.etablissement AS lycee, u.ville,
             (SELECT COUNT(*) FROM candidature_pieces p WHERE p.candidature_id = c.id) AS pieces
        FROM candidatures c JOIN utilisateurs u ON u.id = c.eleve_id
@@ -276,8 +304,8 @@ routeur.post('/etablissement/candidatures/:id/decision', requiert('etablissement
   const e = await fiche(req.utilisateur.id);
   await executer(
     `UPDATE candidatures SET etat = ?, decidee_le = NOW(), delai_originaux = ?, lue_le = NULL,
-       ouverte_le = COALESCE(ouverte_le, NOW()) WHERE id = ?`,
-    [etat, etat === 'acceptee' ? e.delai_originaux : null, c.id]);
+       ouverte_le = COALESCE(ouverte_le, NOW()), jeton = COALESCE(jeton, ?) WHERE id = ?`,
+    [etat, etat === 'acceptee' ? e.delai_originaux : null, etat === 'acceptee' ? nouveauJeton() : null, c.id]);
   const eleve = await un('SELECT nom FROM utilisateurs WHERE id = ?', [c.eleve_id]);
   await journal.enregistrer(req, { categorie: 'compte', action: etat === 'acceptee' ? 'Candidature acceptée' : 'Candidature refusée',
     cible: eleve ? eleve.nom : String(c.eleve_id) });
@@ -290,6 +318,33 @@ routeur.post('/etablissement/candidatures/:id/paiement', requiert('etablissement
     [req.body.confirme === false ? 'en_attente' : 'confirme', entier(req.params.id), req.utilisateur.id]);
   if (!r.affectedRows) return res.status(404).json({ erreur: 'Candidature introuvable.' });
   res.json({ ok: true });
+});
+
+/* GET /api/etablissement/verifier/:code — ce que l'école voit en scannant le QR code d'un admis */
+routeur.get('/etablissement/verifier/:code', requiert('etablissement'), async (req, res) => {
+  const code = String(req.params.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 16);
+  const c = code && await un(
+    `SELECT c.*, u.nom, u.email, u.telephone, u.date_naissance, u.filiere, u.etablissement AS lycee, u.ville
+       FROM candidatures c JOIN utilisateurs u ON u.id = c.eleve_id
+      WHERE c.jeton = ? AND c.etablissement_id = ?`, [code, req.utilisateur.id]);
+  if (!c) return res.status(404).json({ erreur: 'Ce code ne correspond à aucun élève admis dans votre établissement.' });
+  const d = await detailCandidature(c);
+  res.json({ admis: {
+    ...d, admis: c.etat === 'acceptee',
+    eleve: { nom: c.nom, email: c.email, telephone: c.telephone, dateNaissance: c.date_naissance,
+             filiere: c.filiere, lycee: c.lycee, ville: c.ville } } });
+});
+
+/* POST /api/etablissement/verifier/:code/originaux — { recus } : les originaux ont été présentés */
+routeur.post('/etablissement/verifier/:code/originaux', requiert('etablissement'), async (req, res) => {
+  const code = String(req.params.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 16);
+  const c = await un(`SELECT c.id, u.nom FROM candidatures c JOIN utilisateurs u ON u.id = c.eleve_id
+                       WHERE c.jeton = ? AND c.etablissement_id = ? AND c.etat = 'acceptee'`, [code, req.utilisateur.id]);
+  if (!c) return res.status(404).json({ erreur: 'Admission introuvable.' });
+  const recus = req.body.recus !== false;
+  await executer('UPDATE candidatures SET originaux_le = ? WHERE id = ?', [recus ? new Date() : null, c.id]);
+  await journal.enregistrer(req, { categorie: 'compte', action: recus ? 'Originaux reçus' : 'Réception des originaux annulée', cible: c.nom });
+  res.json({ originauxLe: recus ? new Date() : null });
 });
 
 /* Les pièces s'affichent dans la page (inline), jamais exécutées : nosniff est posé par helmet. */

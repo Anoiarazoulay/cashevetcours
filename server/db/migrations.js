@@ -15,6 +15,9 @@ const COLONNES = [
   /* Relecture des séries d'exercices par un enseignant */
   /* Séries du bac concernées par une matière, ex. « A,C,D ». */
   ['matieres', 'series', 'VARCHAR(20) NULL'],
+  /* Le QR code de l'admis et la réception de ses originaux par l'établissement. */
+  ['candidatures', 'jeton', 'VARCHAR(16) NULL'],
+  ['candidatures', 'originaux_le', 'DATETIME NULL'],
   ['exercices', 'valide', 'TINYINT(1) NOT NULL DEFAULT 0'],
   ['exercices', 'valide_par', 'INT UNSIGNED NULL'],
   ['exercices', 'note_relecture', 'VARCHAR(400) NULL'],

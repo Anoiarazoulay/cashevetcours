@@ -132,8 +132,8 @@ routeur.post('/inscription', async (req, res) => {
 
   /* Un établissement reçoit sa fiche d'admission, à compléter depuis son espace. */
   if (role === 'etablissement') {
-    await executer('INSERT INTO etablissements (utilisateur_id, type, ville, pays) VALUES (?, ?, ?, ?)',
-      [r.insertId, req.body.typeEtablissement === 'universite' ? 'universite' : 'ecole', ville, pays]);
+    await executer('INSERT INTO etablissements (utilisateur_id, type, ville, pays, devise) VALUES (?, ?, ?, ?, ?)',
+      [r.insertId, req.body.typeEtablissement === 'universite' ? 'universite' : 'ecole', ville, pays, 'FCFA']);
   }
 
   /* Un élève peut désigner ses professeurs dès l'inscription. Un code erroné

@@ -50,8 +50,14 @@
         <div class="tuile"><div class="lab">À traiter</div><div class="val">${compte.envoyee}</div><div class="sous">dossiers envoyés, sans décision</div></div>
         <div class="tuile"><div class="lab">Acceptées</div><div class="val" style="color:var(--ok)">${compte.acceptee}</div><div class="sous">${etablissement.delaiOriginaux} jours pour apporter les originaux</div></div>
         <div class="tuile"><div class="lab">Refusées</div><div class="val">${compte.refusee}</div></div>
+        <div class="tuile"><div class="lab">Originaux reçus</div><div class="val">${candidatures.filter(c => c.originaux_le).length}<small> / ${compte.acceptee}</small></div><div class="sous">admis venus avec leurs originaux</div></div>
         <div class="tuile"><div class="lab">Frais déclarés à vérifier</div><div class="val">${candidatures.filter(c => c.paiement === 'declare').length}</div></div>
       </div>
+      <form class="verifier-code" id="formVerifier">
+        <b>Un admis se présente ?</b><span>Scannez son QR code avec l’appareil photo du téléphone, ou tapez le code affiché sous le QR code.</span>
+        <input class="champ" name="code" maxlength="16" placeholder="Code de l’admis" autocomplete="off" aria-label="Code de l’admis">
+        <button class="pilule blanc" type="submit">Vérifier</button>
+      </form>
       <div class="pills serres etats-eleves">
         ${[['envoyee', 'À traiter', compte.envoyee], ['acceptee', 'Acceptées', compte.acceptee], ['refusee', 'Refusées', compte.refusee], ['toutes', 'Toutes', candidatures.length]]
           .map(([v, l, n]) => `<button data-filtre="${v}" class="${filtre === v ? 'active' : ''}">${l} <span class="compte">${n}</span></button>`).join('')}
@@ -64,6 +70,7 @@
               <small>${txt(c.filiere || 'filière non précisée')}${c.lycee ? ' · ' + txt(c.lycee) : ''}${c.ville ? ' · ' + txt(c.ville) : ''} · ${c.pieces} pièce(s) · envoyée le ${dateFR(c.envoyee_le)}${c.ouverte_le ? '' : ' · <b>non ouverte</b>'}</small></span>
             ${etablissement.frais > 0 ? `<span class="etiquette paie-${c.paiement}">${PAIE[c.paiement]}</span>` : ''}
             <span class="etiquette etat-${c.etat}">${ETAT[c.etat]}</span>
+            ${c.etat === 'acceptee' ? `<span class="etiquette ${c.originaux_le ? 'paie-confirme' : 'paie-en_attente'}">${c.originaux_le ? 'Originaux reçus' : 'Originaux attendus'}</span>` : ''}
             <button class="pilule mini blanc" data-ouvrir="${c.id}">Ouvrir</button>
           </div>`).join('') : '<p class="sous derniere">Aucune candidature dans cette liste.</p>'}
       </div>`;
@@ -149,7 +156,7 @@
           <label class="champ-libelle">Nom de l’établissement<input class="champ" name="nom" maxlength="120" required value="${txt(e.nom)}"></label>
           <label class="champ-libelle">Type<select class="champ" name="type">${opt('ecole', 'École de formation', e.type)}${opt('universite', 'Université', e.type)}</select></label>
           <label class="champ-libelle">Ville<input class="champ" name="ville" maxlength="120" value="${txt(e.ville || '')}"></label>
-          <label class="champ-libelle">Pays<input class="champ" name="pays" maxlength="80" value="${txt(e.pays || 'Maroc')}"></label>
+          <label class="champ-libelle">Pays<input class="champ" name="pays" maxlength="80" value="${txt(e.pays || 'Cameroun')}"></label>
           <label class="champ-libelle pleine">Site web <small>— facultatif</small><input class="champ" name="siteWeb" maxlength="200" value="${txt(e.siteWeb || '')}" placeholder="https://…"></label>
           <label class="champ-libelle pleine">Présentation <small>— ce que les élèves voient en premier</small>
             <textarea class="champ" name="description" rows="4" maxlength="3000">${txt(e.description || '')}</textarea></label>
@@ -167,12 +174,16 @@
             <textarea class="champ" name="pieces" rows="5" required placeholder="Relevé de notes de terminale&#10;Copie de la carte d’identité&#10;Lettre de motivation">${txt(e.pieces.join('\n'))}</textarea></label>
           <label class="champ-libelle">Frais <small>— ${e.mode === 'concours' ? 'du concours' : 'd’envoi du dossier'}, 0 si gratuit</small><input class="champ" name="frais" type="number" min="0" step="1" value="${e.frais}"></label>
           <label class="champ-libelle">Devise<input class="champ" name="devise" maxlength="8" value="${txt(e.devise)}"></label>
-          <label class="champ-libelle pleine">Comment payer les frais <small>— ce que l’élève lit avant de déclarer son paiement</small>
-            <textarea class="champ" name="instructionsPaiement" rows="2" maxlength="600" placeholder="Ex. virement au compte …, ou mobile money au …, en indiquant votre nom.">${txt(e.instructionsPaiement || '')}</textarea></label>
+          <div class="pleine moyens-paiement"><b>Moyens de paiement proposés aux élèves</b>
+            <div>${e.moyensPaiement.map(m => `<span>${txt(m)}</span>`).join('')}</div>
+            <small>Tous les moyens sont toujours affichés. Indiquez seulement, si vous le souhaitez, où recevoir les frais.</small></div>
+          <label class="champ-libelle pleine">Numéro ou compte pour recevoir les frais <small>— facultatif</small>
+            <input class="champ" name="instructionsPaiement" maxlength="600" value="${txt(e.instructionsPaiement || '')}" placeholder="Ex. Orange Money 6XX XX XX XX au nom de …"></label>
           <label class="champ-libelle">Délai pour déposer les originaux <small>— en jours, après acceptation</small><input class="champ" name="delaiOriginaux" type="number" min="1" max="365" value="${e.delaiOriginaux}"></label>
           <label class="champ-libelle"><span style="display:block;margin-bottom:8px">Candidatures</span>
             <select class="champ" name="ouvert">${opt('1', 'Ouvertes', e.ouvert ? '1' : '0')}${opt('0', 'Fermées pour le moment', e.ouvert ? '1' : '0')}</select></label>
-          <div class="pleine"><button class="pilule blanc" type="submit">Enregistrer ma fiche</button></div>
+          <div class="pleine enregistrer-fiche"><button class="pilule blanc" type="submit">Enregistrer ma fiche</button>
+            <span id="etatFiche" role="status" aria-live="polite"></span></div>
         </form>
       </div>`;
   }
@@ -191,8 +202,14 @@
   });
   vue.addEventListener('submit', async e => {
     e.preventDefault();
+    if (e.target.id === 'formVerifier') {
+      const code = e.target.code.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (code) location.href = '/verifier/' + code;
+      return;
+    }
     if (e.target.id !== 'formFiche') return;
-    const f = e.target;
+    const f = e.target, bouton = f.querySelector('[type=submit]');
+    bouton.disabled = true; bouton.textContent = 'Enregistrement…';
     try {
       await API.put('/etablissement/profil', {
         nom: f.nom.value, type: f.type.value, ville: f.ville.value, pays: f.pays.value, siteWeb: f.siteWeb.value,
@@ -202,8 +219,18 @@
         instructionsPaiement: f.instructionsPaiement.value, delaiOriginaux: Number(f.delaiOriginaux.value),
         ouvert: f.ouvert.value === '1'
       });
-      message('Fiche enregistrée'); rendreFiche();
-    } catch (err) { message(err.message); }
+      await rendreFiche();
+      const heure = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      const etat = $('#etatFiche');
+      etat.className = 'ok'; etat.textContent = `✓ Fiche enregistrée à ${heure} : les élèves voient déjà ces informations.`;
+      $('.panneau', vue).insertAdjacentHTML('afterbegin', `<div class="bandeau-ok" role="status">✓ Fiche enregistrée à ${heure}. Les élèves voient la nouvelle version.</div>`);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      message('Fiche enregistrée');
+    } catch (err) {
+      bouton.disabled = false; bouton.textContent = 'Enregistrer ma fiche';
+      const etat = $('#etatFiche'); etat.className = 'erreur'; etat.textContent = err.message;
+      message(err.message);
+    }
   });
 
   async function rendre() {
