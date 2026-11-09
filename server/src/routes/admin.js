@@ -374,12 +374,13 @@ routeur.post('/matieres', async (req, res) => {
     return res.status(409).json({ erreur: 'Ce code de matière existe déjà.' });
   const ordre = await un('SELECT COALESCE(MAX(ordre), -1) + 1 AS suivant FROM matieres');
   const r = await executer(
-    `INSERT INTO matieres (code, nom, court, professeur, coefficient, teinte, teinte2, glyphe, label_formules, ordre)
-     VALUES (?,?,?,?,?,?,?,?,?,?)`,
+    `INSERT INTO matieres (code, nom, court, professeur, coefficient, teinte, teinte2, glyphe, label_formules, ordre, series)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
     [code, nom, texte(req.body.court, 40) || nom.slice(0, 12), texte(req.body.professeur, 120) || '—',
      entier(req.body.coefficient) || 1, texte(req.body.teinte, 7) || '#3b6ef5',
      texte(req.body.teinte2, 7) || '#7b3bf5', texte(req.body.glyphe, 8) || '',
-     texte(req.body.labelFormules, 80) || 'À retenir', ordre.suivant]);
+     texte(req.body.labelFormules, 80) || 'À retenir', ordre.suivant,
+     ['A', 'C', 'D'].filter(s => String(req.body.series || '').split(',').includes(s)).join(',') || null]);
   res.status(201).json({ id: r.insertId });
 });
 
@@ -390,7 +391,8 @@ routeur.patch('/matieres/:id', async (req, res) => {
   const cartes = {
     nom: v => texte(v, 120), court: v => texte(v, 40), professeur: v => texte(v, 120),
     coefficient: v => entier(v) || 1, teinte: v => texte(v, 7), teinte2: v => texte(v, 7),
-    glyphe: v => texte(v, 8), label_formules: v => texte(v, 80), ordre: v => Number(v) || 0
+    glyphe: v => texte(v, 8), label_formules: v => texte(v, 80), ordre: v => Number(v) || 0,
+    series: v => ['A', 'C', 'D'].filter(s => String(v).split(',').includes(s)).join(',') || null
   };
   const champs = [], params = [];
   for (const [col, nettoyer] of Object.entries(cartes)) {
@@ -417,7 +419,10 @@ routeur.get('/chapitres', async (req, res) => {
       SELECT c.id, c.numero, c.titre, c.duree, c.difficulte, c.publie,
              m.id AS matiere_id, m.nom AS matiere, m.teinte,
              (SELECT COUNT(*) FROM questions q WHERE q.chapitre_id = c.id) AS questions,
-             (SELECT COUNT(*) FROM seances s  WHERE s.chapitre_id = c.id) AS seances
+             (SELECT COUNT(*) FROM seances s  WHERE s.chapitre_id = c.id) AS seances,
+             (SELECT COUNT(*) FROM seances s  WHERE s.chapitre_id = c.id AND s.video_url IS NOT NULL) AS videos,
+             (SELECT COUNT(*) FROM resume_lignes r WHERE r.chapitre_id = c.id AND r.type = 'point') AS cours,
+             (SELECT COUNT(*) FROM tp_lignes t WHERE t.chapitre_id = c.id AND t.type = 'exercice') AS exercices
         FROM chapitres c JOIN matieres m ON m.id = c.matiere_id
        ${clauses.length ? 'WHERE ' + clauses.join(' AND ') : ''}
        ORDER BY m.ordre, c.numero`, params)
@@ -455,6 +460,9 @@ routeur.post('/chapitres', async (req, res) => {
     [matiereId, entier(req.body.numero) || suivant.n, titre, entier(req.body.duree) || 0,
      ['Facile', 'Moyen', 'Difficile'].includes(req.body.difficulte) ? req.body.difficulte : 'Moyen',
      texte(req.body.accroche, 1000) || null, req.body.publie === false ? 0 : 1]);
+  /* Sans séance, la lecture ne compterait pas dans l'avancement de l'élève. */
+  await executer('INSERT INTO seances (chapitre_id, numero, titre, duree) VALUES (?,1,?,?)',
+    [r.insertId, 'Lecture du chapitre', entier(req.body.duree) || 0]);
   res.status(201).json({ id: r.insertId });
 });
 
@@ -489,12 +497,22 @@ routeur.patch('/chapitres/:id', async (req, res) => {
       for (const [i, s] of req.body.seances.entries()) {
         const titre = texte(s.titre, 200), duree = entier(s.duree) || 0;
         if (!titre) continue;
+        /* Un lien YouTube valide fait passer le chapitre en mode vidéo ; un lien vidé le rend au mode livre. */
+        const lien = s.video === undefined ? undefined : texte(s.video, 400);
+        const videoUrl = lien && cat.identifiantVideo(lien) ? lien : null;
         if (entier(s.id))
           await cx.query('UPDATE seances SET numero = ?, titre = ?, duree = ? WHERE id = ? AND chapitre_id = ?',
             [i + 1, titre, duree, s.id, id]);
-        else
-          await cx.query('INSERT INTO seances (chapitre_id, numero, titre, duree) VALUES (?,?,?,?)',
+        else {
+          const [r] = await cx.query('INSERT INTO seances (chapitre_id, numero, titre, duree) VALUES (?,?,?,?)',
             [id, i + 1, titre, duree]);
+          s.id = r.insertId;
+        }
+        if (lien !== undefined)
+          await cx.query(`UPDATE seances SET video_titre = IF(video_url <=> ?, video_titre, ?),
+                            video_chaine = IF(video_url <=> ?, video_chaine, NULL), video_url = ?
+                           WHERE id = ? AND chapitre_id = ?`,
+            [videoUrl, videoUrl ? titre : null, videoUrl, videoUrl, s.id, id]);
       }
     }
     for (const [table, cle] of [['resume_lignes', 'resume'], ['tp_lignes', 'tp']]) {
@@ -506,7 +524,7 @@ routeur.patch('/chapitres/:id', async (req, res) => {
       for (const [type, champ] of types) {
         if (!Array.isArray(bloc[champ])) continue;
         await cx.query('DELETE FROM ' + table + ' WHERE chapitre_id = ? AND type = ?', [id, type]);
-        for (const [i, t] of bloc[champ].map(x => texte(x, 2000)).filter(Boolean).entries())
+        for (const [i, t] of bloc[champ].map(x => texte(x, 30000)).filter(Boolean).entries())
           await cx.query('INSERT INTO ' + table + ' (chapitre_id, type, texte, ordre) VALUES (?,?,?,?)',
             [id, type, t, i]);
       }

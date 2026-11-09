@@ -266,87 +266,168 @@
   }
 
   /* -------------------------------- catalogue ----------------------------- */
+  /* Le catalogue se lit dans l'ordre où l'élève le découvre :
+     série → matière → chapitre → contenu du chapitre. */
+  const VUE_CAT = { serie: 'toutes', matiere: null, q: '' };
+  const SERIES = [['toutes', 'Toutes les séries'], ['A', 'Série A'], ['C', 'Série C'], ['D', 'Série D']];
+  const seriesDe = m => (m.series || '').split(',').filter(Boolean);
+  const pluriel = (n, mot) => `${n} ${mot}${n > 1 ? 's' : ''}`;
+
   async function rendreCatalogue() {
     attente();
     const [{ matieres }, { chapitres }] = await Promise.all([
       API.get('/admin/matieres'), API.get('/admin/chapitres')
     ]);
+    if (VUE_CAT.matiere && !matieres.some(m => m.id === VUE_CAT.matiere)) VUE_CAT.matiere = null;
+    const chapitresDe = id => chapitres.filter(c => c.matiere_id === id);
+    const dansSerie = m => VUE_CAT.serie === 'toutes' || seriesDe(m).includes(VUE_CAT.serie);
+    const nbSerie = s => s === 'toutes' ? matieres.length : matieres.filter(m => seriesDe(m).includes(s)).length;
+    const manque = c => !c.cours || !c.questions || !c.exercices;
+
+    const ligneChapitre = (c, avecMatiere) => `
+      <article class="cat-ligne${c.publie ? '' : ' masque'}">
+        <span class="cat-num" style="--c1:${c.teinte}">${c.numero}</span>
+        <button class="cat-titre" data-chap-ouvrir="${c.id}">
+          ${avecMatiere ? `<small>${echapper(c.matiere)}</small>` : ''}
+          <b>${echapper(c.titre)}</b>
+          <span class="cat-format ${c.videos ? 'video' : 'livre'}">${c.videos ? 'Cours en vidéo' : 'Cours à lire'}</span>
+          <span class="cat-diff">${c.difficulte}</span>
+        </button>
+        <div class="cat-contenus">
+          <button class="${c.cours ? 'ok' : 'vide'}" data-chap-ouvrir="${c.id}" data-onglet-chap="cours"><b>${c.cours}</b>Cours</button>
+          <button class="${c.exercices ? 'ok' : 'vide'}" data-chap-ouvrir="${c.id}" data-onglet-chap="exercices"><b>${c.exercices}</b>Exercices</button>
+          <button class="${c.questions ? 'ok' : 'vide'}" data-chap-ouvrir="${c.id}" data-onglet-chap="qcm"><b>${c.questions}</b>QCM</button>
+          <button class="${c.videos ? 'ok' : 'neutre'}" data-chap-ouvrir="${c.id}" data-onglet-chap="videos"><b>${c.videos}</b>Vidéos</button>
+        </div>
+        <label class="cat-switch" title="Visible par les élèves">
+          <input type="checkbox" data-chap-publier="${c.id}" ${c.publie ? 'checked' : ''}><i></i>
+          <span>${c.publie ? 'En ligne' : 'Masqué'}</span>
+        </label>
+        <div class="cat-actions">
+          <button class="pilule mini blanc" data-chap-ouvrir="${c.id}">Modifier</button>
+          <button class="mini danger" data-chap-supprimer="${c.id}" aria-label="Supprimer le chapitre">Supprimer</button>
+        </div>
+      </article>`;
+
+    const grille = () => {
+      const q = VUE_CAT.q.toLowerCase();
+      const liste = matieres.filter(dansSerie);
+      if (q) {
+        const ids = new Set(liste.map(m => m.id));
+        const trouves = chapitres.filter(c => ids.has(c.matiere_id) &&
+          (c.titre.toLowerCase().includes(q) || c.matiere.toLowerCase().includes(q)));
+        return trouves.length
+          ? `<p class="cat-compte">${pluriel(trouves.length, 'chapitre')} pour « ${echapper(VUE_CAT.q)} »</p>
+             <div class="cat-liste">${trouves.map(c => ligneChapitre(c, true)).join('')}</div>`
+          : `<div class="vide-etat"><b>Aucun chapitre trouvé</b>Essayez un autre mot.</div>`;
+      }
+      return `<div class="cat-matieres">${liste.map(m => {
+        const ch = chapitresDe(m.id), aFaire = ch.filter(manque).length;
+        return `<button class="cat-matiere" data-matiere-ouvrir="${m.id}" style="--c1:${m.teinte};--c2:${m.teinte2}">
+          <span class="g" aria-hidden="true">${m.glyphe}</span>
+          <span class="series">${seriesDe(m).map(s => `<i>${s}</i>`).join('') || '<i class="off">Sans série</i>'}</span>
+          <b>${echapper(m.nom)}</b>
+          <small>${pluriel(ch.length, 'chapitre')} · ${pluriel(Number(m.questions), 'question')} · coef. ${m.coefficient}</small>
+          <span class="etat${aFaire ? ' afaire' : ''}">${aFaire ? pluriel(aFaire, 'chapitre') + ' à compléter' : 'Contenu complet'}</span>
+        </button>`;
+      }).join('')}</div>`;
+    };
+
+    const detailMatiere = () => {
+      const m = matieres.find(x => x.id === VUE_CAT.matiere), ch = chapitresDe(m.id);
+      return `<section class="cat-tete" style="--c1:${m.teinte};--c2:${m.teinte2}">
+          <button class="cat-retour" data-retour-matieres>← Toutes les matières</button>
+          <span class="g" aria-hidden="true">${m.glyphe}</span>
+          <div class="series">${seriesDe(m).map(s => `<i>Série ${s}</i>`).join('')}</div>
+          <h2>${echapper(m.nom)}</h2>
+          <p>${pluriel(ch.length, 'chapitre')} · ${pluriel(Number(m.questions), 'question')} · coefficient ${m.coefficient} · ${echapper(m.professeur)}</p>
+          <div class="cat-tete-actions">
+            <button class="pilule blanc" data-nouveau-chapitre>Ajouter un chapitre</button>
+            <button class="pilule" data-mat-modifier="${m.id}">Réglages de la matière</button>
+            <button class="pilule danger" data-mat-supprimer="${m.id}">Supprimer la matière</button>
+          </div>
+        </section>
+        <div class="cat-liste">${ch.map(c => ligneChapitre(c, false)).join('') ||
+          '<div class="vide-etat"><b>Aucun chapitre</b>Ajoutez le premier chapitre de cette matière.</div>'}</div>`;
+    };
+
+    const zone = () => { $('#catZone').innerHTML = VUE_CAT.matiere ? detailMatiere() : grille(); };
+    const totalQ = matieres.reduce((s, m) => s + Number(m.questions), 0);
 
     vue.innerHTML = `
-      <div class="barre-outils">
-        <button class="pilule blanc" id="nouvMatiere">Nouvelle matière</button>
+      <section class="cat-guide" aria-label="Comment le catalogue est organisé">
+        <div class="cat-guide-tete"><h2>Comment ça marche</h2>
+          <p>${pluriel(matieres.length, 'matière')}, ${pluriel(chapitres.length, 'chapitre')} et ${pluriel(totalQ, 'question')}. Tout se range en quatre niveaux.</p></div>
+        <ol>
+          <li><b>Série</b><span>A, C ou D : l’élève ne voit que les matières de sa série.</span></li>
+          <li><b>Matière</b><span>Mathématiques, Histoire… une couleur et un coefficient.</span></li>
+          <li><b>Chapitre</b><span>Une leçon du programme, en ligne ou masquée.</span></li>
+          <li><b>Contenu</b><span>Le cours, les exercices corrigés, le QCM et, si vous en avez, les vidéos.</span></li>
+        </ol>
+      </section>
+      <div class="cat-barre">
+        <div class="cat-series" role="tablist">${SERIES.map(([v, l]) => `
+          <button role="tab" aria-selected="${VUE_CAT.serie === v}" class="${VUE_CAT.serie === v ? 'actif' : ''}" data-cat-serie="${v}">${l}<i>${nbSerie(v)}</i></button>`).join('')}</div>
+        <input class="champ" id="catRecherche" type="search" placeholder="Chercher un chapitre…" value="${echapper(VUE_CAT.q)}" aria-label="Chercher un chapitre">
         <button class="pilule" id="nouvChapitre">Nouveau chapitre</button>
+        <button class="pilule blanc" id="nouvMatiere">Nouvelle matière</button>
       </div>
-
-      <div class="grille-matieres">
-        ${matieres.map(m => `
-          <div class="carte-matiere" style="--c1:${m.teinte};--c2:${m.teinte2}">
-            <span class="g">${m.glyphe}</span>
-            <b>${echapper(m.nom)}</b>
-            <small>${m.chapitres} chapitres · ${m.questions} questions · coef. ${m.coefficient}</small>
-            <div class="actions-ligne">
-              <button class="mini" data-mat-modifier="${m.id}">Modifier</button>
-              <button class="mini danger" data-mat-supprimer="${m.id}">Supprimer</button>
-            </div>
-          </div>`).join('')}
-      </div>
-
-      <div class="tableau" style="margin-top:24px">
-        <table>
-          <thead><tr><th>Matière</th><th>N°</th><th>Chapitre</th><th>Durée</th><th>Difficulté</th>
-            <th>Séances</th><th>Questions</th><th>État</th><th></th></tr></thead>
-          <tbody>${chapitres.map(c => `
-            <tr>
-              <td><span class="pt" style="background:${c.teinte}"></span>${echapper(c.matiere)}</td>
-              <td>${c.numero}</td><td><b>${echapper(c.titre)}</b></td>
-              <td>${c.duree} min</td><td>${c.difficulte}</td>
-              <td>${c.seances}</td><td>${c.questions}</td>
-              <td><span class="pastille ${c.publie ? 'ok' : 'off'}">${c.publie ? 'Publié' : 'Brouillon'}</span></td>
-              <td class="actions-ligne">
-                <button class="mini" data-chap-modifier="${c.id}">Contenu</button>
-                <button class="mini" data-chap-qcm="${c.id}">QCM</button>
-                <button class="mini danger" data-chap-supprimer="${c.id}">Supprimer</button>
-              </td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>`;
+      <div id="catZone"></div>`;
+    zone();
 
     $('#nouvMatiere').addEventListener('click', () => formulaireMatiere(null));
-    $('#nouvChapitre').addEventListener('click', () => formulaireNouveauChapitre(matieres));
+    $('#nouvChapitre').addEventListener('click', () => formulaireNouveauChapitre(matieres, VUE_CAT.matiere));
+    $('#catRecherche').addEventListener('input', e => { VUE_CAT.q = e.target.value.trim(); VUE_CAT.matiere = null; zone(); });
+    $('#catZone').addEventListener('change', async e => {
+      const t = e.target.closest('[data-chap-publier]'); if (!t) return;
+      const c = chapitres.find(x => x.id === Number(t.dataset.chapPublier));
+      try {
+        await API.patch('/admin/chapitres/' + c.id, { publie: t.checked });
+        c.publie = t.checked ? 1 : 0; zone();
+        message(t.checked ? 'Chapitre en ligne.' : 'Chapitre masqué aux élèves.');
+      } catch (err) { t.checked = !t.checked; message(err.message); }
+    });
 
     gestionnaire = async e => {
+      const se = e.target.closest('[data-cat-serie]');
+      if (se) { VUE_CAT.serie = se.dataset.catSerie; VUE_CAT.matiere = null; return rendreCatalogue(); }
+      const mo = e.target.closest('[data-matiere-ouvrir]');
+      if (mo) { VUE_CAT.matiere = Number(mo.dataset.matiereOuvrir); zone(); return window.scrollTo({ top: 0, behavior: 'smooth' }); }
+      if (e.target.closest('[data-retour-matieres]')) { VUE_CAT.matiere = null; return zone(); }
+      if (e.target.closest('[data-nouveau-chapitre]')) return formulaireNouveauChapitre(matieres, VUE_CAT.matiere);
       const mm = e.target.closest('[data-mat-modifier]');
       if (mm) return formulaireMatiere(matieres.find(m => m.id === Number(mm.dataset.matModifier)));
       const ms = e.target.closest('[data-mat-supprimer]');
       if (ms) {
         const m = matieres.find(x => x.id === Number(ms.dataset.matSupprimer));
         if (!confirm(`Supprimer « ${m.nom} » et ses ${m.chapitres} chapitres ? Cette action est définitive.`)) return;
-        try { await API.supprimer('/admin/matieres/' + m.id); message('Matière supprimée.'); rendreCatalogue(); }
+        try { await API.supprimer('/admin/matieres/' + m.id); message('Matière supprimée.'); VUE_CAT.matiere = null; rendreCatalogue(); }
         catch (err) { message(err.message); }
         return;
       }
-      const cm = e.target.closest('[data-chap-modifier]');
-      if (cm) return ouvrirChapitre(cm.dataset.chapModifier);
-      const cq = e.target.closest('[data-chap-qcm]');
-      if (cq) return ouvrirQCM(cq.dataset.chapQcm);
       const cs = e.target.closest('[data-chap-supprimer]');
       if (cs) {
         const c = chapitres.find(x => x.id === Number(cs.dataset.chapSupprimer));
         if (!confirm(`Supprimer le chapitre « ${c.titre} » ? Les progressions liées seront perdues.`)) return;
         try { await API.supprimer('/admin/chapitres/' + c.id); message('Chapitre supprimé.'); rendreCatalogue(); }
         catch (err) { message(err.message); }
+        return;
       }
+      const co = e.target.closest('[data-chap-ouvrir]');
+      if (co) return ouvrirChapitre(co.dataset.chapOuvrir, co.dataset.ongletChap);
     };
   }
 
   function formulaireMatiere(m) {
-    const creation = !m;
-    dialogue(creation ? 'Nouvelle matière' : 'Modifier ' + m.nom, `
+    const creation = !m, actuelles = creation ? [] : seriesDe(m);
+    dialogue(creation ? 'Nouvelle matière' : 'Réglages — ' + m.nom, `
       ${creation ? '<label>Code (identifiant court, sans accent)<input class="champ" name="code" required></label>' : ''}
       <label>Nom<input class="champ" name="nom" value="${creation ? '' : echapper(m.nom)}" required></label>
       <label>Nom court<input class="champ" name="court" value="${creation ? '' : echapper(m.court)}"></label>
-      <label>Professeur<input class="champ" name="professeur" value="${creation ? '' : echapper(m.professeur)}"></label>
+      <fieldset class="cat-choix-series"><legend>Séries qui voient cette matière</legend>
+        ${['A', 'C', 'D'].map(s => `<label class="case"><input type="checkbox" name="serie${s}" ${actuelles.includes(s) ? 'checked' : ''}> Série ${s}</label>`).join('')}
+      </fieldset>
+      <label>Professeur ou auteurs<input class="champ" name="professeur" value="${creation ? '' : echapper(m.professeur)}"></label>
       <label>Coefficient<input class="champ" name="coefficient" type="number" min="1" max="20"
         value="${creation ? 1 : m.coefficient}"></label>
       <div class="deux">
@@ -354,95 +435,41 @@
         <label>Couleur 2<input class="champ" name="teinte2" type="color" value="${creation ? '#7b3bf5' : m.teinte2}"></label>
       </div>
       <label>Symbole<input class="champ" name="glyphe" maxlength="2" value="${creation ? '' : echapper(m.glyphe)}"></label>
-      <label>Titre du bloc formules<input class="champ" name="labelFormules"
+      <label>Titre du bloc « à retenir »<input class="champ" name="labelFormules"
         value="${creation ? 'À retenir' : echapper(m.label_formules)}"></label>`,
       async d => {
-        if (creation) await API.post('/admin/matieres', d);
-        else await API.patch('/admin/matieres/' + m.id, d);
+        const series = ['A', 'C', 'D'].filter(s => d['serie' + s]).join(',');
+        ['A', 'C', 'D'].forEach(s => delete d['serie' + s]);
+        const corps = { ...d, series };
+        if (creation) await API.post('/admin/matieres', corps);
+        else await API.patch('/admin/matieres/' + m.id, corps);
         message(creation ? 'Matière créée.' : 'Matière mise à jour.');
         rendreCatalogue();
       });
   }
 
-  function formulaireNouveauChapitre(matieres) {
+  function formulaireNouveauChapitre(matieres, matiereId) {
     dialogue('Nouveau chapitre', `
       <label>Matière<select class="champ" name="matiereId" required>
-        ${matieres.map(m => `<option value="${m.id}">${echapper(m.nom)}</option>`).join('')}
+        ${matieres.map(m => `<option value="${m.id}"${m.id === matiereId ? ' selected' : ''}>${echapper(m.nom)}${m.series ? ' — ' + m.series : ''}</option>`).join('')}
       </select></label>
       <label>Titre<input class="champ" name="titre" required></label>
-      <label>Durée totale de vidéo (minutes)<input class="champ" name="duree" type="number" min="0" value="40"></label>
+      <label>Durée de travail (minutes)<input class="champ" name="duree" type="number" min="0" value="40"></label>
       <label>Difficulté<select class="champ" name="difficulte">
         <option>Facile</option><option selected>Moyen</option><option>Difficile</option></select></label>
       <label>Accroche<textarea class="champ" name="accroche" rows="2"></textarea></label>`,
       async d => {
-        const r = await API.post('/admin/chapitres', { ...d, matiereId: Number(d.matiereId), duree: Number(d.duree) });
-        message('Chapitre créé. Complétez son contenu.');
+        const r = await API.post('/admin/chapitres', { ...d, matiereId: Number(d.matiereId), duree: Number(d.duree), publie: false });
+        message('Chapitre créé et masqué. Complétez-le, puis mettez-le en ligne.');
         await rendreCatalogue();
-        ouvrirChapitre(r.id);
+        ouvrirChapitre(r.id, 'cours');
       });
   }
 
-  /* Édition complète du contenu d'un chapitre */
-  async function ouvrirChapitre(id) {
-    let c;
-    try { c = (await API.get('/admin/chapitres/' + id)).chapitre; }
-    catch (e) { return message(e.message); }
-
-    const lignes = (t, nom, valeurs, aide) => `
-      <label>${t}<small class="aide-champ">${aide}</small>
-        <textarea class="champ mono" name="${nom}" rows="${Math.min(10, Math.max(3, valeurs.length + 1))}"
-        >${echapper(valeurs.join('\n'))}</textarea></label>`;
-
-    dialogue(`Chapitre ${c.n} — ${c.titre}`, `
-      <div class="deux">
-        <label>Titre<input class="champ" name="titre" value="${echapper(c.titre)}" required></label>
-        <label>Numéro<input class="champ" name="numero" type="number" min="1" value="${c.n}"></label>
-      </div>
-      <div class="deux">
-        <label>Durée (min)<input class="champ" name="duree" type="number" min="0" value="${c.duree}"></label>
-        <label>Difficulté<select class="champ" name="difficulte">
-          ${['Facile', 'Moyen', 'Difficile'].map(d =>
-            `<option${d === c.difficulte ? ' selected' : ''}>${d}</option>`).join('')}
-        </select></label>
-      </div>
-      <label>Accroche<textarea class="champ" name="accroche" rows="2">${echapper(c.accroche || '')}</textarea></label>
-      <label class="case"><input type="checkbox" name="publie" ${c.publie ? 'checked' : ''}> Chapitre publié</label>
-      ${lignes('Notions', 'notions', c.notions, 'une notion par ligne')}
-      ${lignes('Séances vidéo', 'seances', c.seances.map(s => s.titre + ' | ' + s.duree),
-        'une séance par ligne, au format « titre | durée en minutes »')}
-      ${lignes('Résumé — points clés', 'points', c.resume.points, 'un point par ligne')}
-      ${lignes('Résumé — formules', 'formules', c.resume.formules, 'une formule par ligne')}
-      ${lignes('Résumé — pièges', 'pieges', c.resume.pieges, 'un piège par ligne')}
-      ${lignes('TP — objectifs', 'objectifs', c.tp.objectifs, 'un objectif par ligne')}
-      ${lignes('TP — énoncés', 'exercices', c.tp.exercices, 'un exercice par ligne')}
-      ${lignes('TP — corrigé', 'corrige', c.tp.corrige, 'une réponse par ligne, dans le même ordre')}`,
-      async d => {
-        const decouper = t => String(t || '').split('\n').map(x => x.trim()).filter(Boolean);
-        const seances = decouper(d.seances).map((l, i) => {
-          const [titre, duree] = l.split('|').map(x => (x || '').trim());
-          const ancienne = c.seances[i];
-          return { id: ancienne ? ancienne.id : null, titre, duree: Number(duree) || 0 };
-        });
-        await API.patch('/admin/chapitres/' + c.id, {
-          titre: d.titre, numero: Number(d.numero), duree: Number(d.duree),
-          difficulte: d.difficulte, accroche: d.accroche, publie: !!d.publie,
-          notions: decouper(d.notions), seances,
-          resume: { points: decouper(d.points), formules: decouper(d.formules), pieges: decouper(d.pieges) },
-          tp: { objectifs: decouper(d.objectifs), exercices: decouper(d.exercices), corrige: decouper(d.corrige) }
-        });
-        message('Chapitre enregistré.');
-        rendreCatalogue();
-      }, 'large');
-  }
-
-  /* Édition du questionnaire */
-  async function ouvrirQCM(id) {
-    let c;
-    try { c = (await API.get('/admin/chapitres/' + id)).chapitre; }
-    catch (e) { return message(e.message); }
-
-    let questions = c.questions.map(q => ({ ...q, options: q.options.map(o => ({ ...o })) }));
-
+  /* L'éditeur de QCM, intégré à la fiche du chapitre. */
+  function editeurQCM(c) {
+    const questions = c.questions.map(q => ({ ...q, options: q.options.map(o => ({ ...o })) }));
+    const etat = { modifie: false };
     const dessiner = () => questions.map((q, i) => `
       <fieldset class="question-edit" data-q="${i}">
         <legend>Question ${i + 1}
@@ -462,7 +489,7 @@
           <textarea class="champ" data-champ="explication" rows="2">${echapper(q.explication)}</textarea></label>
       </fieldset>`).join('') + '<button type="button" class="pilule" id="ajoutQ">+ Ajouter une question</button>';
 
-    const lireFormulaire = corps => {
+    const lire = corps => {
       $$('.question-edit', corps).forEach((f, i) => {
         questions[i].enonce = $('[data-champ="enonce"]', f).value;
         questions[i].explication = $('[data-champ="explication"]', f).value;
@@ -470,44 +497,171 @@
         $$('[data-bonne]', f).forEach((r, j) => { questions[i].options[j].correcte = r.checked; });
       });
     };
+    const brancher = corps => {
+      const zone = $('#qcmEdit', corps);
+      zone.addEventListener('input', () => { etat.modifie = true; });
+      zone.addEventListener('change', () => { etat.modifie = true; });
+      zone.addEventListener('click', e => {
+        const f = e.target.closest('.question-edit');
+        const redessiner = () => { etat.modifie = true; zone.innerHTML = dessiner(); };
+        if (e.target.id === 'ajoutQ') {
+          lire(corps);
+          questions.push({ id: null, enonce: '', explication: '', options: [
+            { texte: '', correcte: true }, { texte: '', correcte: false }, { texte: '', correcte: false }] });
+          return redessiner();
+        }
+        if (e.target.closest('[data-suppr-q]')) {
+          lire(corps);
+          questions.splice(Number(e.target.closest('[data-suppr-q]').dataset.supprQ), 1);
+          return redessiner();
+        }
+        if (e.target.closest('[data-ajout-o]') && f) {
+          lire(corps);
+          questions[Number(f.dataset.q)].options.push({ texte: '', correcte: false });
+          return redessiner();
+        }
+        const so = e.target.closest('[data-suppr-o]');
+        if (so && f) {
+          lire(corps);
+          const q = questions[Number(f.dataset.q)];
+          if (q.options.length <= 2) return message('Une question doit garder au moins deux propositions.');
+          q.options.splice(Number(so.dataset.supprO), 1);
+          if (!q.options.some(o => o.correcte)) q.options[0].correcte = true;
+          redessiner();
+        }
+      });
+    };
+    return { questions, etat, dessiner, lire, brancher };
+  }
 
-    dialogue(`QCM — ${c.titre}`, `<div id="qcmEdit">${dessiner()}</div>`,
-      async () => {
-        await API.put('/admin/chapitres/' + c.id + '/questions', { questions });
-        message('Questionnaire enregistré.');
-        rendreCatalogue();
-      }, 'large', corps => {
-        corps.addEventListener('click', e => {
-          const zone = $('#qcmEdit', corps);
-          const f = e.target.closest('.question-edit');
-          if (e.target.id === 'ajoutQ') {
-            lireFormulaire(corps);
-            questions.push({ id: null, enonce: '', explication: '', options: [
-              { texte: '', correcte: true }, { texte: '', correcte: false }, { texte: '', correcte: false }] });
-            zone.innerHTML = dessiner(); return;
-          }
-          if (e.target.closest('[data-suppr-q]')) {
-            lireFormulaire(corps);
-            questions.splice(Number(e.target.closest('[data-suppr-q]').dataset.supprQ), 1);
-            zone.innerHTML = dessiner(); return;
-          }
-          if (e.target.closest('[data-ajout-o]') && f) {
-            lireFormulaire(corps);
-            questions[Number(f.dataset.q)].options.push({ texte: '', correcte: false });
-            zone.innerHTML = dessiner(); return;
-          }
-          const so = e.target.closest('[data-suppr-o]');
-          if (so && f) {
-            lireFormulaire(corps);
-            const q = questions[Number(f.dataset.q)];
-            if (q.options.length <= 2) return message('Une question doit garder au moins deux propositions.');
-            q.options.splice(Number(so.dataset.supprO), 1);
-            if (!q.options.some(o => o.correcte)) q.options[0].correcte = true;
-            zone.innerHTML = dessiner();
-          }
+  /* La fiche d'un chapitre : un onglet par partie de ce que voit l'élève. */
+  async function ouvrirChapitre(id, ongletInitial) {
+    let c;
+    try { c = (await API.get('/admin/chapitres/' + id)).chapitre; }
+    catch (e) { return message(e.message); }
+    const qcm = editeurQCM(c);
+    let corpsForm = null;
+
+    /* Chaque élément est une ligne à part, ajoutée ou retirée d'un clic. */
+    const lignesPour = v => Math.min(12, Math.max(2, Math.ceil(String(v).length / 85) + 1));
+    const itemListe = v => `<div class="item-edit">
+        <textarea class="champ" rows="${lignesPour(v)}">${echapper(v)}</textarea>
+        <button type="button" class="mini danger" data-suppr-item aria-label="Retirer">×</button></div>`;
+    const blocListe = (nom, titre, valeurs, bouton) => `
+      <div class="liste-edit" data-liste="${nom}"><h4>${titre}</h4>
+        <div class="liste-items">${valeurs.map(itemListe).join('')}</div>
+        <button type="button" class="pilule mini" data-ajout-item>+ ${bouton}</button></div>`;
+    const carteExo = (en, co, i) => `<fieldset class="exo-edit"><legend>Exercice
+        <button type="button" class="mini danger" data-suppr-exo>Retirer</button></legend>
+        <label>Énoncé<textarea class="champ e-enonce" rows="${lignesPour(en)}">${echapper(en)}</textarea></label>
+        <label>Corrigé<textarea class="champ e-corrige" rows="${lignesPour(co)}">${echapper(co)}</textarea></label></fieldset>`;
+    const exosApparies = c.tp.exercices.length === c.tp.corrige.length;
+    const ligneVideo = s => `
+      <div class="vid-ligne" data-id="${s.id || ''}">
+        <input class="champ v-titre" value="${echapper(s.titre)}" placeholder="Titre de la séance" aria-label="Titre de la séance">
+        <input class="champ v-duree" type="number" min="0" value="${s.duree || 0}" aria-label="Durée en minutes">
+        <input class="champ v-lien" value="${echapper(s.video ? s.video.url : '')}" placeholder="Lien YouTube (facultatif)" aria-label="Lien YouTube">
+        <button type="button" class="mini danger" data-suppr-seance aria-label="Retirer la séance">×</button>
+      </div>`;
+
+    const ONGLETS_CHAP = [
+      ['general', 'Présentation', null],
+      ['cours', 'Cours', c.resume.points.length],
+      ['retenir', 'À retenir', c.resume.formules.length + c.resume.pieges.length],
+      ['exercices', 'Exercices', c.tp.exercices.length],
+      ['qcm', 'QCM', c.questions.length],
+      ['videos', 'Vidéos', c.seances.filter(s => s.video).length]
+    ];
+    const depart = ONGLETS_CHAP.some(([v]) => v === ongletInitial) ? ongletInitial : 'general';
+    const aide = t => `<p class="chap-aide">${t}</p>`;
+    const volet = (v, html) => `<section class="chap-volet" data-volet="${v}"${v === depart ? '' : ' hidden'}>${html}</section>`;
+
+    dialogue(`${c.matiere.nom} · Chapitre ${c.n}`, `
+      <nav class="chap-onglets" role="tablist">${ONGLETS_CHAP.map(([v, l, n]) => `
+        <button type="button" role="tab" class="${v === depart ? 'actif' : ''}" data-chap-onglet="${v}">${l}${n === null ? '' : `<i>${n}</i>`}</button>`).join('')}</nav>
+      ${volet('general', aide('La carte du chapitre : ce que l’élève voit avant de l’ouvrir.') + `
+        <div class="deux">
+          <label>Titre<input class="champ" name="titre" value="${echapper(c.titre)}" required></label>
+          <label>Numéro<input class="champ" name="numero" type="number" min="1" value="${c.n}"></label>
+        </div>
+        <div class="deux">
+          <label>Durée de travail (min)<input class="champ" name="duree" type="number" min="0" value="${c.duree}"></label>
+          <label>Difficulté<select class="champ" name="difficulte">
+            ${['Facile', 'Moyen', 'Difficile'].map(d => `<option${d === c.difficulte ? ' selected' : ''}>${d}</option>`).join('')}
+          </select></label>
+        </div>
+        <label>Accroche<textarea class="champ" name="accroche" rows="3">${echapper(c.accroche || '')}</textarea></label>
+        <label class="case"><input type="checkbox" name="publie" ${c.publie ? 'checked' : ''}> Chapitre visible par les élèves</label>
+        ${blocListe('notions', 'Notions travaillées', c.notions, 'Ajouter une notion')}`)}
+      ${volet('cours', aide('Le texte que l’élève lit, page par page. Deux paragraphes forment une page. Pour écrire en gras : &lt;b&gt;mot&lt;/b&gt;.') +
+        blocListe('points', 'Paragraphes du cours', c.resume.points, 'Ajouter un paragraphe'))}
+      ${volet('retenir', aide('Les dernières pages de lecture avant les exercices.') +
+        blocListe('formules', echapper(c.matiere.labelFormules), c.resume.formules, 'Ajouter un élément') +
+        blocListe('pieges', 'Pièges fréquents', c.resume.pieges, 'Ajouter un piège'))}
+      ${volet('exercices', aide('Chaque exercice devient une page, avec un bouton « Voir le corrigé ». Ils forment aussi le TP téléchargeable.') +
+        blocListe('objectifs', 'Objectifs', c.tp.objectifs, 'Ajouter un objectif') +
+        (exosApparies
+          ? `<div id="exoListe">${c.tp.exercices.map((x, i) => carteExo(x, c.tp.corrige[i], i)).join('')}</div>
+             <button type="button" class="pilule" id="ajoutExo">+ Ajouter un exercice</button>`
+          : blocListe('exercices', 'Énoncés', c.tp.exercices, 'Ajouter un énoncé') +
+            blocListe('corrige', 'Corrigés (affichés ensemble à la fin)', c.tp.corrige, 'Ajouter un corrigé')))}
+      ${volet('qcm', aide('L’élève reçoit un tirage différent à chaque essai. Cochez le rond de la bonne réponse.') + `<div id="qcmEdit">${qcm.dessiner()}</div>`)}
+      ${volet('videos', aide('<b>Sans lien, l’élève lit le chapitre page par page.</b> Dès qu’une séance a un lien YouTube, le chapitre passe en mode vidéo.') + `
+        <div class="vid-tete"><span>Séance</span><span>Minutes</span><span>Lien YouTube</span></div>
+        <div id="vidListe">${c.seances.map(ligneVideo).join('')}</div>
+        <button type="button" class="pilule" id="ajoutSeance">+ Ajouter une séance</button>`)}`,
+      async d => {
+        const lue = nom => $$(`[data-liste="${nom}"] textarea`, corpsForm).map(t => t.value.trim()).filter(Boolean);
+        const cartes = $$('.exo-edit', corpsForm)
+          .map(f => [$('.e-enonce', f).value.trim(), $('.e-corrige', f).value.trim()]).filter(([en]) => en);
+        qcm.lire(corpsForm);
+        const seances = $$('.vid-ligne', corpsForm).map(l => ({
+          id: l.dataset.id ? Number(l.dataset.id) : null,
+          titre: $('.v-titre', l).value.trim(),
+          duree: Number($('.v-duree', l).value) || 0,
+          video: $('.v-lien', l).value.trim()
+        })).filter(s => s.titre);
+        await API.patch('/admin/chapitres/' + c.id, {
+          titre: d.titre, numero: Number(d.numero), duree: Number(d.duree),
+          difficulte: d.difficulte, accroche: d.accroche, publie: !!d.publie,
+          notions: lue('notions'), seances,
+          resume: { points: lue('points'), formules: lue('formules'), pieges: lue('pieges') },
+          tp: { objectifs: lue('objectifs'),
+            exercices: exosApparies ? cartes.map(x => x[0]) : lue('exercices'),
+            corrige: exosApparies ? cartes.map(x => x[1] || 'Corrigé à venir.') : lue('corrige') }
         });
-        corps.addEventListener('submit', () => lireFormulaire(corps), true);
-        corps.addEventListener('change', () => lireFormulaire(corps));
+        if (qcm.etat.modifie) await API.put('/admin/chapitres/' + c.id + '/questions', { questions: qcm.questions });
+        message('Chapitre enregistré.');
+        rendreCatalogue();
+      }, 'large editeur', corps => {
+        corpsForm = corps;
+        qcm.brancher(corps);
+        corps.addEventListener('click', e => {
+          const o = e.target.closest('[data-chap-onglet]');
+          if (o) {
+            $$('[data-chap-onglet]', corps).forEach(b => b.classList.toggle('actif', b === o));
+            $$('[data-volet]', corps).forEach(v => { v.hidden = v.dataset.volet !== o.dataset.chapOnglet; });
+            return;
+          }
+          const plus = e.target.closest('[data-ajout-item]');
+          if (plus) {
+            const hote = $('.liste-items', plus.closest('.liste-edit'));
+            hote.insertAdjacentHTML('beforeend', itemListe(''));
+            return hote.lastElementChild.querySelector('textarea').focus();
+          }
+          const moins = e.target.closest('[data-suppr-item]');
+          if (moins) return moins.closest('.item-edit').remove();
+          if (e.target.id === 'ajoutExo') {
+            $('#exoListe', corps).insertAdjacentHTML('beforeend', carteExo('', ''));
+            return $('#exoListe', corps).lastElementChild.querySelector('textarea').focus();
+          }
+          const moinsExo = e.target.closest('[data-suppr-exo]');
+          if (moinsExo) return moinsExo.closest('.exo-edit').remove();
+          if (e.target.id === 'ajoutSeance')
+            return $('#vidListe', corps).insertAdjacentHTML('beforeend', ligneVideo({ titre: '', duree: 0 }));
+          const s = e.target.closest('[data-suppr-seance]');
+          if (s) s.closest('.vid-ligne').remove();
+        });
       });
   }
 

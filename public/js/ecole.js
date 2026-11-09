@@ -403,6 +403,7 @@
       return;
     }
 
+    if (e.target.closest('[data-livre]') && !parties(c).length) return message('Le contenu de ce chapitre arrive bientôt.');
     if (e.target.closest('[data-livre]')) return ouvrirPartie(c, Math.min(pagesLues(c), parties(c).length - 1));
     const partie = e.target.closest('[data-partie]');
     if (partie) return ouvrirPartie(c, Number(partie.dataset.partie));
