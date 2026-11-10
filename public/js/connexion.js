@@ -141,17 +141,19 @@
       fetch('/api/catalogue/public', { credentials: 'same-origin' })
         .then(r => r.json())
         .then(d => {
-          const matieres = d.matieres || [];
+          const matieres = d.matieres || [], CLASSES = d.classes || [];
+          const court = code => (CLASSES.find(c => c.code === code) || { court: code }).court;
           /* Deux matières de même nom se distinguent par leur série. */
           const nomDe = m => echapper(m.nom) + (matieres.filter(x => x.nom === m.nom).length > 1 && m.series
-            ? ` <small class="serie-mat">série ${echapper(m.series.split(',').join(', '))}</small>` : '');
+            ? ` <small class="serie-mat">${echapper(m.series.split(',').map(court).join(', '))}</small>` : '');
           if (listeMatieres) listeMatieres.innerHTML = matieres.map(m => `
             <label><input type="checkbox" name="matieresEnseignees" value="${m.id}">
               <span class="pt" style="background:${echapper(m.teinte)}"></span>${nomDe(m)}</label>`).join('');
           /* L'élève ne voit que les matières de sa série. */
           const dessinerProfs = () => {
             if (!listeProfs) return;
-            const serie = ((($('#filiere') || {}).value || '').match(/^Série ([ACD])$/) || [])[1];
+            const choisie = (($('#filiere') || {}).value || '').trim();
+            const serie = (CLASSES.find(c => c.libelle === choisie) || {}).code;
             const siennes = matieres.filter(m => !serie || !m.series || m.series.split(',').includes(serie));
             listeProfs.innerHTML = siennes.map(m => `
             <div class="nf-prof">
@@ -159,7 +161,7 @@
               <input type="text" autocomplete="off" maxlength="6" placeholder="Code" data-code="${m.id}"
                 aria-label="Code de votre professeur de ${echapper(m.nom)}">
               <span class="verdict" aria-live="polite"></span>
-            </div>`).join('');
+            </div>`).join('') || '<p class="nf-intro">Les cours de votre classe arrivent bientôt : vous ajouterez vos professeurs plus tard.</p>';
           };
           dessinerProfs();
           if ($('#filiere')) $('#filiere').addEventListener('change', dessinerProfs);

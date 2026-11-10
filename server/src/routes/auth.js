@@ -107,7 +107,7 @@ routeur.post('/inscription', async (req, res) => {
         etablissement, filiere, ville, code_postal, pays)
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
     [nom, email, bcrypt.hashSync(motDePasse, 12), role,
-     role === 'eleve' ? config.niveauParDefaut : null,
+     role === 'eleve' ? (require('../services/classes').libelleDe(require('../services/classes').codeDe(filiere)) || config.niveauParDefaut) : null,
      telephone, dateNaissance, etablissement, filiere, ville, codePostal, pays]);
 
   /* Un parent qui indique l'e-mail de son enfant est relié immédiatement. */

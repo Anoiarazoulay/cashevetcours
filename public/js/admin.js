@@ -269,19 +269,23 @@
   /* Le catalogue se lit dans l'ordre où l'élève le découvre :
      série → matière → chapitre → contenu du chapitre. */
   const VUE_CAT = { serie: 'toutes', matiere: null, q: '' };
-  const SERIES = [['toutes', 'Toutes les séries'], ['A', 'Série A'], ['C', 'Série C'], ['D', 'Série D']];
+  const SERIES = [['toutes', 'Toutes les classes'], ['6e', '6e'], ['5e', '5e'], ['4e', '4e'], ['3e', '3e'], ['2nde', '2nde'], ['1re', '1re'], ['Terminale', 'Terminale']];
+  let CLASSES_CAT = [];
   const seriesDe = m => (m.series || '').split(',').filter(Boolean);
+  const courtDe = code => (CLASSES_CAT.find(c => c.code === code) || { court: code }).court;
+  const niveauDe = code => (CLASSES_CAT.find(c => c.code === code) || {}).niveau;
   const pluriel = (n, mot) => `${n} ${mot}${n > 1 ? 's' : ''}`;
 
   async function rendreCatalogue() {
     attente();
-    const [{ matieres }, { chapitres }] = await Promise.all([
+    const [{ matieres, classes }, { chapitres }] = await Promise.all([
       API.get('/admin/matieres'), API.get('/admin/chapitres')
     ]);
+    CLASSES_CAT = classes || [];
     if (VUE_CAT.matiere && !matieres.some(m => m.id === VUE_CAT.matiere)) VUE_CAT.matiere = null;
     const chapitresDe = id => chapitres.filter(c => c.matiere_id === id);
-    const dansSerie = m => VUE_CAT.serie === 'toutes' || seriesDe(m).includes(VUE_CAT.serie);
-    const nbSerie = s => s === 'toutes' ? matieres.length : matieres.filter(m => seriesDe(m).includes(s)).length;
+    const dansSerie = m => VUE_CAT.serie === 'toutes' || seriesDe(m).some(c => niveauDe(c) === VUE_CAT.serie);
+    const nbSerie = s => s === 'toutes' ? matieres.length : matieres.filter(m => seriesDe(m).some(c => niveauDe(c) === s)).length;
     const manque = c => !c.cours || !c.questions || !c.exercices;
 
     const ligneChapitre = (c, avecMatiere) => `
@@ -325,7 +329,7 @@
         const ch = chapitresDe(m.id), aFaire = ch.filter(manque).length;
         return `<button class="cat-matiere" data-matiere-ouvrir="${m.id}" style="--c1:${m.teinte};--c2:${m.teinte2}">
           <span class="g" aria-hidden="true">${m.glyphe}</span>
-          <span class="series">${seriesDe(m).map(s => `<i>${s}</i>`).join('') || '<i class="off">Sans série</i>'}</span>
+          <span class="series">${seriesDe(m).map(s => `<i>${courtDe(s)}</i>`).join('') || '<i class="off">Aucune classe</i>'}</span>
           <b>${echapper(m.nom)}</b>
           <small>${pluriel(ch.length, 'chapitre')} · ${pluriel(Number(m.questions), 'question')} · coef. ${m.coefficient}</small>
           <span class="etat${aFaire ? ' afaire' : ''}">${aFaire ? pluriel(aFaire, 'chapitre') + ' à compléter' : 'Contenu complet'}</span>
@@ -338,7 +342,7 @@
       return `<section class="cat-tete" style="--c1:${m.teinte};--c2:${m.teinte2}">
           <button class="cat-retour" data-retour-matieres>← Toutes les matières</button>
           <span class="g" aria-hidden="true">${m.glyphe}</span>
-          <div class="series">${seriesDe(m).map(s => `<i>Série ${s}</i>`).join('')}</div>
+          <div class="series">${seriesDe(m).map(s => `<i>${courtDe(s)}</i>`).join('')}</div>
           <h2>${echapper(m.nom)}</h2>
           <p>${pluriel(ch.length, 'chapitre')} · ${pluriel(Number(m.questions), 'question')} · coefficient ${m.coefficient} · ${echapper(m.professeur)}</p>
           <div class="cat-tete-actions">
@@ -359,7 +363,7 @@
         <div class="cat-guide-tete"><h2>Comment ça marche</h2>
           <p>${pluriel(matieres.length, 'matière')}, ${pluriel(chapitres.length, 'chapitre')} et ${pluriel(totalQ, 'question')}. Tout se range en quatre niveaux.</p></div>
         <ol>
-          <li><b>Série</b><span>A, C ou D : l’élève ne voit que les matières de sa série.</span></li>
+          <li><b>Classe</b><span>De la 6e à la Terminale, avec sa série : l’élève ne voit que les matières de sa classe.</span></li>
           <li><b>Matière</b><span>Mathématiques, Histoire… une couleur et un coefficient.</span></li>
           <li><b>Chapitre</b><span>Une leçon du programme, en ligne ou masquée.</span></li>
           <li><b>Contenu</b><span>Le cours, les exercices corrigés, le QCM et, si vous en avez, les vidéos.</span></li>
@@ -424,8 +428,9 @@
       ${creation ? '<label>Code (identifiant court, sans accent)<input class="champ" name="code" required></label>' : ''}
       <label>Nom<input class="champ" name="nom" value="${creation ? '' : echapper(m.nom)}" required></label>
       <label>Nom court<input class="champ" name="court" value="${creation ? '' : echapper(m.court)}"></label>
-      <fieldset class="cat-choix-series"><legend>Séries qui voient cette matière</legend>
-        ${['A', 'C', 'D'].map(s => `<label class="case"><input type="checkbox" name="serie${s}" ${actuelles.includes(s) ? 'checked' : ''}> Série ${s}</label>`).join('')}
+      <fieldset class="cat-choix-series"><legend>Classes qui voient cette matière</legend>
+        ${[...new Set(CLASSES_CAT.map(c => c.niveau))].map(n => `<div class="cat-niveau"><b>${n}</b>${CLASSES_CAT.filter(c => c.niveau === n).map(c =>
+          `<label class="case"><input type="checkbox" name="classe_${c.code}" ${actuelles.includes(c.code) ? 'checked' : ''}> ${c.court}</label>`).join('')}</div>`).join('')}
       </fieldset>
       <label>Professeur ou auteurs<input class="champ" name="professeur" value="${creation ? '' : echapper(m.professeur)}"></label>
       <label>Coefficient<input class="champ" name="coefficient" type="number" min="1" max="20"
@@ -438,8 +443,8 @@
       <label>Titre du bloc « à retenir »<input class="champ" name="labelFormules"
         value="${creation ? 'À retenir' : echapper(m.label_formules)}"></label>`,
       async d => {
-        const series = ['A', 'C', 'D'].filter(s => d['serie' + s]).join(',');
-        ['A', 'C', 'D'].forEach(s => delete d['serie' + s]);
+        const series = CLASSES_CAT.map(c => c.code).filter(c => d['classe_' + c]).join(',');
+        CLASSES_CAT.forEach(c => delete d['classe_' + c.code]);
         const corps = { ...d, series };
         if (creation) await API.post('/admin/matieres', corps);
         else await API.patch('/admin/matieres/' + m.id, corps);

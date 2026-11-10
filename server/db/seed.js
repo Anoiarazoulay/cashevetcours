@@ -53,7 +53,7 @@ async function insererCatalogue(cx, matieres, premierOrdre = 0) {
       `INSERT INTO matieres (code, nom, court, professeur, coefficient, teinte, teinte2, glyphe, label_formules, ordre, series)
        VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
       [m.id, m.nom, m.court, m.prof, m.coef || 1, m.teinte, m.teinte2, m.glyphe, m.labelFormules, premierOrdre + iM,
-       (m.series || ['A']).join(',')]);
+       require('../src/services/classes').normaliser(m.series || ['A']).join(',') || null]);
     const matiereId = rm.insertId;
 
     for (const [iC, c] of m.chapitres.entries()) {
@@ -203,7 +203,14 @@ async function completer({ silencieux = false } = {}) {
   const presentes = new Set((await tous('SELECT code FROM matieres')).map(m => m.code));
   const toutes = chargerCatalogue();
   /* Les séries suivent le dépôt, y compris pour une matière déjà en base. */
-  for (const m of toutes) await executer('UPDATE matieres SET series = ? WHERE code = ?', [(m.series || ['A']).join(','), m.id]);
+  /* Les classes viennent du dépôt tant que l'administration ne les a pas réglées ;
+     l'ancien format « A,C,D » (Terminale implicite) est converti en « TA,TC,TD ». */
+  const { normaliser } = require('../src/services/classes');
+  for (const m of toutes) await executer('UPDATE matieres SET series = ? WHERE code = ? AND series IS NULL', [normaliser(m.series || ['A']).join(',') || null, m.id]);
+  for (const r of await tous('SELECT id, series FROM matieres WHERE series IS NOT NULL')) {
+    const n = normaliser(r.series).join(',');
+    if (n && n !== r.series) await executer('UPDATE matieres SET series = ? WHERE id = ?', [n, r.id]);
+  }
   const nouvelles = toutes.filter(m => !presentes.has(m.id));
   if (!nouvelles.length) return { nbMat: 0, nbChap: 0, nbQ: 0 };
   const { ordre } = await un('SELECT COALESCE(MAX(ordre), -1) + 1 AS ordre FROM matieres');

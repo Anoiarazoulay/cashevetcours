@@ -23,7 +23,7 @@ const fiche = s => {
 
 /* Arbre matières → chapitres, sans le contenu pédagogique détaillé. */
 /* « Série A » → A ; une filière ancienne ou absente montre tout le catalogue. */
-const serieDe = filiere => (String(filiere || '').match(/^Série ([ACD])$/) || [])[1] || null;
+const { codeDe: serieDe } = require('./classes');
 
 async function catalogue(serie = null) {
   const [matieres, chapitres, notions, seances] = await Promise.all([

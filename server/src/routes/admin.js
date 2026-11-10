@@ -421,6 +421,7 @@ routeur.delete('/liens', async (req, res) => {
 /* ---------------------------------- matières ------------------------------- */
 routeur.get('/matieres', async (_req, res) => {
   res.json({
+    classes: require('../services/classes').CLASSES,
     matieres: await tous(`
       SELECT m.*, (SELECT COUNT(*) FROM chapitres c WHERE c.matiere_id = m.id) AS chapitres,
              (SELECT COUNT(*) FROM questions q JOIN chapitres c ON c.id = q.chapitre_id
@@ -443,7 +444,7 @@ routeur.post('/matieres', async (req, res) => {
      entier(req.body.coefficient) || 1, texte(req.body.teinte, 7) || '#3b6ef5',
      texte(req.body.teinte2, 7) || '#7b3bf5', texte(req.body.glyphe, 8) || '',
      texte(req.body.labelFormules, 80) || 'À retenir', ordre.suivant,
-     ['A', 'C', 'D'].filter(s => String(req.body.series || '').split(',').includes(s)).join(',') || null]);
+     require('../services/classes').normaliser(req.body.series).join(',') || null]);
   res.status(201).json({ id: r.insertId });
 });
 
@@ -455,7 +456,7 @@ routeur.patch('/matieres/:id', async (req, res) => {
     nom: v => texte(v, 120), court: v => texte(v, 40), professeur: v => texte(v, 120),
     coefficient: v => entier(v) || 1, teinte: v => texte(v, 7), teinte2: v => texte(v, 7),
     glyphe: v => texte(v, 8), label_formules: v => texte(v, 80), ordre: v => Number(v) || 0,
-    series: v => ['A', 'C', 'D'].filter(s => String(v).split(',').includes(s)).join(',') || null
+    series: v => require('../services/classes').normaliser(v).join(',') || null
   };
   const champs = [], params = [];
   for (const [col, nettoyer] of Object.entries(cartes)) {

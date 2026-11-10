@@ -56,6 +56,7 @@ routeur.get('/catalogue/public', async (_req, res) => {
   for (const m of matieres) if (!existe(m.image)) m.image = null;
 
   res.json({
+    classes: require('../services/classes').CLASSES,
     matieres, chiffres,
     affiches: affiches.filter(a => existe(a.image)),
     programme: programme.map(c => ({

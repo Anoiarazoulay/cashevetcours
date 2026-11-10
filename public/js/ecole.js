@@ -930,7 +930,15 @@
   };
 
   const rendreAccueil = () => {
-    const c = dernierChapitre(); if (!c) return;
+    const c = dernierChapitre();
+    if (!c) {
+      const r = $('#reprise');
+      if (r) r.outerHTML = `<section class="reprise" id="reprise"><div class="inner">
+          <span class="kicker">${txt(moi.niveau || 'Votre classe')}</span>
+          <h1>Les cours de votre classe arrivent bientôt</h1>
+          <p>Nous ajoutons le programme classe par classe. Vous serez prévenu dès que vos premiers chapitres seront en ligne.</p></div></section>`;
+      return;
+    }
     const p = pc(c.id), s = stats();
     const suite = c.seances.find(x => !etat(c.id).seances.includes(x.id));
     $('#reprise').outerHTML = `

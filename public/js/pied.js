@@ -26,7 +26,7 @@ window.PIED = (() => {
     <div class="haut">
       <div class="marque">
         <a href="/accueil" class="brand"><b>CASHEVENT</b><em>School</em></a>
-        <p>Le programme du baccalauréat chapitre par chapitre : cours de répétition en vidéo,
+        <p>De la 6e à la Terminale, chapitre par chapitre : cours à lire ou en vidéo,
         QCM corrigés et expliqués, travaux pratiques avec corrigé, et un suivi que les parents
         comprennent en dix secondes.</p>
       </div>
@@ -37,7 +37,7 @@ window.PIED = (() => {
         </div>`).join('')}
     </div>
     <div class="bas">
-      <span>© ${new Date().getFullYear()} Cashevent School — Maroc</span>
+      <span>© ${new Date().getFullYear()} Cashevent School</span>
       <span><a href="mailto:contact@cashevent.education">contact@cashevent.education</a></span>
     </div>
   </div>
