@@ -53,7 +53,8 @@ async function situation(utilisateur) {
   ]);
   return {
     obligatoire: config.abonnements.obligatoires,
-    instructionsPaiement: config.abonnements.instructionsPaiement,
+    instructionsPaiement: process.env.ABONNEMENTS_PAIEMENT ||
+      (await require('./reglages').estDefini('coordonnees_paiement') ? await require('./reglages').lire('coordonnees_paiement') : config.abonnements.instructionsPaiement),
     formules: Object.entries(FORMULES).map(([code, f]) => ({ code, ...f, ouverte: utilisateur.role === 'eleve' || code === 'premium' })),
     couverture: couv,
     autorise: !!couv && (couv.via === 'role' || debloque(couv.formule, utilisateur.role)),

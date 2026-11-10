@@ -18,6 +18,10 @@ const COLONNES = [
   /* Le QR code de l'admis et la réception de ses originaux par l'établissement. */
   ['candidatures', 'jeton', 'VARCHAR(16) NULL'],
   ['candidatures', 'originaux_le', 'DATETIME NULL'],
+  /* L'élève paie Cashevent School, qui reverse ensuite les frais à l'établissement. */
+  ['candidatures', 'montant_frais', 'DECIMAL(10,2) NULL'],
+  ['candidatures', 'paiement_le', 'DATETIME NULL'],
+  ['candidatures', 'reverse_le', 'DATETIME NULL'],
   ['exercices', 'valide', 'TINYINT(1) NOT NULL DEFAULT 0'],
   ['exercices', 'valide_par', 'INT UNSIGNED NULL'],
   ['exercices', 'note_relecture', 'VARCHAR(400) NULL'],
@@ -415,6 +419,13 @@ const TABLES = [
      KEY idx_abonnements_utilisateur (utilisateur_id, etat, fin),
      CONSTRAINT fk_abonnements_utilisateur FOREIGN KEY (utilisateur_id)
        REFERENCES utilisateurs(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`],
+
+  /* Réglages modifiables depuis l'administration (coordonnées de paiement…). */
+  ['reglages', `CREATE TABLE IF NOT EXISTS reglages (
+     cle VARCHAR(60) PRIMARY KEY,
+     valeur TEXT NULL,
+     maj_le DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`]
 ];
 

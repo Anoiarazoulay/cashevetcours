@@ -18,6 +18,53 @@ routeur.use(requiert('admin'));
 const entier = v => Number.isInteger(Number(v)) && Number(v) > 0 ? Number(v) : null;
 const texte = (v, max = 400) => String(v == null ? '' : v).trim().slice(0, max);
 
+/* ------------------- frais des candidatures : encaisser, reverser ------------------- */
+const reglages = require('../services/reglages');
+const LIGNE_FRAIS = `SELECT c.id, c.paiement, c.reference_paiement, c.envoyee_le, c.paiement_le, c.reverse_le,
+         COALESCE(c.montant_frais, e.frais) AS montant, e.devise, e.instructions_paiement AS numero_ecole,
+         e.utilisateur_id AS ecole_id, ue.nom AS ecole, u.nom AS eleve, u.email AS eleve_email
+    FROM candidatures c JOIN etablissements e ON e.utilisateur_id = c.etablissement_id
+    JOIN utilisateurs ue ON ue.id = e.utilisateur_id JOIN utilisateurs u ON u.id = c.eleve_id`;
+routeur.get('/paiements', async (_req, res) => {
+  const [declares, aReverser, reverses] = await Promise.all([
+    tous(`${LIGNE_FRAIS} WHERE c.paiement = 'declare' ORDER BY c.envoyee_le`),
+    tous(`${LIGNE_FRAIS} WHERE c.paiement = 'confirme' AND c.reverse_le IS NULL ORDER BY ue.nom, c.paiement_le`),
+    tous(`${LIGNE_FRAIS} WHERE c.reverse_le IS NOT NULL ORDER BY c.reverse_le DESC LIMIT 40`)
+  ]);
+  res.json({ coordonnees: await reglages.lire('coordonnees_paiement'), coordonneesDefinies: await reglages.estDefini('coordonnees_paiement'),
+    declares, aReverser, reverses });
+});
+routeur.put('/paiements/coordonnees', async (req, res) => {
+  await reglages.ecrire('coordonnees_paiement', texte(req.body.texte, 2000));
+  await journal.enregistrer(req, { categorie: 'compte', action: 'Coordonnées de paiement modifiées' });
+  res.json({ ok: true });
+});
+/* POST /api/admin/candidatures/:id/paiement — { confirme } : l'argent est arrivé sur le compte de Cashevent */
+routeur.post('/candidatures/:id/paiement', async (req, res) => {
+  const c = await un(`${LIGNE_FRAIS} WHERE c.id = ?`, [entier(req.params.id)]);
+  if (!c) return res.status(404).json({ erreur: 'Candidature introuvable.' });
+  const ok = req.body.confirme !== false;
+  await executer(`UPDATE candidatures SET paiement = ?, paiement_le = ?, montant_frais = ? WHERE id = ?`,
+    [ok ? 'confirme' : 'en_attente', ok ? new Date() : null, ok ? c.montant : null, c.id]);
+  await journal.enregistrer(req, { categorie: 'compte', action: ok ? 'Frais reçus' : 'Paiement rejeté', cible: c.eleve + ' → ' + c.ecole });
+  res.json({ ok: true });
+});
+/* POST /api/admin/candidatures/:id/reverse — { reverse } ; ou { ecoleId } pour tout reverser à une école */
+routeur.post('/candidatures/:id/reverse', async (req, res) => {
+  const fait = req.body.reverse !== false;
+  const r = await executer(`UPDATE candidatures SET reverse_le = ? WHERE id = ? AND paiement = 'confirme'`,
+    [fait ? new Date() : null, entier(req.params.id)]);
+  if (!r.affectedRows) return res.status(404).json({ erreur: 'Paiement introuvable.' });
+  await journal.enregistrer(req, { categorie: 'compte', action: fait ? 'Frais reversés' : 'Reversement annulé', cible: String(req.params.id) });
+  res.json({ ok: true });
+});
+routeur.post('/paiements/reverser-ecole', async (req, res) => {
+  const r = await executer(`UPDATE candidatures SET reverse_le = NOW()
+     WHERE etablissement_id = ? AND paiement = 'confirme' AND reverse_le IS NULL`, [entier(req.body.ecoleId)]);
+  await journal.enregistrer(req, { categorie: 'compte', action: 'Frais reversés', cible: 'école ' + req.body.ecoleId, details: r.affectedRows + ' paiement(s)' });
+  res.json({ ok: true, nombre: r.affectedRows });
+});
+
 /* ---------------------- entrer dans l'espace d'un compte ---------------------- */
 routeur.get('/vue', async (req, res) => {
   const [role, id] = String(req.cookies[COOKIE_VUE] || '').split(':');

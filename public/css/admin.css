@@ -594,3 +594,13 @@ textarea.champ{height:auto;padding:10px 12px;line-height:1.5;resize:vertical}
 .esp-txt b{display:block;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .esp-txt small{display:block;font-size:12.5px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media (max-width:800px){.esp-colonnes,.esp-acces{grid-template-columns:1fr}}
+.paie-bloc{margin-bottom:16px}
+.paie-bloc h2{font-size:17px;margin-bottom:4px}
+.paie-bloc .alerte,.alerte{color:#f5c078}
+.paie-form{display:grid;gap:10px;margin-top:10px}
+.paie-form .pilule{justify-self:start}
+.paie-ecole{border:1px solid var(--line-2);border-radius:12px;padding:12px;margin-top:10px}
+.paie-ecole-tete{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+.paie-ecole-tete>div{flex:1;min-width:200px}
+.paie-ecole-tete small{display:block;font-size:12.5px;color:var(--text-3);margin-top:2px}
+.paie-total{font-size:19px;font-weight:800}

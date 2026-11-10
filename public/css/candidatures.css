@@ -118,3 +118,4 @@
 .verif-actions{display:flex;gap:10px;flex-wrap:wrap}
 .verif-actions .pilule.grand{height:50px;padding:0 22px;font-size:16px}
 @media (max-width:600px){.verif-corps dl{grid-template-columns:1fr}.verif-corps dd{margin-bottom:6px}}
+.coord-paiement{margin:8px 0;padding:12px 14px;border-radius:10px;background:var(--card-2);border-left:3px solid #ffd166;white-space:pre-wrap;font-weight:600;line-height:1.55}

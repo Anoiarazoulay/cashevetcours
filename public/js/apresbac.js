@@ -140,8 +140,10 @@
           ${e.frais > 0 && c.etat !== 'brouillon' ? `
             <div class="panneau espace-haut">
               <h3 class="titre-bloc">Frais ${e.mode === 'concours' ? 'du concours' : 'd’envoi du dossier'} : ${argent(e.frais, e.devise)}</h3>
-              <p class="sous">Moyens acceptés : ${(e.moyensPaiement || []).map(txt).join(' · ')}.${e.instructionsPaiement ? ' ' + txt(e.instructionsPaiement) : ''} Après le paiement, indiquez ici sa référence.</p>
-              ${c.paiement === 'confirme' ? '<span class="etiquette paie-confirme">Frais reçus par l’établissement</span>'
+              <p class="sous">Les frais se paient à <b>Cashevent School</b>, qui les reverse à l’établissement. Moyens acceptés : ${(e.moyensPaiement || []).map(txt).join(' · ')}.</p>
+              <div class="coord-paiement">${txt(e.coordonneesPaiement || '')}</div>
+              <p class="sous">Après le paiement, indiquez ici sa référence.</p>
+              ${c.paiement === 'confirme' ? '<span class="etiquette paie-confirme">Frais reçus par Cashevent School</span>'
                 : c.paiement === 'declare' ? `<span class="etiquette paie-declare">Paiement déclaré · réf. ${txt(c.referencePaiement)}</span> <small class="sous">en attente de confirmation</small>`
                 : `<form id="formPaiement" class="ligne-form">
                     <input class="champ" name="reference" maxlength="80" required placeholder="Référence du paiement (reçu, transaction…)">

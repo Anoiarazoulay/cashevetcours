@@ -19,7 +19,7 @@
   const ONGLETS = [
     ['bord', 'Tableau de bord'], ['utilisateurs', 'Utilisateurs'],
     ['catalogue', 'Catalogue'], ['suivi', 'Suivi des élèves'],
-    ['enseignants', 'Enseignants'], ['abonnements', 'Abonnements'], ['exercices', 'Exercices'],
+    ['enseignants', 'Enseignants'], ['abonnements', 'Abonnements'], ['paiements', 'Paiements'], ['exercices', 'Exercices'],
     ['espaces', 'Entrer dans un espace'], ['messages', 'Messages'], ['journal', 'Journal']
   ];
   let onglet = location.hash.slice(1) || 'bord';
@@ -665,6 +665,80 @@
       });
   }
 
+  /* -------------------------------- paiements ----------------------------- */
+  /* L'élève paie Cashevent School ; l'administration confirme, puis reverse à l'école. */
+  async function rendrePaiements() {
+    attente();
+    const d = await API.get('/admin/paiements');
+    const argent = (n, dev) => Number(n || 0).toLocaleString('fr-FR') + ' ' + echapper(dev || 'FCFA');
+    const somme = l => l.reduce((s, x) => s + Number(x.montant || 0), 0);
+    const parEcole = new Map();
+    d.aReverser.forEach(x => { if (!parEcole.has(x.ecole_id)) parEcole.set(x.ecole_id, []); parEcole.get(x.ecole_id).push(x); });
+    const ligne = (x, actions) => `<tr>
+        <td><b>${echapper(x.eleve)}</b><small>${echapper(x.eleve_email)}</small></td>
+        <td>${echapper(x.ecole)}</td>
+        <td><b>${argent(x.montant, x.devise)}</b></td>
+        <td>${x.reference_paiement ? echapper(x.reference_paiement) : '—'}</td>
+        <td class="actions-ligne">${actions}</td></tr>`;
+    vue.innerHTML = `
+      <div class="tuiles">
+        <div class="tuile"><div class="lab">Paiements à vérifier</div><div class="val">${d.declares.length}</div><div class="sous">déclarés par les élèves</div></div>
+        <div class="tuile"><div class="lab">À reverser aux écoles</div><div class="val">${argent(somme(d.aReverser), d.aReverser[0] && d.aReverser[0].devise)}</div><div class="sous">${d.aReverser.length} paiement(s) · ${parEcole.size} école(s)</div></div>
+        <div class="tuile"><div class="lab">Déjà reversés</div><div class="val">${d.reverses.length}</div><div class="sous">derniers reversements</div></div>
+      </div>
+      <section class="panneau paie-bloc">
+        <h2>Où les élèves paient</h2>
+        <p class="sous">Ces coordonnées sont affichées à chaque élève qui doit des frais, quelle que soit l’école${d.coordonneesDefinies ? '' : ' — <b class="alerte">pas encore renseignées</b>'}.</p>
+        <form id="formCoordonnees" class="paie-form">
+          <textarea class="champ" name="texte" rows="4" maxlength="2000" placeholder="Orange Money : 6XX XX XX XX (Cashevent School)&#10;MTN Mobile Money : 6XX XX XX XX&#10;Virement : banque, IBAN…">${d.coordonneesDefinies ? echapper(d.coordonnees) : ''}</textarea>
+          <button class="pilule blanc" type="submit">Enregistrer les coordonnées</button>
+        </form>
+      </section>
+      <section class="panneau paie-bloc">
+        <h2>1. Paiements déclarés à vérifier</h2>
+        <p class="sous">Vérifiez que l’argent est bien arrivé sur le compte de Cashevent avant de confirmer.</p>
+        ${d.declares.length ? `<div class="table-defile"><table class="tableau tableau-plat"><thead><tr><th>Élève</th><th>École</th><th>Montant</th><th>Référence</th><th></th></tr></thead>
+          <tbody>${d.declares.map(x => ligne(x, `<button class="pilule mini blanc" data-paie-ok="${x.id}">Argent reçu</button>
+            <button class="mini danger" data-paie-non="${x.id}">Introuvable</button>`)).join('')}</tbody></table></div>` : '<p class="sous vide">Aucun paiement à vérifier.</p>'}
+      </section>
+      <section class="panneau paie-bloc">
+        <h2>2. À reverser aux écoles</h2>
+        <p class="sous">Faites le virement au numéro de l’école, puis marquez-le reversé.</p>
+        ${parEcole.size ? [...parEcole.values()].map(l => `
+          <div class="paie-ecole">
+            <div class="paie-ecole-tete"><div><b>${echapper(l[0].ecole)}</b>
+              <small>Numéro de reversement : ${l[0].numero_ecole ? echapper(l[0].numero_ecole) : '<b class="alerte">non renseigné par l’école</b>'}</small></div>
+              <span class="paie-total">${argent(somme(l), l[0].devise)}</span>
+              <button class="pilule blanc" data-reverser-ecole="${l[0].ecole_id}">Tout marqué reversé</button></div>
+            <div class="table-defile"><table class="tableau tableau-plat"><tbody>${l.map(x => ligne(x, `<button class="pilule mini" data-reverse="${x.id}">Reversé</button>`)).join('')}</tbody></table></div>
+          </div>`).join('') : '<p class="sous vide">Rien à reverser pour le moment.</p>'}
+      </section>
+      ${d.reverses.length ? `<section class="panneau paie-bloc"><h2>3. Derniers reversements</h2>
+        <div class="table-defile"><table class="tableau tableau-plat"><tbody>${d.reverses.map(x => ligne(x,
+          `<span class="sous">le ${dateFR(x.reverse_le)}</span> <button class="mini" data-reverse-annuler="${x.id}">Annuler</button>`)).join('')}</tbody></table></div></section>` : ''}`;
+
+    $('#formCoordonnees').addEventListener('submit', async e => {
+      e.preventDefault();
+      try { await API.put('/admin/paiements/coordonnees', { texte: e.target.texte.value }); message('Coordonnées enregistrées : les élèves les voient déjà.'); rendrePaiements(); }
+      catch (err) { message(err.message); }
+    });
+    gestionnaire = async e => {
+      const t = e.target.closest('[data-paie-ok],[data-paie-non],[data-reverse],[data-reverse-annuler],[data-reverser-ecole]'); if (!t) return;
+      t.disabled = true;
+      try {
+        if (t.dataset.paieOk) await API.post(`/admin/candidatures/${t.dataset.paieOk}/paiement`, { confirme: true });
+        else if (t.dataset.paieNon) {
+          if (!confirm('Le paiement est introuvable ? L’élève devra le déclarer à nouveau.')) { t.disabled = false; return; }
+          await API.post(`/admin/candidatures/${t.dataset.paieNon}/paiement`, { confirme: false });
+        }
+        else if (t.dataset.reverse) await API.post(`/admin/candidatures/${t.dataset.reverse}/reverse`, { reverse: true });
+        else if (t.dataset.reverseAnnuler) await API.post(`/admin/candidatures/${t.dataset.reverseAnnuler}/reverse`, { reverse: false });
+        else if (t.dataset.reverserEcole) await API.post('/admin/paiements/reverser-ecole', { ecoleId: Number(t.dataset.reverserEcole) });
+        message('C’est noté.'); rendrePaiements();
+      } catch (err) { t.disabled = false; message(err.message); }
+    };
+  }
+
   /* ---------------------------- entrer dans un espace ---------------------- */
   /* L'administration entre dans le compte d'un enseignant ou d'un établissement et le gère. */
   async function rendreEspaces() {
@@ -1208,6 +1282,7 @@
       else if (onglet === 'exercices') await rendreExercices();
       else if (onglet === 'abonnements') await rendreAbonnements();
       else if (onglet === 'espaces') await rendreEspaces();
+      else if (onglet === 'paiements') await rendrePaiements();
       else await rendreSuivi();
     } catch (e) { vue.innerHTML = `<div class="vide-etat"><b>Erreur</b>${e.message}</div>`; }
   }

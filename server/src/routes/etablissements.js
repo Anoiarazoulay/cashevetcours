@@ -10,6 +10,7 @@ const express = require('express');
 const { tous, un, executer, transaction } = require('../db');
 const { requiert, agirPour } = require('../middleware/auth');
 const journal = require('../services/journal');
+const reglages = require('../services/reglages');
 
 const routeur = express.Router();
 /* Tous les moyens de paiement sont toujours proposés aux élèves. */
@@ -39,7 +40,7 @@ const ficheDe = e => ({
   id: e.utilisateur_id, nom: e.nom, type: e.type, ville: e.ville, pays: e.pays, siteWeb: e.site_web,
   description: e.description, mode: e.mode, matieresConcours: e.matieres_concours, datesConcours: e.dates_concours,
   pieces: json(e.pieces), frais: Number(e.frais), devise: e.devise, delaiOriginaux: e.delai_originaux,
-  instructionsPaiement: e.instructions_paiement, moyensPaiement: MOYENS_PAIEMENT, ouvert: !!e.ouvert, publie: !!e.publie,
+  moyensPaiement: MOYENS_PAIEMENT, ouvert: !!e.ouvert, publie: !!e.publie,
   candidatures: e.candidatures === undefined ? undefined : Number(e.candidatures)
 });
 
@@ -76,7 +77,7 @@ routeur.get('/etablissements/:id', requiert(), async (req, res) => {
   const e = await un(`${SELECT_FICHE} WHERE e.utilisateur_id = ? AND e.publie = 1 AND u.actif = 1`, [entier(req.params.id)]);
   if (!e) return res.status(404).json({ erreur: 'Établissement introuvable.' });
   const candidature = req.utilisateur.role === 'eleve' ? await maCandidature(req.utilisateur.id, e.utilisateur_id) : null;
-  res.json({ etablissement: ficheDe(e), candidature });
+  res.json({ etablissement: { ...ficheDe(e), coordonneesPaiement: await reglages.lire('coordonnees_paiement') }, candidature });
 });
 
 async function maCandidature(eleveId, etablissementId) {
@@ -98,8 +99,9 @@ async function detailCandidature(c) {
     delaiOriginaux: c.delai_originaux, limiteOriginaux: limite,
     code: c.etat === 'acceptee' ? c.jeton || null : null, originauxLe: c.originaux_le || null,
     etablissement: e ? { id: e.utilisateur_id, nom: e.nom, type: e.type, ville: e.ville, mode: e.mode,
-      frais: Number(e.frais), devise: e.devise, pieces: json(e.pieces), instructionsPaiement: e.instructions_paiement,
-      moyensPaiement: MOYENS_PAIEMENT } : null,
+      frais: Number(e.frais), devise: e.devise, pieces: json(e.pieces),
+      moyensPaiement: MOYENS_PAIEMENT, coordonneesPaiement: await reglages.lire('coordonnees_paiement') } : null,
+    reverseLe: c.reverse_le || null,
     pieces
   };
 }
@@ -221,7 +223,8 @@ routeur.post('/candidatures/:id/lu', requiert('eleve'), async (req, res) => {
 
 /* GET /api/etablissement/profil */
 routeur.get('/etablissement/profil', requiert('etablissement'), async (req, res) => {
-  res.json({ etablissement: ficheDe(await fiche(req.utilisateur.id)) });
+  const f = await fiche(req.utilisateur.id);
+  res.json({ etablissement: { ...ficheDe(f), instructionsPaiement: f.instructions_paiement } });
 });
 
 /* PUT /api/etablissement/profil — la fiche d'admission */
@@ -247,13 +250,14 @@ routeur.put('/etablissement/profil', requiert('etablissement'), async (req, res)
      texte(b.instructionsPaiement, 600) || null, b.ouvert === false ? 0 : 1, req.utilisateur.id]);
   if (b.nom !== undefined && texte(b.nom, 120).length >= 2)
     await executer('UPDATE utilisateurs SET nom = ? WHERE id = ?', [texte(b.nom, 120), req.utilisateur.id]);
-  res.json({ etablissement: ficheDe(await fiche(req.utilisateur.id)) });
+  const f = await fiche(req.utilisateur.id);
+  res.json({ etablissement: { ...ficheDe(f), instructionsPaiement: f.instructions_paiement } });
 });
 
 /* GET /api/etablissement/candidatures — toutes les candidatures reçues */
 routeur.get('/etablissement/candidatures', requiert('etablissement'), async (req, res) => {
   const liste = await tous(
-    `SELECT c.id, c.etat, c.paiement, c.reference_paiement, c.cree_le, c.envoyee_le, c.ouverte_le, c.originaux_le, c.decidee_le, c.delai_originaux,
+    `SELECT c.id, c.etat, c.paiement, c.reference_paiement, c.cree_le, c.envoyee_le, c.ouverte_le, c.originaux_le, c.reverse_le, c.decidee_le, c.delai_originaux,
             u.id AS eleve_id, u.nom, u.filiere, u.etablissement AS lycee, u.ville,
             (SELECT COUNT(*) FROM candidature_pieces p WHERE p.candidature_id = c.id) AS pieces
        FROM candidatures c JOIN utilisateurs u ON u.id = c.eleve_id
@@ -312,13 +316,9 @@ routeur.post('/etablissement/candidatures/:id/decision', requiert('etablissement
   res.json({ ok: true, etat, delaiOriginaux: etat === 'acceptee' ? e.delai_originaux : null });
 });
 
-/* POST /api/etablissement/candidatures/:id/paiement — confirme la réception des frais */
-routeur.post('/etablissement/candidatures/:id/paiement', requiert('etablissement'), async (req, res) => {
-  const r = await executer(`UPDATE candidatures SET paiement = ? WHERE id = ? AND etablissement_id = ?`,
-    [req.body.confirme === false ? 'en_attente' : 'confirme', entier(req.params.id), req.utilisateur.id]);
-  if (!r.affectedRows) return res.status(404).json({ erreur: 'Candidature introuvable.' });
-  res.json({ ok: true });
-});
+/* Les frais sont encaissés par Cashevent School : c'est l'administration qui confirme leur réception. */
+routeur.post('/etablissement/candidatures/:id/paiement', requiert('etablissement'), async (_req, res) =>
+  res.status(403).json({ erreur: 'Les frais sont encaissés par Cashevent School, qui vous les reverse.' }));
 
 /* GET /api/etablissement/verifier/:code — ce que l'école voit en scannant le QR code d'un admis */
 routeur.get('/etablissement/verifier/:code', requiert('etablissement'), async (req, res) => {

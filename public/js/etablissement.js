@@ -20,7 +20,7 @@
   const poids = o => o < 1024 * 1024 ? Math.max(1, Math.round(o / 1024)) + ' Ko' : (Math.round(o / 1024 / 1024 * 10) / 10).toLocaleString('fr-FR') + ' Mo';
   const age = iso => { if (!iso) return null; const d = new Date(iso); const n = new Date(); let a = n.getFullYear() - d.getFullYear(); if (n < new Date(n.getFullYear(), d.getMonth(), d.getDate())) a--; return a; };
   const ETAT = { envoyee: 'À traiter', acceptee: 'Acceptée', refusee: 'Refusée' };
-  const PAIE = { en_attente: 'Frais non réglés', declare: 'Paiement déclaré', confirme: 'Frais reçus' };
+  const PAIE = { en_attente: 'Frais non réglés', declare: 'Paiement en vérification', confirme: 'Frais réglés' };
 
   const ONGLETS = [['candidatures', 'Candidatures'], ['fiche', 'Ma fiche d’admission']];
   let onglet = location.hash.slice(1) || 'candidatures';
@@ -51,7 +51,7 @@
         <div class="tuile"><div class="lab">Acceptées</div><div class="val" style="color:var(--ok)">${compte.acceptee}</div><div class="sous">${etablissement.delaiOriginaux} jours pour apporter les originaux</div></div>
         <div class="tuile"><div class="lab">Refusées</div><div class="val">${compte.refusee}</div></div>
         <div class="tuile"><div class="lab">Originaux reçus</div><div class="val">${candidatures.filter(c => c.originaux_le).length}<small> / ${compte.acceptee}</small></div><div class="sous">admis venus avec leurs originaux</div></div>
-        <div class="tuile"><div class="lab">Frais déclarés à vérifier</div><div class="val">${candidatures.filter(c => c.paiement === 'declare').length}</div></div>
+        <div class="tuile"><div class="lab">Frais réglés</div><div class="val">${candidatures.filter(c => c.paiement === 'confirme').length}</div><div class="sous">encaissés par Cashevent, reversés à votre établissement${candidatures.some(c => c.paiement === 'confirme' && c.reverse_le) ? ` · ${candidatures.filter(c => c.reverse_le).length} déjà reversé(s)` : ''}</div></div>
       </div>
       <form class="verifier-code" id="formVerifier">
         <b>Un admis se présente ?</b><span>Scannez son QR code avec l’appareil photo du téléphone, ou tapez le code affiché sous le QR code.</span>
@@ -97,7 +97,7 @@
           <div class="actions-ligne gauche espace-haut">
             <span class="etiquette etat-${d.etat}">${ETAT[d.etat]}</span>
             <span class="etiquette paie-${d.paiement}">${PAIE[d.paiement]}${d.referencePaiement ? ' · réf. ' + txt(d.referencePaiement) : ''}</span>
-            ${d.paiement !== 'confirme' ? '<button class="pilule mini" data-confirmer-paiement>Confirmer la réception des frais</button>' : ''}
+            <small class="sous">Les frais sont encaissés par Cashevent School, qui vous les reverse.</small>
           </div>
           ${d.message ? `<h3 class="titre-bloc espace-haut">Message du candidat</h3><p class="message-candidat">${txt(d.message)}</p>` : ''}
 
@@ -174,10 +174,10 @@
             <textarea class="champ" name="pieces" rows="5" required placeholder="Relevé de notes de terminale&#10;Copie de la carte d’identité&#10;Lettre de motivation">${txt(e.pieces.join('\n'))}</textarea></label>
           <label class="champ-libelle">Frais <small>— ${e.mode === 'concours' ? 'du concours' : 'd’envoi du dossier'}, 0 si gratuit</small><input class="champ" name="frais" type="number" min="0" step="1" value="${e.frais}"></label>
           <label class="champ-libelle">Devise<input class="champ" name="devise" maxlength="8" value="${txt(e.devise)}"></label>
-          <div class="pleine moyens-paiement"><b>Moyens de paiement proposés aux élèves</b>
+          <div class="pleine moyens-paiement"><b>Paiement des frais par les élèves</b>
             <div>${e.moyensPaiement.map(m => `<span>${txt(m)}</span>`).join('')}</div>
-            <small>Tous les moyens sont toujours affichés. Indiquez seulement, si vous le souhaitez, où recevoir les frais.</small></div>
-          <label class="champ-libelle pleine">Numéro ou compte pour recevoir les frais <small>— facultatif</small>
+            <small>Les élèves paient Cashevent School par l’un de ces moyens ; Cashevent vous reverse ensuite les frais.</small></div>
+          <label class="champ-libelle pleine">Numéro ou compte où Cashevent vous reverse les frais <small>— jamais montré aux élèves</small>
             <input class="champ" name="instructionsPaiement" maxlength="600" value="${txt(e.instructionsPaiement || '')}" placeholder="Ex. Orange Money 6XX XX XX XX au nom de …"></label>
           <label class="champ-libelle">Délai pour déposer les originaux <small>— en jours, après acceptation</small><input class="champ" name="delaiOriginaux" type="number" min="1" max="365" value="${e.delaiOriginaux}"></label>
           <label class="champ-libelle"><span style="display:block;margin-bottom:8px">Candidatures</span>
