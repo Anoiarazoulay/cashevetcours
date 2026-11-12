@@ -137,13 +137,18 @@ const PAGES = {
   '/abonnement': ['eleve', 'parent', 'enseignant', 'admin'],
   '/mot-de-passe': ['eleve', 'parent', 'enseignant', 'etablissement', 'admin']
 };
-const SANS_ABONNEMENT = new Set(['/abonnement', '/mot-de-passe']);
+const SANS_ABONNEMENT = new Set(['/abonnement', '/mot-de-passe', '/apres-bac']);
+const { estEtudiant } = require('./services/classes');
+/* Un étudiant n'a que le volet candidatures : les pages de cours le renvoient vers « Après le bac ». */
+const PAGES_COURS = new Set(['/ecole', '/matieres', '/revisions', '/progression', '/bilan', '/abonnement']);
 app.get(Object.keys(PAGES), async (req, res, suite) => {
   const roles = PAGES[req.path];
   /* Chaque espace a sa propre porte d'entrée : on renvoie vers la bonne. */
   if (!req.utilisateur)
     return res.redirect('/connexion/' + roles[0] + '?suite=' + encodeURIComponent(req.path));
   if (!roles.includes(req.utilisateur.role)) return res.redirect('/');
+  if (req.utilisateur.role === 'eleve' && estEtudiant(req.utilisateur.filiere) && PAGES_COURS.has(req.path))
+    return res.redirect('/apres-bac');
   /* L'administration choisit d'abord le compte dont elle gère l'espace. */
   const espaceGere = { '/espace-enseignant': 'enseignant', '/espace-etablissement': 'etablissement' }[req.path];
   if (espaceGere && req.utilisateur.role === 'admin' && !lireVue(req, espaceGere)) return res.redirect('/admin#espaces');
@@ -183,6 +188,7 @@ app.get('/', (req, res) => {
   if (!req.utilisateur) return res.redirect('/accueil');
   const cible = { eleve: '/ecole', parent: '/espace-parent',
                   enseignant: '/espace-enseignant', etablissement: '/espace-etablissement', admin: '/admin' };
+  if (req.utilisateur.role === 'eleve' && estEtudiant(req.utilisateur.filiere)) return res.redirect('/apres-bac');
   res.redirect(cible[req.utilisateur.role] || '/accueil');
 });
 

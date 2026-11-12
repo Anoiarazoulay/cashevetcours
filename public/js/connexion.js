@@ -9,7 +9,8 @@
   const suite = params.get('suite');
   const accueil = { eleve: '/ecole', parent: '/espace-parent',
                     enseignant: '/espace-enseignant', admin: '/admin' };
-  const rediriger = u => { location.href = suite || accueil[u.role] || '/'; };
+  const ETUDIANT = 'Étudiant (université ou école)';
+  const rediriger = u => { location.href = suite || (u.role === 'eleve' && u.filiere === ETUDIANT ? '/apres-bac' : accueil[u.role]) || '/'; };
 
   const erreur = $('#erreur');
   /* Le message est en tête de la carte : sur un téléphone, le bouton qui l'a
@@ -122,7 +123,8 @@
       if (jalon) jalon.hidden = r !== 'eleve';
       if (bouton) bouton.textContent = r === 'eleve' ? 'Continuer' : 'Créer mon compte';
       if (label) label.textContent = { parent: 'Lycée de votre enfant',
-        enseignant: 'Établissement où vous enseignez' }[r] || 'Votre lycée';
+        enseignant: 'Établissement où vous enseignez' }[r] ||
+        ((($('#filiere') || {}).value || '') === ETUDIANT ? 'Votre université ou école actuelle' : 'Votre lycée');
       $$('#choixRole label').forEach(l => l.classList.toggle('actif', l.querySelector('input').checked));
     };
     const choix = $('#choixRole');
@@ -131,6 +133,7 @@
       choix.querySelector(`input[name=role][value="${params.get('role')}"]`);
     if (voulu) voulu.checked = true;
     if (choix) { choix.addEventListener('change', majRole); majRole(); }
+    if ($('#filiere')) $('#filiere').addEventListener('change', majRole);
 
     /* Les matières servent deux fois : cases à cocher pour l'enseignant,
        codes des professeurs pour l'élève. */
@@ -294,7 +297,9 @@
       const souci = etape1Valide() || etape2Valide();
       if (souci) return montrer(souci);
       /* L'élève passe par l'étape de ses professeurs avant l'envoi. */
-      if (etape === 2 && role() === 'eleve') return afficher(3);
+      /* Un étudiant ne suit pas de cours : pas de professeurs à désigner. */
+      const etudiant = (($('#filiere') || {}).value || '') === ETUDIANT;
+      if (etape === 2 && role() === 'eleve' && !etudiant) return afficher(3);
       const souci3 = etape === 3 ? etape3Valide() : null;
       if (souci3) return montrer(souci3);
       envoyer(formInscription, '/auth/inscription', donnees => {

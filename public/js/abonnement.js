@@ -35,9 +35,6 @@
       ['Mon bilan : score, vidéos vues, QCM, TP et conseils de l’assistant', true, true],
       ['Projet : futur métier et chapitres à éclairer', true, true],
       ['Rattrapage : prérequis des classes antérieures, parcours, réévaluation', true, true]]],
-    ['Après le bac', [
-      ['Universités et écoles de formation : fiche d’admission', true, true],
-      ['Candidature en ligne : pièces, frais, réponse et délai pour les originaux', true, true]]],
     ['Autour de l’élève', [
       ['Espace parent : suivi, alertes, bilan de l’enfant', false, true],
       ['Espace enseignant référent : classes, dossiers, suivis, TP', false, true],
@@ -132,7 +129,7 @@
         <div class="abo-mensuel">soit ${parMois(f.prix, f.devise)} par mois</div>
         <ul class="abo-liste">${f.debloque.map(r => `<li><b>${ESPACES[r]}</b><span>${DETAIL[r]}</span></li>`).join('')}</ul>
         ${f.code === 'premium' ? '<p class="abo-note">Souscrit par l’élève, il ouvre aussi l’espace de ses parents et de ses enseignants référents, sans rien payer de plus.</p>'
-          : '<p class="abo-note">L’essentiel pour réviser et préparer l’après-bac. Les parents et enseignants ne sont pas inclus.</p>'}
+          : '<p class="abo-note">L’essentiel pour réviser. Les candidatures aux universités et écoles restent gratuites pour tous. Les parents et enseignants ne sont pas inclus.</p>'}
         ${moi.role === 'admin' ? '' : f.ouverte
           ? `<button class="pilule ${f.code === 'premium' ? 'blanc' : ''}" data-souscrire="${f.code}" ${S.enAttente ? 'disabled' : ''}>Choisir ${txt(f.libelle)}</button>`
           : '<p class="sous">Réservée aux élèves. Un parent ou un enseignant est couvert par le premium de son élève, ou souscrit le premium.</p>'}

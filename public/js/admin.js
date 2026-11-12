@@ -281,7 +281,7 @@
     const [{ matieres, classes }, { chapitres }] = await Promise.all([
       API.get('/admin/matieres'), API.get('/admin/chapitres')
     ]);
-    CLASSES_CAT = classes || [];
+    CLASSES_CAT = (classes || []).filter(c => c.code !== 'SUP');
     if (VUE_CAT.matiere && !matieres.some(m => m.id === VUE_CAT.matiere)) VUE_CAT.matiere = null;
     const chapitresDe = id => chapitres.filter(c => c.matiere_id === id);
     const dansSerie = m => VUE_CAT.serie === 'toutes' || seriesDe(m).some(c => niveauDe(c) === VUE_CAT.serie);

@@ -57,7 +57,9 @@ const exigerNouveauMotDePasse = (req, res, suite) => {
 /* Abonnement : quand il est rendu obligatoire, un élève sans formule, ou un
    parent / enseignant sans premium (le sien ou celui d'un élève lié), ne
    garde que son profil, sa déconnexion et la page d'abonnement. */
-const EXEMPTES_ABO = [/^\/auth\//, /^\/abonnement(\/|$)/, /^\/contact/, /^\/catalogue\/public/, /^\/sante/];
+/* Les universités et écoles restent gratuites : candidater ne demande aucun abonnement. */
+const EXEMPTES_ABO = [/^\/auth\//, /^\/abonnement(\/|$)/, /^\/contact/, /^\/catalogue\/public/, /^\/sante/,
+  /^\/etablissements(\/|$)/, /^\/candidatures(\/|$)/];
 const exigerAbonnement = async (req, res, suite) => {
   const u = req.utilisateur;
   if (!config.abonnements.obligatoires || !u || !['eleve', 'parent', 'enseignant'].includes(u.role)) return suite();

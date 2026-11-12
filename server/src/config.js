@@ -60,9 +60,9 @@ const config = {
       'Réglez le montant par virement ou auprès de votre contact Cashevent School, puis indiquez ici la référence du paiement. Votre abonnement est activé dès réception.',
     formules: {
       eleve:   { libelle: 'Élève', prix: 10, devise: 'EUR', dureeMois: 12,
-                 debloque: ['eleve', 'etablissement'] },
+                 debloque: ['eleve'] },
       premium: { libelle: 'Premium', prix: 50, devise: 'EUR', dureeMois: 12,
-                 debloque: ['eleve', 'parent', 'enseignant', 'etablissement'] }
+                 debloque: ['eleve', 'parent', 'enseignant'] }
     }
   },
   /* Pondération de l'avancement d'un chapitre (somme = 1) */

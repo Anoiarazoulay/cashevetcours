@@ -18,9 +18,13 @@ const CLASSES = [
   { code: 'TA', niveau: 'Terminale', court: 'Tle A', libelle: 'Terminale A' },
   { code: 'TB', niveau: 'Terminale', court: 'Tle B', libelle: 'Terminale B' },
   { code: 'TC', niveau: 'Terminale', court: 'Tle C', libelle: 'Terminale C' },
-  { code: 'TD', niveau: 'Terminale', court: 'Tle D', libelle: 'Terminale D' }
+  { code: 'TD', niveau: 'Terminale', court: 'Tle D', libelle: 'Terminale D' },
+  /* Après le bac : un compte réservé aux candidatures, sans cours. */
+  { code: 'SUP', niveau: 'Supérieur', court: 'Étudiant', libelle: 'Étudiant (université ou école)' }
 ];
-const NIVEAUX = ['6e', '5e', '4e', '3e', '2nde', '1re', 'Terminale'];
+const NIVEAUX = ['6e', '5e', '4e', '3e', '2nde', '1re', 'Terminale', 'Supérieur'];
+const LIBELLE_ETUDIANT = 'Étudiant (université ou école)';
+const estEtudiant = filiere => String(filiere || '').trim() === LIBELLE_ETUDIANT;
 const CODES = new Set(CLASSES.map(c => c.code));
 
 /* « A » (ancien format, Terminale implicite) devient « TA » ; le reste est filtré. */
@@ -38,4 +42,4 @@ const codeDe = filiere => {
 };
 const libelleDe = code => (CLASSES.find(c => c.code === code) || {}).libelle || null;
 
-module.exports = { CLASSES, NIVEAUX, normaliser, codeDe, libelleDe };
+module.exports = { CLASSES, NIVEAUX, normaliser, codeDe, libelleDe, estEtudiant, LIBELLE_ETUDIANT };

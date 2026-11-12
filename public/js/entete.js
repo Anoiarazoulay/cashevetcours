@@ -40,7 +40,9 @@ window.UI = (() => {
 
   /* Construit l'en-tête pour l'utilisateur connecté. `recherche` active la loupe. */
   const entete = (utilisateur, page, options = {}) => {
-    const liens = NAV[utilisateur.role] || [];
+    /* Un étudiant (après le bac) n'a que le volet universités et écoles. */
+    const etudiant = utilisateur.role === 'eleve' && utilisateur.filiere === 'Étudiant (université ou école)';
+    const liens = etudiant ? [['apresbac', '/apres-bac', 'Universités et écoles']] : NAV[utilisateur.role] || [];
     const initiale = (utilisateur.nom || '?').trim()[0].toUpperCase();
 
     document.body.insertAdjacentHTML('afterbegin', `
@@ -68,7 +70,7 @@ window.UI = (() => {
             { eleve: 'Élève', parent: 'Parent', enseignant: 'Enseignant', etablissement: 'Établissement',
               admin: 'Administrateur' }[utilisateur.role]}</span></div>
         ${liens.map(([, href, l]) => `<a role="menuitem" href="${href}">${l}</a>`).join('')}
-        ${['eleve', 'parent', 'enseignant'].includes(utilisateur.role) ? '<a role="menuitem" href="/abonnement">Mon abonnement</a>' : ''}
+        ${['eleve', 'parent', 'enseignant'].includes(utilisateur.role) && !etudiant ? '<a role="menuitem" href="/abonnement">Mon abonnement</a>' : ''}
         <a role="menuitem" href="/mot-de-passe">Changer mon mot de passe</a>
         <button role="menuitem" id="deconnexion">Se déconnecter</button>
       </div>
